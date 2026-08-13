@@ -1,0 +1,111 @@
+# Identity Experience
+
+TypeScript applications and their backend-for-frontend for Scnehaux identity
+administration. It realizes **SAD-002 Scnehaux Identity Experience**, except for the
+hosted login pages.
+
+## The split you need to know first
+
+SAD-002 spans two repositories, because one of its containers is rendered by Keycloak
+and the rest are not.
+
+| Container | Repository |
+| :-- | :-- |
+| Hosted login, MFA enrollment, recovery pages | `identity-kernel` — a Keycloak theme |
+| Account security experience | **here** |
+| Identity admin portal | **here** |
+| Developer identity console | **here** |
+| Identity Experience BFF | **here** |
+
+The login pages are Keycloak-rendered through supported theme extension points, so they
+are versioned and upgrade-tested alongside the release whose template contract they
+depend on. Putting them here would decouple them from that contract.
+
+## The BFF is not optional
+
+STD-IAM-001 §3.9 prohibits browser applications from persisting refresh tokens or
+equivalent long-lived bearer secrets, and directs privileged administrative experiences
+to server-managed session control.
+
+So the browser holds an opaque `__Host-` session cookie and never holds a token. Every
+token lives server-side in the BFF, which is a confidential OAuth client holding a
+client secret the browser never sees.
+
+```text
+Browser  ──opaque session cookie──►  BFF  ──access token──►  Identity Control API
+                                      │
+                                      └──code + PKCE──►  Keycloak
+```
+
+The trade is stated rather than implied: this pattern removes token exfiltration and
+adds cross-site request forgery. That is defensible because forgery is bounded to an
+open session, detectable at the server, and has three independent deterministic
+defences, while exfiltration is unbounded once it happens.
+
+`TDD-identity-experience-001` specifies the pattern in full, and it is the normative
+reference for `organization-experience` as well.
+
+## What this repository owns
+
+- Account security: sessions, devices, authenticators, consent.
+- Identity administration and investigation surfaces.
+- Application and client onboarding for developers.
+- The BFF: session, refresh, step-up, logout, and the API proxy.
+
+## What it does not own
+
+It makes no authorization decision. Every command is reauthorized by the Identity
+Control API, per SAD-002 §8. UI authorization is defence in depth and user-experience
+control only — STD-IAM-001 §3.9 says so directly.
+
+It holds no business state, runs no domain logic, and never returns a token to the
+browser on any endpoint, including diagnostics.
+
+## Governance lineage
+
+```text
+PAD-PLT-001                  Identity & Access Platform
+    ↓
+SAD-002                      Scnehaux Identity Experience
+    ↓
+TDD-identity-experience-*    Technical designs   (docs/designs)
+    ↓
+Source code
+```
+
+## Repository map
+
+| Repository | Role |
+| :-- | :-- |
+| `identity-kernel` | Keycloak extensions, realm configuration, **hosted login theme**, image build |
+| `identity-control` | Identity Control Service — this application's API |
+| `organization-control` | Organization, Tenant, Workspace, Membership authority |
+| `foundation-platform` | Shared Go substrate, not consumed here |
+| **`identity-experience`** | **This repository** |
+| `organization-experience` | Organization administration UI, conforms to this BFF pattern |
+
+## Layout
+
+| Path | Contents |
+| :-- | :-- |
+| `apps/account/` | Account security experience |
+| `apps/admin/` | Identity admin portal |
+| `apps/developer/` | Developer identity console |
+| `bff/` | Session, refresh, step-up, logout, API proxy |
+| `docs/designs/` | Technical Design Documents |
+
+## Designs
+
+| TDD | Subject | Status |
+| :-- | :-- | :-- |
+| `TDD-identity-experience-001` | Backend-for-frontend session and browser security | approved |
+| `TDD-identity-experience-002` | Account security: sessions, devices, authenticators, consent | approved |
+| `TDD-identity-experience-003` | Identity administration and investigation | approved |
+| `TDD-identity-experience-004` | Developer identity console | approved |
+
+## Standalone operation
+
+This repository requires no Scnehaux platform other than the five it shares this
+foundation with. It has one build-time dependency, `scnehaux-ui-platform`, which
+produces no runtime edge, and no dependency on Notification, Audit, Software Catalog,
+or Subscription & Entitlement.
