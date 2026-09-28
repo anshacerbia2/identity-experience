@@ -10,7 +10,10 @@ import { Upstream } from './upstream.js';
 import type { Config } from '../../src/config.js';
 import { buildServer } from '../../src/server.js';
 
-export const publicOrigin = 'https://id.example.com';
+// The injector sends Host: localhost:80, and the BFF answers only on its public origin's host, so the
+// tests' origin is that host. Nothing here depends on the scheme: the cookie attributes are asserted
+// as set, not as a browser would enforce them.
+export const publicOrigin = 'http://localhost';
 
 export const sessionKey = Buffer.alloc(32, 7);
 

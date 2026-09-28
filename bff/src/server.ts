@@ -10,6 +10,7 @@ import { apiProxy } from './api/proxy.js';
 import { Oidc } from './auth/oidc.js';
 import { authRoutes } from './auth/routes.js';
 import type { Config } from './config.js';
+import { registerCanonicalHost } from './http/canonical-host.js';
 import { sendProblem } from './http/problem.js';
 import { registerSecurityHeaders } from './http/security-headers.js';
 import { Sealer } from './session/seal.js';
@@ -48,6 +49,7 @@ export async function buildServer(
   });
 
   registerSecurityHeaders(app);
+  registerCanonicalHost(app, config.publicOrigin);
 
   // The pool connects on first use, so a process whose database is down still starts, serves the
   // application shell and answers its liveness probe; a request that needs a session fails as an

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../src/config.js';
 import { contentSecurityPolicy, securityHeaders } from '../src/http/security-headers.js';
 import { buildServer } from '../src/server.js';
-import { testConfig } from './support/harness.js';
+import { publicOrigin, testConfig } from './support/harness.js';
 
 let app: FastifyInstance;
 
@@ -20,7 +20,7 @@ beforeAll(async () => {
         internalBaseUrl: 'http://127.0.0.1:9/realms/test',
         clientId: 'identity-experience',
         clientSecret: 'unused',
-        redirectUri: 'https://id.example.com/auth/callback',
+        redirectUri: `${publicOrigin}/auth/callback`,
       },
       databaseUrl: 'postgres://unused@127.0.0.1:9/unused',
     }),
@@ -117,16 +117,58 @@ describe('the application shell', () => {
     ]) {
       const status = await new Promise<number>((resolve, reject) => {
         const url = new URL(address);
-        request({ host: url.hostname, port: url.port, path, method: 'GET' }, (response) => {
-          response.resume();
-          resolve(response.statusCode ?? 0);
-        })
+        request(
+          { host: url.hostname, port: url.port, path, method: 'GET', headers: { host: 'localhost' } },
+          (response) => {
+            response.resume();
+            resolve(response.statusCode ?? 0);
+          },
+        )
           .on('error', reject)
           .end();
       });
       // 401 would mean the path passed the guard and only the missing session stopped it.
       expect(status, path).toBe(404);
     }
+  });
+
+  // The cookies are __Host- and the Origin check is exact, so the same process under another name
+  // would sign a browser out there and fail its sign-in at the callback.
+  it('sends a page request on another host name to the public origin', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/registrations?page=2',
+      headers: { ...page, host: '127.0.0.1:8090' },
+    });
+    expect(response.statusCode).toBe(308);
+    expect(response.headers.location).toBe(`${publicOrigin}/registrations?page=2`);
+    for (const [name, value] of Object.entries(securityHeaders)) {
+      expect(response.headers[name], name).toBe(value);
+    }
+  });
+
+  it('refuses a state-changing request on another host name rather than redirecting it', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/auth/logout',
+      headers: { host: '127.0.0.1:8090' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.headers.location).toBeUndefined();
+  });
+
+  it('answers the probe and the back-channel logout on any host name, as internal callers reach them', async () => {
+    const probe = await app.inject({ method: 'GET', url: '/healthz', headers: { host: '10.0.0.7:8080' } });
+    expect(probe.statusCode).toBe(200);
+    const logout = await app.inject({
+      method: 'POST',
+      url: '/auth/back-channel-logout',
+      headers: { host: 'bff.internal:8080', 'content-type': 'application/x-www-form-urlencoded' },
+      payload: '',
+    });
+    // Refused for the missing token, not redirected for the host.
+    expect(logout.statusCode).toBe(400);
+    expect(logout.headers.location).toBeUndefined();
   });
 
   it('does not serve the shell to a request that is not asking for a page', async () => {
