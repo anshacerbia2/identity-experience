@@ -69,8 +69,16 @@ and a dependency audit.
 
 **Done, sign-in:** every item below, against a PostgreSQL session store and a PS256-signing
 stand-in for the realm, in CI. The admin shell signs in, shows who is signed in, and signs out.
-**Next:** a confidential Keycloak client for the BFF on the dev server, created by a one-time
-script, so the flow runs against the real realm.
+**Next:** signing in against the real realm. `deploy/dev/create-bff-client.sh` creates the
+confidential client `identity-experience-bff` on the dev server, once, and `scripts/dev-local.ps1`
+runs the BFF on a developer's machine against it, with no Docker. The laptop side is verified up to
+the authorization request: the issuer matches, the realm publishes a PS256 key, and the token
+endpoint answers.
+
+**Owed to identity-control.** `identity-experience-bff` is created by a script, not registered:
+identity-control's registration API builds public and resource clients only, and a confidential one
+needs credential issuance. Before identity-control starts disabling unmanaged clients, this client
+must be registered, or it is disabled with every session it holds.
 
 - Authorization code exchange with PKCE `S256`, confidential client authentication
 - `state` and `nonce` generated, stashed, and validated on return

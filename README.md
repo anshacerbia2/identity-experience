@@ -115,6 +115,31 @@ one origin. `IDENTITY_EXPERIENCE_WEB_ROOT` names the directory and
 `IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` the exact origin. The rest of its configuration is the table in
 TDD-001 §Configuration.
 
+### Signing in against the development kernel
+
+Keycloak runs on the development server; nothing here needs Docker. Once, on the server:
+
+```sh
+deploy/dev/create-bff-client.sh /path/to/identity-control/deploy/dev/.env
+```
+
+It creates the confidential client `identity-experience-bff` and prints its secret once. Then, on
+this machine, copy `.env.example` to `.env`, put the secret in it and nowhere else, and:
+
+```powershell
+./scripts/dev-local.ps1
+```
+
+That builds the application and the BFF, creates the `identity_experience_dev` schema in the local
+PostgreSQL, applies the migrations, and serves `http://localhost:8080`. Sign in as a Principal the
+kernel knows, such as the bootstrap operator. `/api/*` answers 503 until identity-control listens
+on `IDENTITY_CONTROL_BASE_URL`.
+
+Keycloak cannot reach this machine, so no back-channel logout is registered for this client: a
+session removed in the kernel ends the BFF session at its next refresh, within four minutes.
+
+### Migrations
+
 The session store is PostgreSQL. Its migrations are a separate step, run as the owning role:
 
 ```sh
