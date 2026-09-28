@@ -9,13 +9,13 @@ hosted login pages.
 SAD-002 spans two repositories, because one of its containers is rendered by Keycloak
 and the rest are not.
 
-| Container | Repository |
-| :-- | :-- |
+| Container                                    | Repository                           |
+| :------------------------------------------- | :----------------------------------- |
 | Hosted login, MFA enrollment, recovery pages | `identity-kernel` — a Keycloak theme |
-| Account security experience | **here** |
-| Identity admin portal | **here** |
-| Developer identity console | **here** |
-| Identity Experience BFF | **here** |
+| Account security experience                  | **here**                             |
+| Identity admin portal                        | **here**                             |
+| Developer identity console                   | **here**                             |
+| Identity Experience BFF                      | **here**                             |
 
 The login pages are Keycloak-rendered through supported theme extension points, so they
 are versioned and upgrade-tested alongside the release whose template contract they
@@ -75,33 +75,53 @@ Source code
 
 ## Repository map
 
-| Repository | Role |
-| :-- | :-- |
-| `identity-kernel` | Keycloak extensions, realm configuration, **hosted login theme**, image build |
-| `identity-control` | Identity Control Service — this application's API |
-| `organization-control` | Organization, Tenant, Workspace, Membership authority |
-| `foundation-platform` | Shared Go substrate, not consumed here |
-| **`identity-experience`** | **This repository** |
-| `organization-experience` | Organization administration UI, conforms to this BFF pattern |
+| Repository                | Role                                                                          |
+| :------------------------ | :---------------------------------------------------------------------------- |
+| `identity-kernel`         | Keycloak extensions, realm configuration, **hosted login theme**, image build |
+| `identity-control`        | Identity Control Service — this application's API                             |
+| `organization-control`    | Organization, Tenant, Workspace, Membership authority                         |
+| `foundation-platform`     | Shared Go substrate, not consumed here                                        |
+| **`identity-experience`** | **This repository**                                                           |
+| `organization-experience` | Organization administration UI, conforms to this BFF pattern                  |
 
 ## Layout
 
-| Path | Contents |
-| :-- | :-- |
-| `apps/account/` | Account security experience |
-| `apps/admin/` | Identity admin portal |
-| `apps/developer/` | Developer identity console |
-| `bff/` | Session, refresh, step-up, logout, API proxy |
-| `docs/designs/` | Technical Design Documents |
+| Path              | Contents                                                                                             |
+| :---------------- | :--------------------------------------------------------------------------------------------------- |
+| `apps/admin/`     | Identity admin portal: Vite, React 19, TanStack Router and Query, rendered in the browser            |
+| `apps/account/`   | Account security experience (not started)                                                            |
+| `apps/developer/` | Developer identity console (not started)                                                             |
+| `packages/ui/`    | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)    |
+| `bff/`            | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications |
+| `docs/designs/`   | Technical Design Documents                                                                           |
+
+Inside an application, `src/` follows the four layers of STD-GLB-FE-001 §3, and
+`.dependency-cruiser.cjs` enforces them. `domain/` is pure TypeScript. `core/` holds API access,
+query client, i18n and preferences. `features/` has one folder per surface, and a feature never
+imports another. `routes/` are thin files that hand a path to a feature.
+
+## Running it
+
+Node 24 and pnpm 10:
+
+```sh
+pnpm install
+pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :8080
+pnpm test && pnpm lint && pnpm build
+```
+
+The BFF serves `apps/admin/dist` in every environment that matters, so the browser always talks to
+one origin. `IDENTITY_EXPERIENCE_WEB_ROOT` names the directory and
+`IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` the exact origin.
 
 ## Designs
 
-| TDD | Subject | Status |
-| :-- | :-- | :-- |
-| `TDD-identity-experience-001` | Backend-for-frontend session and browser security | approved |
+| TDD                           | Subject                                                      | Status   |
+| :---------------------------- | :----------------------------------------------------------- | :------- |
+| `TDD-identity-experience-001` | Backend-for-frontend session and browser security            | approved |
 | `TDD-identity-experience-002` | Account security: sessions, devices, authenticators, consent | approved |
-| `TDD-identity-experience-003` | Identity administration and investigation | approved |
-| `TDD-identity-experience-004` | Developer identity console | approved |
+| `TDD-identity-experience-003` | Identity administration and investigation                    | approved |
+| `TDD-identity-experience-004` | Developer identity console                                   | approved |
 
 ## Standalone operation
 

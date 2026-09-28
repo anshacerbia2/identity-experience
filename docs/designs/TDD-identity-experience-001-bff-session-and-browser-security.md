@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.0.0
+  version: 1.1.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-08-11
+  last_reviewed: 2026-09-28
   parent_sad: SAD-002
 ---
 
@@ -169,7 +169,19 @@ workstation; absolute expiry limits a stolen session identifier regardless of
 activity.
 
 The store is server-side and shared across BFF replicas so a session survives a
-replica restart and a load-balancer decision.
+replica restart and a load-balancer decision. It is PostgreSQL: a database of the BFF's own,
+reached by a role that holds DML on the session table and nothing else. The administrator
+population is small, so one indexed lookup per request fits the proxy budget, and a
+store that survives restarts needs no second persistence technology beside the ones the
+estate already operates.
+
+## Runtime
+
+The BFF is TypeScript on Node.js, as SAD-002 §3 fixes for every container in this
+repository, on Fastify. It also serves the built browser application, so the browser
+reaches one origin: the session cookie, the content security policy and the API proxy
+all apply to it. The browser application is rendered client-side, per STD-GLB-FE-001 §3
+for authenticated administrative portals, and is built with Vite.
 
 ## API / Interface
 
@@ -192,8 +204,9 @@ tenant, assurance level, and expiry hints. It returns no token and no credential
 `ALL /api/*` proxies to the Identity Control API. The proxy attaches the access token
 from the session and forwards nothing the browser supplied as authority.
 
-Errors are RFC 7807 problem documents per STD-GLB-001, using the shared serializer
-from `foundation-platform`.
+Errors are RFC 7807 problem documents per STD-GLB-001, with the problem types of
+`foundation-platform`'s registry. `foundation-platform` is a Go module, so the BFF writes
+the same types and fields rather than importing its serializer.
 
 ### Cross-Site Request Forgery Defence
 
@@ -315,16 +328,29 @@ response body.
 Every response carries, per STD-GLB-FE-003 and the browser rules in STD-IAM-001 §3.9:
 
 ```text
-Content-Security-Policy      default-src 'none'; script-src 'self'; connect-src 'self'
+Content-Security-Policy      default-src 'none'; script-src 'self'; style-src 'self';
+                             img-src 'self' data:; font-src 'self'; connect-src 'self';
+                             manifest-src 'self'; base-uri 'none'; form-action 'self';
+                             frame-ancestors 'none'
 Strict-Transport-Security    max-age=31536000; includeSubDomains
 X-Frame-Options              DENY
 X-Content-Type-Options       nosniff
 Referrer-Policy              no-referrer
+Cross-Origin-Opener-Policy   same-origin
+Cross-Origin-Resource-Policy same-origin
+Permissions-Policy           camera=(), microphone=(), geolocation=(), payment=()
 ```
 
 The content security policy carries no `unsafe-inline` and no `unsafe-eval`. A policy
 that permits either removes most of the protection that makes cookie-held authority
 acceptable in the first place.
+
+`default-src 'none'` falls back for every directive not named. An earlier revision of
+this table named only `script-src` and `connect-src`, which would have refused the
+application's own stylesheets, fonts and images. Each is named here, and each is `'self'`:
+the build emits styles and fonts as files served from this origin, never inline.
+`data:` images are allowed for inline icons only. `form-action 'self'` and
+`base-uri 'none'` close the two injection paths that `script-src` does not cover.
 
 ## Testing Strategy
 
@@ -436,7 +462,7 @@ failure, client secret rotation, and suspected session fixation.
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |
 | Depends on | `identity-kernel` — hosted login, realm configuration, back-channel logout registration |
 | Depends on | `identity-control` — the Identity Control API, which reauthorizes every command |
-| Depends on | `foundation-platform` — problem details and telemetry |
+| Conforms to | `foundation-platform` problem registry — the same problem types, written in TypeScript |
 | Build-time dependency | `scnehaux-ui-platform` — design system packages, per SAD-002 §1 |
 
 ### Standalone Operation
