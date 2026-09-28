@@ -162,6 +162,14 @@ A second cookie, `__Host-ident_login`, carries the login binding for the length 
 sign-in: the same attributes, with `Max-Age=600`. It confers nothing but the right to
 complete the sign-in it was issued for, and it is cleared by the callback.
 
+Both cookies are bound to the exact host, so the BFF answers only on the public origin's
+host. A page request under another name for the same process, such as `localhost` where
+the origin is `127.0.0.1`, is redirected there with `308` before anything else runs. Any
+other request is refused. Without this, a browser on the other name would be signed out
+there, and a sign-in started there would fail at the callback. `/healthz` and
+`/auth/back-channel-logout` are exempt, because their callers are an orchestrator and the
+identity kernel, which reach the BFF on internal addresses.
+
 ### Server-Side Session
 
 ```text
