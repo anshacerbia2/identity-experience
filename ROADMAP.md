@@ -52,13 +52,25 @@ Its README maps each component to its platform counterpart.
 `connect-src`, so `default-src 'none'` would have refused the application's own stylesheets and
 fonts. It now names each directive. The runtime and the session store are stated.
 
+**Changed in TDD-001 1.2.0.** Sign-out ends the Keycloak session server-side instead of
+redirecting the browser through RP-initiated logout, which would have put the ID token in a URL the
+browser holds. The ID token is validated at sign-in and not kept. A login binding cookie ties the
+callback to the browser that started it. A refresh that cannot reach Keycloak keeps the session
+and answers 503; only a refusal ends it. The session table, the configuration and the tests are
+stated as built.
+
 ## Week 1 · The BFF
 
 **Done, foundation:** the workspace, the BFF serving the built application under every
 security header of TDD-001, and RFC 7807 problem documents. The admin application's shell and
 first page are built on `packages/ui`, with EN and ID messages. CI runs format, typecheck,
 ESLint, stylelint, module boundaries, tests, a build check for inline code and bundled secrets,
-and a dependency audit. **Next:** everything listed below.
+and a dependency audit.
+
+**Done, sign-in:** every item below, against a PostgreSQL session store and a PS256-signing
+stand-in for the realm, in CI. The admin shell signs in, shows who is signed in, and signs out.
+**Next:** a confidential Keycloak client for the BFF on the dev server, created by a one-time
+script, so the flow runs against the real realm.
 
 - Authorization code exchange with PKCE `S256`, confidential client authentication
 - `state` and `nonce` generated, stashed, and validated on return
@@ -74,6 +86,10 @@ asserted by scanning every endpoint; a cross-site form post carrying the session
 is rejected.
 
 ## Week 2 · Revocation reaching the browser
+
+**Done early, with sign-in:** the back-channel logout receiver, a 401 from the Identity Control
+API destroying the session, and sign-out ending the Keycloak session. **Next:** step-up, and the
+measured exit below.
 
 - Back-channel logout receiver, destroying the matching session and no other
 - 401 from the Identity Control API destroying the session

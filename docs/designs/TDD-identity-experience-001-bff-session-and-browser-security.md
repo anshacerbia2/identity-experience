@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.1.0
+  version: 1.2.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-28
+  last_reviewed: 2026-09-29
   parent_sad: SAD-002
 ---
 
@@ -99,23 +99,35 @@ sequenceDiagram
     participant K as Keycloak
     participant S as Session store
 
-    B->>F: GET /auth/login
-    F->>F: Generate PKCE verifier, state, nonce
-    F->>S: Stash verifier, state, nonce against a pre-session
-    F-->>B: 302 to Keycloak authorization endpoint
+    B->>F: GET /auth/login?return_to=/path
+    F->>F: Generate PKCE verifier, state, nonce, login binding
+    F->>S: Stash verifier, state, nonce against the binding's digest
+    F-->>B: Set-Cookie login binding; 302 to Keycloak authorization endpoint
     B->>K: Authenticate on the hosted login page
-    K-->>B: 302 back with code and state
-    B->>F: GET /auth/callback?code&state
-    F->>S: Validate state, load verifier
+    K-->>B: 302 back with code, state and iss
+    B->>F: GET /auth/callback?code&state&iss, with the login binding
+    F->>S: Consume the pre-session the binding names; validate state
     F->>K: Exchange code with verifier and client secret
     K-->>F: Access token, refresh token, ID token
-    F->>F: Validate ID token: iss, aud, nonce, signature, exp
-    F->>S: Create session, store tokens server-side
-    F-->>B: Set-Cookie session; 302 to the application
+    F->>F: Validate ID token: iss, aud, nonce, PS256 signature, exp
+    F->>S: Create session, store tokens sealed server-side
+    F-->>B: Set-Cookie session; 302 to return_to
 ```
 
 The code never reaches application JavaScript, the tokens never reach the browser,
 and `state` and `nonce` are validated rather than merely sent.
+
+The login binding ties the callback to the browser that started the sign-in. Without
+it, a code and state captured in one browser and delivered to another would sign the
+second in as the first: login cross-site request forgery. The pre-session is consumed by
+the callback, so a replayed callback finds nothing, and it lapses after ten minutes.
+`return_to` is accepted only as a path on this origin, outside `/auth`, so the flow is
+not an open redirect. A refused callback lands on `/?sign-in=failed`; the reason is
+logged, not shown, because it may describe what an attacker presented.
+
+The ID token's signature is verified even though it arrives directly from the token
+endpoint. The BFF may reach Keycloak on an internal address without TLS, and PS256 is
+the only algorithm accepted, per STD-IAM-002.
 
 ## Data Model
 
@@ -146,27 +158,44 @@ The value is opaque and carries no encoded state. A signed cookie carrying claim
 would reintroduce the problem this design exists to remove: authority material held
 in the browser.
 
+A second cookie, `__Host-ident_login`, carries the login binding for the length of a
+sign-in: the same attributes, with `Max-Age=600`. It confers nothing but the right to
+complete the sign-in it was issued for, and it is cleared by the callback.
+
 ### Server-Side Session
 
 ```text
-session_id          opaque identifier, the cookie value
-principal_id        enterprise reference from the access token
-tenant_id           active operating context
-kc_session_state    Keycloak session identifier, for back-channel logout correlation
-access_token        held server-side, never serialized to the browser
-refresh_token       held server-side, never serialized to the browser
-acr                 authentication context reached
-auth_time           when authentication occurred
-csrf_token          per-session value, delivered to the browser and echoed in a header
+id_hash              SHA-256 of the cookie value; the store never holds the value
+subject              Keycloak subject, for back-channel logout by subject
+principal_id         enterprise reference from the ID token
+display_name         name shown in the application
+keycloak_session_id  Keycloak `sid`, for back-channel logout correlation
+tokens               access and refresh token, sealed; never serialized to the browser
+access_expires_at    when the access token lapses, for refresh
+acr                  authentication context reached
+auth_time            when authentication occurred
+csrf_token           per-session value, delivered to the browser and echoed in a header
 created_at
 last_seen_at
-absolute_expiry     created_at + 8 hours
-idle_expiry         last_seen_at + 30 minutes
+absolute_expires_at  created_at + 8 hours
+idle_expires_at      last_seen_at + 30 minutes, never past absolute_expires_at
 ```
 
 Two expiries, because they bound different risks. Idle expiry limits an unattended
 workstation; absolute expiry limits a stolen session identifier regardless of
-activity.
+activity. A request through the proxy is activity; reading `GET /auth/session` is not,
+so a tab left open that only re-reads its display context still goes idle.
+
+The row is keyed by the digest of the cookie, so a copy of the table cannot be replayed
+as a cookie. The tokens are sealed with AES-256-GCM under
+`IDENTITY_EXPERIENCE_SESSION_KEY`, which the database never sees, with the row's key as
+associated data, so a sealed value moved to another row does not open. The ID token is
+validated at sign-in and not kept: nothing after sign-in needs it, and a session holds
+no credential it does not use. The active Tenant (`tenant_id`) arrives with the context
+switch; the provider-scope sessions built first carry none, per STD-IAM-002 §3.1.
+
+A sign-in in flight is a second table, `login_states`: the binding's digest, `state`,
+`nonce`, the sealed PKCE verifier, `return_to` and an expiry.
 
 The store is server-side and shared across BFF replicas so a session survives a
 replica restart and a load-balancer decision. It is PostgreSQL: a database of the BFF's own,
@@ -174,6 +203,11 @@ reached by a role that holds DML on the session table and nothing else. The admi
 population is small, so one indexed lookup per request fits the proxy budget, and a
 store that survives restarts needs no second persistence technology beside the ones the
 estate already operates.
+
+Migrations are a separate step, `pnpm --filter @identity-experience/bff migrate`, run as
+the owning role (`IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL`); it grants the serving role
+(`IDENTITY_EXPERIENCE_RUNTIME_ROLE`) its DML. The serving process never runs DDL. Rows
+past their expiry are refused when presented and purged every five minutes.
 
 ## Runtime
 
@@ -198,11 +232,32 @@ POST  /auth/context
 ALL   /api/*
 ```
 
-`GET /auth/session` returns the current display context: principal identifier, active
-tenant, assurance level, and expiry hints. It returns no token and no credential.
+`GET /auth/session` returns the current display context: principal identifier, display
+name, active tenant once the context switch exists, assurance level, expiry hints, and
+the session's CSRF token. It returns no token and no credential. With no valid session it
+answers `{"authenticated": false}`.
 
-`ALL /api/*` proxies to the Identity Control API. The proxy attaches the access token
-from the session and forwards nothing the browser supplied as authority.
+`POST /auth/logout` ends the BFF session and the Keycloak session, both server-side: the
+BFF calls Keycloak's logout endpoint as the confidential client, with the session's
+refresh token. It answers `204` and gives the browser nothing to carry. RP-initiated
+logout through the browser was rejected because it needs the ID token in a URL the
+browser holds (`id_token_hint`), which §What the BFF Must Not Do forbids. If Keycloak
+does not confirm, the BFF session is ended regardless and the failure is logged.
+
+`POST /auth/back-channel-logout` validates the logout token per OpenID Connect
+Back-Channel Logout 1.0 §2.6 — PS256 signature, issuer, audience, `iat` within two
+minutes, the logout event, no `nonce` — and ends the sessions of the named `sid`, or of
+the `sub` when no `sid` is given. It is exempt from the CSRF checks: no browser and no
+cookie is involved, and the signed token is the authentication.
+
+`ALL /api/*` proxies `/api/v1/*` to the Identity Control API. The proxy attaches the
+access token from the session and forwards nothing the browser supplied as authority:
+only `Accept`, `Content-Type`, `Idempotency-Key`, `X-Administrative-Reason`, `If-Match`
+and `If-None-Match` pass, never `Authorization` or `Cookie`, and no upstream `Set-Cookie`
+comes back. A path that would resolve outside `/v1/` — a dot-segment, or an encoded slash
+or backslash in any segment — is refused before any session is read.
+
+`POST /auth/step-up` and `POST /auth/context` are built with the screens that need them.
 
 Errors are RFC 7807 problem documents per STD-GLB-001, with the problem types of
 `foundation-platform`'s registry. `foundation-platform` is a Go module, so the BFF writes
@@ -236,12 +291,23 @@ exfiltration has none once it has happened.
 ```text
 before proxying a request:
     if access token expires within the skew window:
+        lock the session row; if another request refreshed meanwhile, use its tokens
         refresh server-side using the stored refresh token
         on success: replace both tokens in the session
-        on failure: destroy the session, clear the cookie, respond 401
+        on refusal: destroy the session, clear the cookie, respond 401
+        on outage: keep the session, respond 503
 ```
 
 Refresh is invisible to the browser and never triggers a redirect for an active user.
+
+The row lock matters because Keycloak can rotate refresh tokens. Two requests that find
+the same access token near expiry would otherwise both refresh, and the second would
+present a spent refresh token and end a healthy session.
+
+A refusal is an OAuth error response from the token endpoint, such as `invalid_grant`
+when the Keycloak session is gone. An outage is no answer, or a 5xx. Only a refusal
+destroys the session: ending every open session because the identity kernel was
+unreachable for a minute would turn an outage into a mass sign-out.
 
 The failure branch is an enforcement mechanism, not an error path. When a Membership
 is revoked, `identity-control` removes the Keycloak session; the next refresh from
@@ -311,14 +377,29 @@ user-experience control only.
 
 | Variable | Default | Purpose |
 | :-- | :-- | :-- |
-| `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token |
+| `IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` | none, required | Exact origin the browser uses; what the `Origin` check compares against |
+| `IDENTITY_EXPERIENCE_WEB_ROOT` | none, required | The built browser application this process serves |
+| `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
+| `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
 | `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
 | `IDENTITY_EXPERIENCE_CLIENT_SECRET` | none, required | Sourced from the approved secret manager |
-| `IDENTITY_EXPERIENCE_REDIRECT_URI` | none, required | Exactly registered, no wildcard |
+| `IDENTITY_EXPERIENCE_REDIRECT_URI` | none, required | Exactly registered, no wildcard; must be the public origin's `/auth/callback` |
+| `IDENTITY_EXPERIENCE_SESSION_KEY` | none, required | 32 bytes, base64; seals the tokens a session row holds |
+| `IDENTITY_EXPERIENCE_DATABASE_URL` | none, required | Session store, as the DML-only serving role |
 | `IDENTITY_EXPERIENCE_SESSION_IDLE` | `30m` | Idle expiry |
 | `IDENTITY_EXPERIENCE_SESSION_ABSOLUTE` | `8h` | Absolute expiry |
 | `IDENTITY_EXPERIENCE_REFRESH_SKEW` | `30s` | Refresh ahead of expiry |
 | `IDENTITY_CONTROL_BASE_URL` | none, required | Identity Control API |
+| `IDENTITY_EXPERIENCE_UPSTREAM_TIMEOUT` | `10s` | Bound on one proxied call |
+| `IDENTITY_EXPERIENCE_LISTEN_HOST`, `_LISTEN_PORT` | `0.0.0.0`, `8080` | Listening address |
+
+The migration step reads `IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL` (the owning role)
+and `IDENTITY_EXPERIENCE_RUNTIME_ROLE` (the role granted DML); the server reads neither.
+
+Keycloak states one issuer whatever address it is reached on, so the server metadata is
+written out rather than discovered: the browser is sent to the issuer's authorization
+endpoint, the token, key and logout endpoints are called on the internal address, and
+every token is still validated against the public issuer.
 
 No secret appears in a built artifact, in client-side configuration, or in any
 response body.
@@ -362,13 +443,19 @@ the build emits styles and fonts as files served from this origin, never inline.
 - `localStorage` and `sessionStorage` hold no credential after a full sign-in flow.
 - A session cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, `__Host-` prefixed, and
   carries no encoded state.
+- The session store holds neither a cookie value nor a token in plaintext.
 
 ### Sign-in Correctness
 
 - A callback with a mismatched `state` is rejected.
-- An ID token with a mismatched `nonce`, wrong `iss`, wrong `aud`, or invalid
-  signature is rejected.
+- A callback in a browser that did not start the sign-in, a replayed callback, and an
+  expired sign-in are rejected.
+- An authorization response carrying another issuer's `iss` is rejected.
+- An ID token with a mismatched `nonce`, wrong `iss`, wrong `aud`, past `exp`, a
+  signature by a key the realm does not publish, or an `RS256` signature is rejected.
 - The authorization request uses PKCE with `S256`.
+- Sign-in issues a new session identifier and ends one the browser held before.
+- `return_to` off this origin returns to the root.
 - A redirect URI not exactly registered is refused by Keycloak.
 
 ### Cross-Site Request Forgery
@@ -382,6 +469,8 @@ the build emits styles and fonts as files served from this origin, never inline.
 
 - After Keycloak session removal, the next server-side refresh fails and the session
   is destroyed.
+- An identity kernel outage during refresh answers 503 and keeps the session.
+- Concurrent requests that find the token near expiry refresh once.
 - Back-channel logout destroys the matching session and no other.
 - A 401 from the Identity Control API destroys the session.
 - Measured time from Membership revocation to session destruction stays within the

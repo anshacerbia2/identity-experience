@@ -11,6 +11,28 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+
+    # The BFF's session store is tested against PostgreSQL: the row lock that keeps concurrent
+    # refreshes to one, the expiry queries and the migrations are what is under test, and no fake
+    # answers for them. Pinned by digest, the same server identity-control is verified against.
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+        env:
+          POSTGRES_USER: bff
+          POSTGRES_PASSWORD: bff
+          POSTGRES_DB: bff_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bff"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      IDENTITY_EXPERIENCE_TEST_DATABASE_URL: postgres://bff:bff@localhost:5432/bff_test?sslmode=disable
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 

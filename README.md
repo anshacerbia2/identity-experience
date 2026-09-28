@@ -112,7 +112,20 @@ pnpm test && pnpm lint && pnpm build
 
 The BFF serves `apps/admin/dist` in every environment that matters, so the browser always talks to
 one origin. `IDENTITY_EXPERIENCE_WEB_ROOT` names the directory and
-`IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` the exact origin.
+`IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` the exact origin. The rest of its configuration is the table in
+TDD-001 §Configuration.
+
+The session store is PostgreSQL. Its migrations are a separate step, run as the owning role:
+
+```sh
+IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL=postgres://owner@host/db \
+IDENTITY_EXPERIENCE_RUNTIME_ROLE=identity_experience_bff \
+pnpm --filter @identity-experience/bff migrate
+```
+
+The BFF's tests run against PostgreSQL too, in a throwaway schema they drop afterwards.
+`IDENTITY_EXPERIENCE_TEST_DATABASE_URL` names a database they may create schemas in; without it
+the session tests fail rather than skip.
 
 ## Designs
 

@@ -10,7 +10,13 @@ export const en = {
   'shell.nav.label': 'Primary',
   'shell.nav.overview': 'Overview',
   'shell.nav.section.control': 'Control plane',
-  'shell.session.signedOut': 'Not signed in',
+  'shell.session.checking': 'Checking session',
+  'shell.session.unavailable': 'Session unavailable',
+  'shell.session.signIn': 'Sign in',
+  'shell.session.signOut': 'Sign out',
+  'shell.session.signedIn': 'Signed in',
+  'shell.session.signInFailed':
+    'Sign-in did not complete. Try again; if it keeps failing, the reason is in the service log.',
   'shell.theme.toDark': 'Switch to dark theme',
   'shell.theme.toLight': 'Switch to light theme',
   'shell.locale.label': 'Language',
@@ -20,6 +26,7 @@ export const en = {
   'overview.lead':
     'Principals, protocol clients and the drift between what was registered and what Keycloak holds, in one place. Every action here is reauthorized by the Identity Control API.',
   'overview.status.foundation': 'Foundation ready',
+  'overview.status.ready': 'Ready',
   'overview.status.next': 'Next',
   'overview.status.planned': 'Planned',
 
@@ -45,7 +52,13 @@ export const id: Messages = {
   'shell.nav.label': 'Utama',
   'shell.nav.overview': 'Ringkasan',
   'shell.nav.section.control': 'Control plane',
-  'shell.session.signedOut': 'Belum masuk',
+  'shell.session.checking': 'Memeriksa sesi',
+  'shell.session.unavailable': 'Sesi tidak tersedia',
+  'shell.session.signIn': 'Masuk',
+  'shell.session.signOut': 'Keluar',
+  'shell.session.signedIn': 'Sudah masuk',
+  'shell.session.signInFailed':
+    'Proses masuk tidak selesai. Coba lagi; kalau terus gagal, alasannya ada di log layanan.',
   'shell.theme.toDark': 'Ganti ke tema gelap',
   'shell.theme.toLight': 'Ganti ke tema terang',
   'shell.locale.label': 'Bahasa',
@@ -55,6 +68,7 @@ export const id: Messages = {
   'overview.lead':
     'Principal, client protokol, dan penyimpangan antara yang terdaftar dengan yang ada di Keycloak, di satu tempat. Setiap tindakan di sini diotorisasi ulang oleh Identity Control API.',
   'overview.status.foundation': 'Fondasi siap',
+  'overview.status.ready': 'Siap',
   'overview.status.next': 'Berikutnya',
   'overview.status.planned': 'Direncanakan',
 
