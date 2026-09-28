@@ -5,7 +5,7 @@
 
 .DESCRIPTION
   Nothing here needs Docker. Keycloak stays on the server; this machine runs the BFF on
-  http://localhost:8080, which serves the built admin application, and keeps its sessions in the
+  http://127.0.0.1:8090, which serves the built admin application, and keeps its sessions in the
   local PostgreSQL.
 
   Reads .env beside the repository root (copy .env.example). The one value it cannot make is the
@@ -26,7 +26,11 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $envFile = Join-Path $root '.env'
 $schema = 'identity_experience_dev'
-$origin = 'http://localhost:8080'
+# Not localhost:8080: the dev tunnel forwards the server's 8080 and rewrites a redirect to
+# localhost:8080 into its own URL, so Keycloak's return to the callback never reached this machine.
+# The client's registered redirect URI (deploy/dev/create-bff-client.sh) is this origin's.
+$port = '8090'
+$origin = "http://127.0.0.1:$port"
 
 if (-not (Test-Path $envFile)) {
     throw "No .env at $envFile. Copy .env.example and fill in IDENTITY_EXPERIENCE_CLIENT_SECRET."
@@ -81,7 +85,7 @@ $sessionDatabase = $database.Uri.AbsoluteUri
 $env:IDENTITY_EXPERIENCE_PUBLIC_ORIGIN = $origin
 $env:IDENTITY_EXPERIENCE_WEB_ROOT = Join-Path $root 'apps\admin\dist'
 $env:IDENTITY_EXPERIENCE_LISTEN_HOST = '127.0.0.1'
-$env:IDENTITY_EXPERIENCE_LISTEN_PORT = '8080'
+$env:IDENTITY_EXPERIENCE_LISTEN_PORT = $port
 $env:IDENTITY_EXPERIENCE_ISSUER = Get-OrDefault 'IDENTITY_EXPERIENCE_ISSUER' 'https://gqr8l4jz-8080.asse.devtunnels.ms/realms/scnehaux'
 $env:IDENTITY_EXPERIENCE_CLIENT_ID = 'identity-experience-bff'
 $env:IDENTITY_EXPERIENCE_CLIENT_SECRET = $dotenv['IDENTITY_EXPERIENCE_CLIENT_SECRET']

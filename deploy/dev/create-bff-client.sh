@@ -17,7 +17,10 @@
 #                            token, because the BFF accepts no other algorithm. A 240-second access
 #                            token: provider-scope is lifetime class L0 (§3.3).
 #
-# The redirect URI is the BFF running on a developer's machine, http://localhost:8080. Keycloak
+# The redirect URI is the BFF running on a developer's machine, http://127.0.0.1:8090. Not
+# localhost:8080: the dev tunnel forwards the server's port 8080 and rewrites any redirect to
+# localhost:8080 into the tunnel's own URL, which sent the first real sign-in back to Keycloak
+# instead of the BFF. A port the tunnel does not forward is left alone. Keycloak
 # cannot reach that machine, so no back-channel logout URL is registered; a session removed in the
 # kernel still ends the BFF session at its next refresh, within four minutes.
 #
@@ -45,7 +48,7 @@ set +a
 container="${KERNEL_KEYCLOAK_CONTAINER:-scnehaux-identity-dev-keycloak-1}"
 realm=scnehaux
 client=identity-experience-bff
-redirect_uri=http://localhost:8080/auth/callback
+redirect_uri=http://127.0.0.1:8090/auth/callback
 random() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
 
 kc() {
