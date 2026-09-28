@@ -131,7 +131,9 @@ this machine, copy `.env.example` to `.env`, put the secret in it and nowhere el
 ```
 
 That builds the application and the BFF, creates the `identity_experience_dev` schema in the local
-PostgreSQL, applies the migrations, and serves `http://localhost:8080`. Sign in as a Principal the
+PostgreSQL, applies the migrations, and serves `http://127.0.0.1:8090`. Not `localhost:8080`: the dev
+tunnel forwards the server's port 8080 and rewrites a redirect to `localhost:8080` into its own URL,
+so Keycloak's return never reached the laptop. Sign in as a Principal the
 kernel knows, such as the bootstrap operator. `/api/*` answers 503 until identity-control listens
 on `IDENTITY_CONTROL_BASE_URL`.
 
