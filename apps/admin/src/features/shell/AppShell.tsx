@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
 
 import { Icon, StatusPill } from '@identity-experience/ui';
@@ -7,6 +7,7 @@ import { Message } from '@/core/i18n/Message';
 
 import styles from './AppShell.module.scss';
 import { LocaleSwitch } from './LocaleSwitch';
+import { SessionControl } from './SessionControl';
 import { ThemeToggle } from './ThemeToggle';
 
 // AppShell is the frame every page renders in: a navigation rail, a top bar stating the
@@ -14,6 +15,10 @@ import { ThemeToggle } from './ThemeToggle';
 // because STD-GLB-FE-009 requires the current administrative scope to be.
 
 export function AppShell({ children }: { readonly children: ReactNode }): ReactElement {
+  // The BFF lands a refused sign-in on /?sign-in=failed; why it was refused stays in its log.
+  const signInFailed = useRouterState({
+    select: (state) => new URLSearchParams(state.location.searchStr).get('sign-in') === 'failed',
+  });
   return (
     <div className={styles['root']}>
       <a className={styles['skip']} href="#main">
@@ -56,13 +61,18 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
             <Message id="app.environment.development" />
           </StatusPill>
           <div className={styles['barEnd']}>
-            <StatusPill tone="neutral">
-              <Message id="shell.session.signedOut" />
-            </StatusPill>
+            <SessionControl />
             <LocaleSwitch />
             <ThemeToggle />
           </div>
         </header>
+
+        {signInFailed ? (
+          <p className={styles['notice']} role="alert">
+            <Icon name="alert" />
+            <Message id="shell.session.signInFailed" />
+          </p>
+        ) : null}
 
         <main id="main" className={styles['main']} tabIndex={-1}>
           {children}

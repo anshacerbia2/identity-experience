@@ -7,8 +7,8 @@ import type { MessageKey } from '@/core/i18n/messages';
 
 import styles from './OverviewPage.module.scss';
 
-// The landing page. Until sign-in exists it states what this console will hold and in what order,
-// and it shows no figure: a number on this page would be a number nobody measured.
+// The landing page. Until the console's screens exist it states what it will hold and in what
+// order, and it shows no figure: a number on this page would be a number nobody measured.
 
 interface Surface {
   readonly icon: IconName;
@@ -23,15 +23,15 @@ const surfaces: readonly Surface[] = [
     icon: 'key',
     title: 'overview.card.signin.title',
     body: 'overview.card.signin.body',
-    tone: 'info',
-    status: 'overview.status.next',
+    tone: 'success',
+    status: 'overview.status.ready',
   },
   {
     icon: 'pulse',
     title: 'overview.card.registrations.title',
     body: 'overview.card.registrations.body',
-    tone: 'neutral',
-    status: 'overview.status.planned',
+    tone: 'info',
+    status: 'overview.status.next',
   },
   {
     icon: 'users',
