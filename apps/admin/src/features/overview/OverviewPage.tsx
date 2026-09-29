@@ -30,15 +30,15 @@ const surfaces: readonly Surface[] = [
     icon: 'pulse',
     title: 'overview.card.registrations.title',
     body: 'overview.card.registrations.body',
-    tone: 'info',
-    status: 'overview.status.inProgress',
+    tone: 'success',
+    status: 'overview.status.ready',
   },
   {
     icon: 'users',
     title: 'overview.card.principals.title',
     body: 'overview.card.principals.body',
-    tone: 'neutral',
-    status: 'overview.status.planned',
+    tone: 'info',
+    status: 'overview.status.inProgress',
   },
 ];
 

@@ -4,11 +4,11 @@ import { useForm } from 'react-hook-form';
 import { Button, Icon, Panel } from '@identity-experience/ui';
 
 import { MutationError } from '@/core/api/MutationError';
+import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
 import type { Finding } from '@/domain/registration';
 
 import { fieldLabel } from './labels';
-import { ReasonField, reasonRules } from './ReasonField';
 import { useApplyDesiredState } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
 

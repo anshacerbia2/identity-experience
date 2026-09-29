@@ -5,11 +5,11 @@ import { useIntl } from 'react-intl';
 import { Button, Icon, Panel, SelectField, TextField } from '@identity-experience/ui';
 
 import { MutationError } from '@/core/api/MutationError';
+import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
 import { exceptionFields, exceptionHours, type ExceptionField } from '@/domain/registration';
 
 import { fieldLabel } from './labels';
-import { ReasonField, reasonRules } from './ReasonField';
 import { useGrantException } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
 

@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.3.0
+  version: 1.4.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -221,6 +221,40 @@ a refusal needs the rule. Any other failure is described in the application's ow
 After any command settles, every registration read is repeated: a sweep or a resolution
 changes the summary, the counts, and the findings.
 
+### Principal Provisioning and Portability
+
+Principal search and a Principal's security state (§API / Interface above) depend on
+`TDD-identity-control-005`, which is not built upstream. What the Identity Control API
+offers today comes from `TDD-identity-control-001`, and the console shows that and
+nothing more:
+
+```text
+POST  /api/v1/principals                    Idempotency-Key
+GET   /api/v1/principals:dangling
+POST  /api/v1/principals/{principal_id}:relink   X-Administrative-Reason
+POST  /api/v1/principals:reconcile
+```
+
+**Creating a Principal.** Creation takes the kind (person or workload), a username, an
+optional email and, for a workload only, the accountable owner's `principal_id`. The
+console shows the `principal_id` the API issued. For a person, it adds that Keycloak asks
+them to set a password at first sign-in: identity-control creates the user with a
+required action and never holds a credential, so nothing here collects one. The request
+carries an Idempotency-Key. The key is kept per distinct request: resubmitting the same
+values after an outage reuses it, so the API returns the Principal the first attempt
+created. Changing a value takes a new key, because the API refuses a key reused for a
+different request.
+
+**Dangling mappings.** A Principal whose Keycloak user is gone is listed by
+`principal_id` with the time it was detected. It keeps its `principal_id` and every
+Membership. **Relink** requires a reason, sent as `X-Administrative-Reason`, and says
+where the Principal ended. It is `active` under a new user when recovery completed at
+once, and `pending` when the scheduled recovery will finish it. This list is bounded by
+what the sweep found, not by the Principal population, so it is not the listing
+§Search Is Not Listing rules out. No page lists every Principal. **Run the Principal
+sweep now** runs pending recovery and the dangling-mapping sweep, as the schedule does,
+and reports how many it recovered and how many it found dangling.
+
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the
 application's own. A 401 means the BFF ended the session, so the shell reads the session
@@ -279,6 +313,15 @@ again and shows the user signed out rather than a page of errors.
   durations the API accepts. It requires the Keycloak user ID.
 - A refusal is shown with the API's sentence, attributed to it, and with its reference.
 
+### Principals
+
+- Only the dangling mappings are read: no request lists the Principal population.
+- Creating a person or a workload sends an Idempotency-Key and the CSRF token. A workload
+  requires its owner as a principal_id.
+- The same request resubmitted after an outage reuses its key, and a changed one takes a new key.
+- Relink requires a reason and states whether the Principal ended active or pending.
+- A refused relink is shown with the API's sentence.
+
 ## Security Notes
 
 This interface exists because the Admin Console is not an acceptable enterprise
@@ -325,3 +368,4 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | EAD-006 §5.3 — privileged access is scoped, attributable, time-bounded, and evidenced |
 | Depends on | `TDD-identity-control-005` - every refusal, guard, privileged-read event, and containment operation originates there |
 | Depends on | `TDD-identity-control-003` - registrations, their findings, and the reconciler's runs |
+| Depends on | `TDD-identity-control-001` - Principal creation, dangling mappings, and relink |
