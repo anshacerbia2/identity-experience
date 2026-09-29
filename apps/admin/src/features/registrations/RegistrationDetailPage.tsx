@@ -1,16 +1,23 @@
 import { Link } from '@tanstack/react-router';
-import type { ReactElement, ReactNode } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 import { useSession } from '@/core/session/session';
 import { SignInRequired } from '@/core/session/SignInRequired';
-import { convergenceSeconds, findingAttention, type Registration } from '@/domain/registration';
+import {
+  convergenceSeconds,
+  findingAttention,
+  needsOperator,
+  type Registration,
+} from '@/domain/registration';
 
+import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
+import { ExceptionForm } from './ExceptionForm';
 import { attentionTone, fieldLabel, findingClassLabel, profileLabel, stateLabel, stateTone } from './labels';
 import { useFindings, useRegistration } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
@@ -121,6 +128,9 @@ const compact = (value: unknown): string =>
 
 function Findings({ registrationId }: { readonly registrationId: string }): ReactElement {
   const findings = useFindings(registrationId);
+  // The finding whose registered state is being applied, and whether the last one was.
+  const [applying, setApplying] = useState<string | null>(null);
+  const [applied, setApplied] = useState(false);
   if (findings.isPending) {
     return <Panel.Root aria-busy="true" />;
   }
@@ -134,6 +144,10 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
       />
     );
   }
+  // The action column exists only when some finding offers an action: the API refuses an apply
+  // for any finding that is not open and operator-settled, so no button is offered for one.
+  const actionable = findings.data.some(needsOperator);
+  const selected = findings.data.find((finding) => finding.finding_id === applying && needsOperator(finding));
   return (
     <section className={styles['section']} aria-labelledby="findings-title">
       <h2 id="findings-title" className={styles['sectionTitle']}>
@@ -142,6 +156,12 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
       <p className={styles['quiet']}>
         <Message id="findings.description" />
       </p>
+      {applied ? (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id="findings.apply.done" />
+        </p>
+      ) : null}
       {findings.data.length === 0 ? (
         <p className={styles['quiet']} role="status">
           <Message id="findings.empty" />
@@ -165,6 +185,11 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
               <Table.HeaderCell>
                 <Message id="findings.column.convergence" />
               </Table.HeaderCell>
+              {actionable ? (
+                <Table.HeaderCell>
+                  <Message id="findings.column.action" />
+                </Table.HeaderCell>
+              ) : null}
             </Table.Row>
           </Table.Head>
           <Table.Body>
@@ -205,11 +230,41 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
                       </span>
                     )}
                   </Table.Cell>
+                  {actionable ? (
+                    <Table.Cell>
+                      {needsOperator(finding) ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          aria-expanded={applying === finding.finding_id}
+                          onClick={() => {
+                            setApplying(finding.finding_id);
+                            setApplied(false);
+                          }}
+                        >
+                          <Message id="findings.apply" />
+                        </Button>
+                      ) : null}
+                    </Table.Cell>
+                  ) : null}
                 </Table.Row>
               );
             })}
           </Table.Body>
         </Table.Root>
+      )}
+      {selected === undefined ? null : (
+        <ApplyDesiredStateForm
+          key={selected.finding_id}
+          finding={selected}
+          onDone={() => {
+            setApplying(null);
+            setApplied(true);
+          }}
+          onCancel={() => {
+            setApplying(null);
+          }}
+        />
       )}
     </section>
   );
@@ -240,6 +295,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
         </StatusPill>
       </header>
       <Details registration={found} />
+      {found.state === 'active' ? <ExceptionForm registrationId={registrationId} /> : null}
       <Findings registrationId={registrationId} />
     </>
   );

@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.2.0
+  version: 1.3.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -177,8 +177,8 @@ GET   /api/v1/registrations                      one page, ?after=&limit=&state=
 GET   /api/v1/registrations/{registration_id}
 GET   /api/v1/registrations/{registration_id}/findings
 GET   /api/v1/registrations:drift
-POST  /api/v1/registrations:reconcile            next change
-POST  /api/v1/registrations/{registration_id}/drift-exceptions   next change
+POST  /api/v1/registrations:reconcile            a sweep; with findings and a reason, apply
+POST  /api/v1/registrations/{registration_id}/drift-exceptions
 ```
 
 **The list.** The list is paged by the API's cursor. "Load more" appends the next page
@@ -200,12 +200,26 @@ because a repaired console change is the evidence it happened. A converged findi
 shows how long the change lasted, from the admin event's time to convergence, which is
 the measure the drift proof reports.
 
-**Actions.** Applying desired state to named findings and granting a drift exception
-are mutations. They follow the rules of this document, which the next change builds:
-the reason is collected before submission, the request carries the session's CSRF
-token, and a refusal from the API is shown as it came. The page never offers an action
-the API would refuse: no apply for a finding that is not open and operator-settled, and
-no exception longer than 24 hours.
+**Actions.** Three commands, each carrying the session's CSRF token. None is retried
+behind the operator's back. The page never offers an action the API would refuse.
+
+| Action | Offered for | Collected before submission |
+| :-- | :-- | :-- |
+| Run a sweep now | always | nothing: it applies only what a scheduled sweep would |
+| Apply the registered state | one open `blocked`, `unattributed` or `missing` finding | a reason, sent as `X-Administrative-Reason` and recorded on the finding |
+| Grant a drift exception | an `active` registration | the field class (`redirect_uris` or `token_lifespan`), the Keycloak user ID who will make the change, a duration of 1, 4, 8 or 24 hours, and a reason |
+
+A reason is at least ten characters and at most 500. It travels in an HTTP header, which
+holds one line of Latin-1, so line breaks typed in the form become spaces, and a
+character outside Latin-1 is refused in the form with a message. Without that check it
+would fail inside the browser's fetch, where no message can say why.
+
+A refusal (4xx) is shown with the API's own sentence, attributed to the API ("The API
+said: …"), together with the correlation identifier. The Identity Control API writes that
+sentence to name the rule that refused, never a stored value, and an operator acting on
+a refusal needs the rule. Any other failure is described in the application's own words.
+After any command settles, every registration read is repeated: a sweep or a resolution
+changes the summary, the counts, and the findings.
 
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the
@@ -258,6 +272,12 @@ again and shows the user signed out rather than a page of errors.
 - Converged findings are shown with their convergence time.
 - A refused read shows the correlation identifier. A 401 shows the user signed out.
 - Without a session, nothing is requested from the API.
+- Apply is offered only for open blocked, unattributed or missing findings. It sends the finding
+  and the reason, normalized to one line, with the CSRF token.
+- A reason that is too short, or has characters a header cannot carry, is refused before sending.
+- A drift exception is offered only for an active registration, with only the field classes and
+  durations the API accepts. It requires the Keycloak user ID.
+- A refusal is shown with the API's sentence, attributed to it, and with its reference.
 
 ## Security Notes
 

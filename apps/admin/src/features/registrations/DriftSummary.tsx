@@ -1,14 +1,15 @@
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { Panel, StatusPill, type StatusTone } from '@identity-experience/ui';
+import { Button, Icon, Panel, StatusPill, type StatusTone } from '@identity-experience/ui';
 
 import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
+import { MutationError } from '@/core/api/MutationError';
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 import { needsOperator, type DriftStatus } from '@/domain/registration';
 
-import { useDriftStatus } from './registrations-api';
+import { useDriftStatus, useRunSweep } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
 
 const outcomes: Readonly<
@@ -56,6 +57,7 @@ function LastRun({ status }: { readonly status: DriftStatus }): ReactElement {
 // are open, and how many of those wait for an operator because the sweep will not settle them.
 export function DriftSummary(): ReactElement {
   const drift = useDriftStatus();
+  const sweep = useRunSweep();
   if (drift.isPending) {
     return <Panel.Root aria-busy="true" className={styles['summary']} />;
   }
@@ -92,6 +94,26 @@ export function DriftSummary(): ReactElement {
           </StatusPill>
         )}
       </div>
+      {/* A sweep applies only what it would apply on schedule, so it asks for no reason. */}
+      <div className={styles['formActions']}>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Icon name="pulse" />}
+          disabled={sweep.isPending}
+          onClick={() => {
+            sweep.mutate();
+          }}
+        >
+          <Message id="drift.runNow" />
+        </Button>
+        {sweep.data?.deferred === true ? (
+          <p className={styles['quiet']} role="status">
+            <Message id="drift.deferred" />
+          </p>
+        ) : null}
+      </div>
+      {sweep.isError ? <MutationError error={sweep.error} /> : null}
     </Panel.Root>
   );
 }

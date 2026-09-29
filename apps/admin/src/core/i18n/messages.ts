@@ -140,6 +140,40 @@ export const en = {
   'findings.field.signing_algorithm': 'Signing algorithm',
   'findings.field.profile': 'Profile',
   'findings.field.client': 'Whole client',
+
+  'api.refused': 'The Identity Control API refused this.',
+  'api.said': 'The API said: {detail}',
+
+  'form.cancel': 'Cancel',
+  'form.reason.label': 'Reason',
+  'form.reason.hint': 'Recorded with the action. At least {min, number} characters.',
+  'form.reason.short': 'Write at least {min, number} characters: the reason is the record of why.',
+  'form.reason.long': 'Keep it to {max, number} characters.',
+  'form.reason.characters':
+    'Use letters, digits and common punctuation only. The reason travels in a request header, which cannot carry other characters.',
+
+  'drift.runNow': 'Run a sweep now',
+  'drift.deferred': 'Another sweep is already running. Its result shows here when it finishes.',
+
+  'findings.column.action': 'Action',
+  'findings.apply': 'Apply registered state',
+  'findings.apply.title': 'Apply the registered state',
+  'findings.apply.body':
+    'Keycloak is set back to what was registered for {field}. The sweep does not do this on its own for a finding like this one, so your reason is recorded on it.',
+  'findings.apply.done': 'The registered state was applied. The findings show the result.',
+
+  'exception.open': 'Grant a drift exception',
+  'exception.title': 'Drift exception',
+  'exception.body':
+    'Lets one Keycloak user change one part of this client in the Admin Console, for at most 24 hours. The change is recorded as sanctioned instead of being repaired. To keep it after the exception ends, change the registration.',
+  'exception.field.label': 'What may change',
+  'exception.actor.label': 'Keycloak user ID',
+  'exception.actor.hint': 'The user who will make the change, as Keycloak identifies them in admin events.',
+  'exception.actor.required': 'Name the Keycloak user who will make the change.',
+  'exception.duration.label': 'For',
+  'exception.duration.option': '{hours, plural, one {# hour} other {# hours}}',
+  'exception.submit': 'Grant exception',
+  'exception.done': 'Exception granted until {until}.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -283,6 +317,40 @@ export const id: Messages = {
   'findings.field.signing_algorithm': 'Algoritma tanda tangan',
   'findings.field.profile': 'Profil',
   'findings.field.client': 'Seluruh client',
+
+  'api.refused': 'Identity Control API menolak ini.',
+  'api.said': 'Kata API: {detail}',
+
+  'form.cancel': 'Batal',
+  'form.reason.label': 'Alasan',
+  'form.reason.hint': 'Dicatat bersama tindakan ini. Minimal {min, number} karakter.',
+  'form.reason.short': 'Tulis minimal {min, number} karakter: alasan adalah catatan kenapa ini dilakukan.',
+  'form.reason.long': 'Maksimal {max, number} karakter.',
+  'form.reason.characters':
+    'Gunakan huruf, angka, dan tanda baca umum saja. Alasan dikirim lewat header permintaan, yang tidak bisa membawa karakter lain.',
+
+  'drift.runNow': 'Jalankan pembanding sekarang',
+  'drift.deferred': 'Pembanding lain sedang berjalan. Hasilnya muncul di sini setelah selesai.',
+
+  'findings.column.action': 'Tindakan',
+  'findings.apply': 'Terapkan status terdaftar',
+  'findings.apply.title': 'Terapkan status terdaftar',
+  'findings.apply.body':
+    'Keycloak dikembalikan ke yang didaftarkan untuk {field}. Pembanding tidak melakukan ini sendiri untuk temuan seperti ini, jadi alasanmu dicatat di temuan itu.',
+  'findings.apply.done': 'Status terdaftar sudah diterapkan. Temuan di bawah menunjukkan hasilnya.',
+
+  'exception.open': 'Beri pengecualian drift',
+  'exception.title': 'Pengecualian drift',
+  'exception.body':
+    'Mengizinkan satu user Keycloak mengubah satu bagian client ini di Admin Console, paling lama 24 jam. Perubahannya dicatat sebagai diizinkan, bukan diperbaiki. Supaya tetap berlaku setelah pengecualian berakhir, ubah registrasinya.',
+  'exception.field.label': 'Yang boleh diubah',
+  'exception.actor.label': 'ID user Keycloak',
+  'exception.actor.hint': 'User yang akan melakukan perubahan, seperti yang dicatat Keycloak di admin event.',
+  'exception.actor.required': 'Sebutkan user Keycloak yang akan melakukan perubahan.',
+  'exception.duration.label': 'Selama',
+  'exception.duration.option': '{hours, number} jam',
+  'exception.submit': 'Beri pengecualian',
+  'exception.done': 'Pengecualian berlaku sampai {until}.',
 };
 
 export type Locale = 'en' | 'id';

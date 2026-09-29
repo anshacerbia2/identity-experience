@@ -44,6 +44,7 @@ Three rules keep that one-line change honest:
 | `system/status-pill`               | none yet                               | local                                                       |
 | `system/icon`                      | none yet                               | local                                                       |
 | `system/table`                     | none yet                               | local; a `<table>` with a required caption                  |
+| `system/field`                     | none yet                               | local; `TextField`, `TextAreaField`, `SelectField`          |
 | `styles/tokens/_ds-temporary.scss` | `@scnx/system/themes/*`                | platform names, local values                                |
 
 ## Styling rules

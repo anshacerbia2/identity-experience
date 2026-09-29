@@ -1,12 +1,17 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet } from '@/core/api/api-client';
-import type {
-  DriftStatus,
-  Finding,
-  Registration,
-  RegistrationPage,
-  RegistrationState,
+import { apiGet, apiPost } from '@/core/api/api-client';
+import { useSession } from '@/core/session/session';
+import {
+  normalizeReason,
+  type DriftException,
+  type DriftStatus,
+  type ExceptionField,
+  type Finding,
+  type ReconcileRun,
+  type Registration,
+  type RegistrationPage,
+  type RegistrationState,
 } from '@/domain/registration';
 
 // The registration and drift reads (TDD-identity-control-003 §API / Interface), through the BFF.
@@ -66,5 +71,83 @@ export function useFindings(registrationId: string) {
           signal,
         )
       ).findings ?? [],
+  });
+}
+
+// The commands. Each carries the session's CSRF token, and each, once settled, reads every
+// registration query again: a sweep or a resolution changes the drift summary, the counts beside
+// each client, and the findings of the one it touched.
+
+function useCsrfToken(): string | null {
+  const session = useSession();
+  return session.data?.authenticated === true ? session.data.csrfToken : null;
+}
+
+function requireToken(token: string | null): string {
+  if (token === null) {
+    throw new Error('no signed-in session to send a command with');
+  }
+  return token;
+}
+
+interface ReconcileResponse {
+  readonly run: ReconcileRun | null;
+  readonly status: DriftStatus;
+  readonly deferred?: boolean;
+}
+
+// useRunSweep asks for a sweep now. deferred means another replica's sweep is running; its result
+// arrives with that sweep.
+export function useRunSweep() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: () =>
+      apiPost<ReconcileResponse>('/v1/registrations:reconcile', {}, { csrfToken: requireToken(token) }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useApplyDesiredState applies the registered state to one finding the sweep will not settle on
+// its own, with the operator's reason, which the API records on the finding.
+export function useApplyDesiredState() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ findingId, reason }: { readonly findingId: string; readonly reason: string }) =>
+      apiPost<ReconcileResponse>(
+        '/v1/registrations:reconcile',
+        { findings: [findingId] },
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+export interface ExceptionRequest {
+  readonly fieldClass: ExceptionField;
+  readonly actor: string;
+  readonly reason: string;
+  readonly hours: number;
+}
+
+// useGrantException lets one Keycloak user change one field class of this client in the console,
+// for a bounded time.
+export function useGrantException(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: (request: ExceptionRequest) =>
+      apiPost<DriftException>(
+        `/v1/registrations/${encodeURIComponent(registrationId)}/drift-exceptions`,
+        {
+          field_class: request.fieldClass,
+          actor: request.actor.trim(),
+          reason: normalizeReason(request.reason),
+          duration_seconds: request.hours * 3600,
+        },
+        { csrfToken: requireToken(token) },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
 }
