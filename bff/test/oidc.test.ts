@@ -2,6 +2,7 @@ import { createServer } from 'node:net';
 
 import { describe, expect, it } from 'vitest';
 
+import { testClientKey } from './support/client-key.js';
 import { IdentityProviderUnavailable, isOutage, Oidc, OidcError } from '../src/auth/oidc.js';
 
 describe('isOutage', () => {
@@ -48,7 +49,7 @@ it('reports a kernel that cannot be reached at the code exchange as unavailable,
       issuer,
       internalBaseUrl: issuer,
       clientId: 'identity-experience',
-      clientSecret: 'unused',
+      clientKey: testClientKey().key,
       redirectUri: 'http://localhost/auth/callback',
     },
     () => new Date(),

@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 
+import { testClientKey } from './client-key.js';
 import { createTestDatabase, type TestDatabase } from './database.js';
 import { defaultUser, IdentityProvider, type User } from './identity-provider.js';
 import { Upstream } from './upstream.js';
@@ -72,7 +73,7 @@ export async function startHarness(): Promise<Harness> {
         issuer: provider.issuer,
         internalBaseUrl: provider.issuer,
         clientId: provider.clientId,
-        clientSecret: provider.clientSecret,
+        clientKey: testClientKey().key,
         redirectUri: `${publicOrigin}/auth/callback`,
       },
       identityControlBaseUrl: upstream.baseUrl,

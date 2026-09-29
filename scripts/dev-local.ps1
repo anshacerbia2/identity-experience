@@ -8,8 +8,10 @@
   http://127.0.0.1:8090, which serves the built admin application, and keeps its sessions in the
   local PostgreSQL.
 
-  Reads .env beside the repository root (copy .env.example). The one value it cannot make is the
-  client secret, printed once on the server by deploy/dev/create-bff-client.sh.
+  Reads .env beside the repository root (copy .env.example). The BFF authenticates to the kernel
+  with its own key (private_key_jwt), keys/identity-experience-bff.pem, made on this machine by
+  scripts/new-client-key.mjs. Its public half is installed on the server once; the client has no
+  secret (ADR-IAM-001 §5.12).
 
   Steps: build the application and the BFF, create the session schema if absent, apply the
   session store's migrations, and serve. Ctrl+C stops the server.
@@ -33,7 +35,7 @@ $port = '8090'
 $origin = "http://127.0.0.1:$port"
 
 if (-not (Test-Path $envFile)) {
-    throw "No .env at $envFile. Copy .env.example and fill in IDENTITY_EXPERIENCE_CLIENT_SECRET."
+    throw "No .env at $envFile. Copy .env.example."
 }
 
 function Read-DotEnv([string] $path) {
@@ -66,7 +68,7 @@ if (-not $dotenv.Contains('IDENTITY_EXPERIENCE_SESSION_KEY') -or $dotenv['IDENTI
     Write-Host 'dev-local: generated IDENTITY_EXPERIENCE_SESSION_KEY and wrote it to .env'
 }
 
-foreach ($required in 'IDENTITY_EXPERIENCE_CLIENT_SECRET', 'IDENTITY_EXPERIENCE_DEV_DATABASE_URL') {
+foreach ($required in @('IDENTITY_EXPERIENCE_DEV_DATABASE_URL')) {
     if (-not $dotenv.Contains($required) -or $dotenv[$required] -eq '') {
         throw "$required is empty in .env. See .env.example."
     }
@@ -88,7 +90,11 @@ $env:IDENTITY_EXPERIENCE_LISTEN_HOST = '127.0.0.1'
 $env:IDENTITY_EXPERIENCE_LISTEN_PORT = $port
 $env:IDENTITY_EXPERIENCE_ISSUER = Get-OrDefault 'IDENTITY_EXPERIENCE_ISSUER' 'https://gqr8l4jz-8080.asse.devtunnels.ms/realms/scnehaux'
 $env:IDENTITY_EXPERIENCE_CLIENT_ID = 'identity-experience-bff'
-$env:IDENTITY_EXPERIENCE_CLIENT_SECRET = $dotenv['IDENTITY_EXPERIENCE_CLIENT_SECRET']
+$clientKey = Get-OrDefault 'IDENTITY_EXPERIENCE_CLIENT_KEY_FILE' (Join-Path $root 'keys\identity-experience-bff.pem')
+if (-not (Test-Path $clientKey)) {
+    throw "No client key at $clientKey. Run: node scripts/new-client-key.mjs, then have the server's operator install keys\identity-experience-bff.jwk.json (README.md)."
+}
+$env:IDENTITY_EXPERIENCE_CLIENT_KEY_FILE = $clientKey
 $env:IDENTITY_EXPERIENCE_REDIRECT_URI = "$origin/auth/callback"
 $env:IDENTITY_EXPERIENCE_SESSION_KEY = $dotenv['IDENTITY_EXPERIENCE_SESSION_KEY']
 $env:IDENTITY_EXPERIENCE_DATABASE_URL = $sessionDatabase

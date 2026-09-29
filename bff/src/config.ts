@@ -2,6 +2,10 @@
 // problem is reported at once: an operator fixing a deployment wants the whole list, not one
 // variable per restart.
 
+import { readFileSync } from 'node:fs';
+
+import { ClientKeyError, parseClientKey, type ClientKey } from './auth/client-key.js';
+
 export interface Config {
   readonly listenHost: string;
   readonly listenPort: number;
@@ -39,7 +43,10 @@ export interface OidcConfig {
   readonly internalBaseUrl: string;
 
   readonly clientId: string;
-  readonly clientSecret: string;
+
+  // clientKey is the private key the BFF authenticates to the kernel with, by signed JWT
+  // (private_key_jwt). The client has no secret (ADR-IAM-001 §5.12).
+  readonly clientKey: ClientKey;
 
   // redirectUri is the callback registered for this client, exactly, with no wildcard.
   readonly redirectUri: string;
@@ -119,6 +126,23 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     return Number(match[1]) * (durationUnits[unit] ?? 0);
   };
 
+  // clientKeyFrom reads the client's private key from the file the environment names. The path is
+  // configuration; the key is not, so it is read from a file the secret manager mounts and never
+  // from a variable. No message carries the key.
+  const clientKeyFrom = (path: string): ClientKey | undefined => {
+    if (path === '') {
+      return undefined;
+    }
+    try {
+      return parseClientKey(readFileSync(path, 'utf8'));
+    } catch (error) {
+      problems.push(
+        `IDENTITY_EXPERIENCE_CLIENT_KEY_FILE: ${error instanceof ClientKeyError ? error.message : `${path} could not be read`}`,
+      );
+      return undefined;
+    }
+  };
+
   const publicOrigin = required('IDENTITY_EXPERIENCE_PUBLIC_ORIGIN');
   origin('IDENTITY_EXPERIENCE_PUBLIC_ORIGIN', publicOrigin);
 
@@ -145,7 +169,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const internalBaseUrl = optional('IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL') || issuer;
   url('IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL', internalBaseUrl);
   const clientId = required('IDENTITY_EXPERIENCE_CLIENT_ID');
-  const clientSecret = required('IDENTITY_EXPERIENCE_CLIENT_SECRET');
+  const clientKey = clientKeyFrom(required('IDENTITY_EXPERIENCE_CLIENT_KEY_FILE'));
   const redirectUri = required('IDENTITY_EXPERIENCE_REDIRECT_URI');
   url('IDENTITY_EXPERIENCE_REDIRECT_URI', redirectUri);
   // The callback is this process's /auth/callback on the public origin, where the session cookie
@@ -191,7 +215,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     webRoot,
     publicOrigin,
     logLevel: logLevel as Config['logLevel'],
-    oidc: { issuer, internalBaseUrl, clientId, clientSecret, redirectUri },
+    // clientKey is set whenever problems is empty: clientKeyFrom reports every other outcome.
+    oidc: { issuer, internalBaseUrl, clientId, clientKey: clientKey as ClientKey, redirectUri },
     session: { idleMs, absoluteMs, refreshSkewMs, key },
     identityControlBaseUrl: identityControlBaseUrl.replace(/\/+$/, ''),
     upstreamTimeoutMs,

@@ -1,4 +1,6 @@
-import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
+import { randomUUID, type webcrypto } from 'node:crypto';
+
+import { createRemoteJWKSet, jwtVerify, SignJWT, type JWTPayload } from 'jose';
 import * as client from 'openid-client';
 
 import type { OidcConfig } from '../config.js';
@@ -14,6 +16,12 @@ export const signInScope = 'openid scnehaux-provider';
 const signingAlgorithm = 'PS256';
 
 const backChannelLogoutEvent = 'http://schemas.openid.net/event/backchannel-logout';
+
+const clientAssertionType = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer';
+
+// A client assertion is accepted for a minute. The kernel refuses one presented twice, so the window
+// only has to cover the request that carries it.
+const clientAssertionLifetimeSeconds = 60;
 
 // Identity is what a session displays and correlates on, read from a validated ID token.
 export interface Identity {
@@ -101,7 +109,10 @@ const stringClaim = (claims: JWTPayload | client.IDToken | undefined, name: stri
 };
 
 // Oidc is the BFF's side of the authorization code flow with the identity kernel, as a
-// confidential client.
+// confidential client. It authenticates at the token and logout endpoints with a PS256 client
+// assertion signed by its own key (private_key_jwt), never a secret (ADR-IAM-001 §5.12). The
+// assertion names the public issuer as its audience, which is what the kernel expects whatever
+// address it is reached on.
 //
 // The server metadata is written out rather than discovered. Keycloak states one issuer whatever
 // address it is reached on, so a process that reaches it on an internal address would discover a
@@ -112,13 +123,18 @@ export class Oidc {
   readonly #configuration: client.Configuration;
   readonly #issuer: string;
   readonly #clientId: string;
-  readonly #clientSecret: string;
+  readonly #clientKey: { readonly key: webcrypto.CryptoKey; readonly kid: string };
   readonly #redirectUri: string;
   readonly #logoutEndpoint: string;
   readonly #keys: ReturnType<typeof createRemoteJWKSet>;
   readonly #now: () => Date;
 
   constructor(config: OidcConfig, now: () => Date) {
+    // RSA-PSS with SHA-256 is what makes openid-client sign PS256. The key is not extractable.
+    const clientKey = {
+      key: config.clientKey.privateKey.toCryptoKey({ name: 'RSA-PSS', hash: 'SHA-256' }, false, ['sign']),
+      kid: config.clientKey.kid,
+    };
     const publicRealm = trimSlash(config.issuer);
     const internalRealm = trimSlash(config.internalBaseUrl);
     const metadata: client.ServerMetadata = {
@@ -136,7 +152,7 @@ export class Oidc {
       metadata,
       config.clientId,
       { id_token_signed_response_alg: signingAlgorithm },
-      client.ClientSecretBasic(config.clientSecret),
+      client.PrivateKeyJwt(clientKey),
     );
     // The token endpoint is reached directly, which lets openid-client trust TLS for the issuer and
     // skip the signature. The internal address may not be TLS, and TDD-identity-experience-001
@@ -150,7 +166,7 @@ export class Oidc {
     }
     this.#issuer = config.issuer;
     this.#clientId = config.clientId;
-    this.#clientSecret = config.clientSecret;
+    this.#clientKey = clientKey;
     this.#redirectUri = config.redirectUri;
     this.#logoutEndpoint = `${internalRealm}/protocol/openid-connect/logout`;
     this.#keys = createRemoteJWKSet(new URL(`${internalRealm}/protocol/openid-connect/certs`));
@@ -234,17 +250,16 @@ export class Oidc {
     if (tokens.refreshToken === null) {
       return false;
     }
-    const credentials = Buffer.from(
-      `${encodeURIComponent(this.#clientId)}:${encodeURIComponent(this.#clientSecret)}`,
-    ).toString('base64');
     try {
       const response = await fetch(this.#logoutEndpoint, {
         method: 'POST',
-        headers: {
-          authorization: `Basic ${credentials}`,
-          'content-type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({ client_id: this.#clientId, refresh_token: tokens.refreshToken }),
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: this.#clientId,
+          client_assertion_type: clientAssertionType,
+          client_assertion: await this.#clientAssertion(),
+          refresh_token: tokens.refreshToken,
+        }),
         redirect: 'manual',
         signal: AbortSignal.timeout(5_000),
       });
@@ -253,6 +268,21 @@ export class Oidc {
     } catch {
       return false;
     }
+  }
+
+  // #clientAssertion signs the RFC 7523 assertion the logout endpoint authenticates this client
+  // with: the same one openid-client sends the token endpoint.
+  async #clientAssertion(): Promise<string> {
+    const issuedAt = Math.floor(this.#now().getTime() / 1000);
+    return new SignJWT({})
+      .setProtectedHeader({ alg: signingAlgorithm, kid: this.#clientKey.kid, typ: 'JWT' })
+      .setIssuer(this.#clientId)
+      .setSubject(this.#clientId)
+      .setAudience(this.#issuer)
+      .setJti(randomUUID())
+      .setIssuedAt(issuedAt)
+      .setExpirationTime(issuedAt + clientAssertionLifetimeSeconds)
+      .sign(this.#clientKey.key);
   }
 
   // verifyLogoutToken validates a back-channel logout token per OpenID Connect Back-Channel Logout
