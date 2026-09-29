@@ -103,6 +103,11 @@ export interface DriftException {
   readonly expires_at: string;
 }
 
+// exceptionInForce is whether a drift exception still covers a console change at the given time.
+// The API lists expired exceptions too, as the record of why a change was left in place.
+export const exceptionInForce = (exception: DriftException, now: number): boolean =>
+  Date.parse(exception.expires_at) > now;
+
 // openFindingsByRegistration counts every finding that has not converged, per registration.
 export function openFindingsByRegistration(findings: readonly Finding[] | null): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();

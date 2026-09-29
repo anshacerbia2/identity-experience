@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import type { DriftStatus, Finding, Registration } from '@/domain/registration';
+import type { DriftException, DriftStatus, Finding, Registration } from '@/domain/registration';
 import { json, renderApp, stubFetch, type Sent } from '@/test/render-app';
 
 const csrfToken = 'csrf-from-the-session';
@@ -61,12 +61,33 @@ const repaired: Finding = {
 
 const drift: DriftStatus = { last_run: null, last_run_findings: [], findings: [blocked] };
 
+const inForce: DriftException = {
+  exception_id: 'x-in-force',
+  registration_id: 'r-web',
+  field_class: 'redirect_uris',
+  actor: 'kc-user-7',
+  reason: 'Emergency redirect for the partner cut-over.',
+  granted_by: '01a0da74-44e7-7000-b600-b464c5cb8cec',
+  granted_at: '2026-09-29T10:00:00Z',
+  expires_at: '2099-01-01T00:00:00Z',
+};
+
+const expired: DriftException = {
+  ...inForce,
+  exception_id: 'x-expired',
+  field_class: 'token_lifespan',
+  reason: 'Load test needed a longer token.',
+  granted_at: '2026-01-01T10:00:00Z',
+  expires_at: '2026-01-01T14:00:00Z',
+};
+
 interface Api {
   readonly registration?: Registration;
+  readonly exceptions?: readonly DriftException[];
   readonly command?: (sent: Sent) => Response | undefined;
 }
 
-function api({ registration = web, command }: Api = {}) {
+function api({ registration = web, exceptions = [], command }: Api = {}) {
   return stubFetch((url, sent) => {
     if (url.pathname === '/auth/session') {
       return json(signedIn);
@@ -85,6 +106,9 @@ function api({ registration = web, command }: Api = {}) {
     }
     if (url.pathname === '/api/v1/registrations/r-web/findings') {
       return json({ findings: [blocked, repaired] });
+    }
+    if (url.pathname === '/api/v1/registrations/r-web/drift-exceptions') {
+      return json({ exceptions });
     }
     return undefined;
   });
@@ -280,10 +304,71 @@ describe('granting a drift exception', () => {
     });
   });
 
-  it('is not offered for a registration that is not active', async () => {
-    api({ registration: { ...web, state: 'suspended' } });
+  it('is not offered for a registration that is not active, whose exceptions are still listed', async () => {
+    api({ registration: { ...web, state: 'suspended' }, exceptions: [expired] });
     renderApp('/registrations/r-web');
-    await screen.findByRole('heading', { level: 1, name: 'web' });
+    expect(
+      await screen.findByRole('table', { name: 'Drift exceptions for this client' }),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Grant a drift exception' })).not.toBeInTheDocument();
+  });
+});
+
+describe('listing drift exceptions', () => {
+  it('lists every exception, newest first, and says which are still in force', async () => {
+    api({ exceptions: [inForce, expired] });
+    const { container } = renderApp('/registrations/r-web');
+    const table = await screen.findByRole('table', { name: 'Drift exceptions for this client' });
+    const rows = within(table).getAllByRole('row');
+    const first = within(rows[1] as HTMLElement);
+    const second = within(rows[2] as HTMLElement);
+    expect(first.getByText('Emergency redirect for the partner cut-over.')).toBeInTheDocument();
+    expect(first.getByText('In force')).toBeInTheDocument();
+    expect(second.getByText('Load test needed a longer token.')).toBeInTheDocument();
+    expect(second.getByText('Expired')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('says when none has been granted', async () => {
+    api();
+    renderApp('/registrations/r-web');
+    expect(
+      await screen.findByText('No drift exception has been granted for this client.'),
+    ).toBeInTheDocument();
+  });
+
+  it('reads the list again once an exception is granted', async () => {
+    let listed: readonly DriftException[] = [];
+    const { sent } = stubFetch((url, request) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (url.pathname === '/api/v1/registrations/r-web') {
+        return json(web);
+      }
+      if (url.pathname === '/api/v1/registrations/r-web/findings') {
+        return json({ findings: [] });
+      }
+      if (url.pathname === '/api/v1/registrations/r-web/drift-exceptions') {
+        if (request.method === 'POST') {
+          listed = [inForce];
+          return json(inForce, 201);
+        }
+        return json({ exceptions: listed });
+      }
+      return undefined;
+    });
+    renderApp('/registrations/r-web');
+    await userEvent.click(await screen.findByRole('button', { name: 'Grant a drift exception' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Keycloak user ID' }), 'kc-user-7');
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Reason' }),
+      'Emergency redirect for the partner cut-over.',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Grant exception' }));
+
+    const table = await screen.findByRole('table', { name: 'Drift exceptions for this client' });
+    expect(within(table).getByText('In force')).toBeInTheDocument();
+    expect(posts(sent)).toHaveLength(1);
   });
 });

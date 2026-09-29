@@ -23,6 +23,7 @@ export const registrationKeys = {
   list: (state: RegistrationState | undefined) => ['registrations', 'list', state ?? 'all'] as const,
   one: (registrationId: string) => ['registrations', 'one', registrationId] as const,
   findings: (registrationId: string) => ['registrations', 'findings', registrationId] as const,
+  exceptions: (registrationId: string) => ['registrations', 'exceptions', registrationId] as const,
   drift: ['registrations', 'drift'] as const,
 };
 
@@ -71,6 +72,20 @@ export function useFindings(registrationId: string) {
           signal,
         )
       ).findings ?? [],
+  });
+}
+
+// useExceptions is one registration's drift exceptions, newest first, expired ones included.
+export function useExceptions(registrationId: string) {
+  return useQuery({
+    queryKey: registrationKeys.exceptions(registrationId),
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly exceptions: readonly DriftException[] | null }>(
+          `/v1/registrations/${encodeURIComponent(registrationId)}/drift-exceptions`,
+          signal,
+        )
+      ).exceptions ?? [],
   });
 }
 

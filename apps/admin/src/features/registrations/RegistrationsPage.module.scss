@@ -218,6 +218,15 @@
     gap: var(--ds-spacing-3xs);
   }
 
+  // A reason is prose an operator wrote, so it wraps rather than stretching the table.
+  .reason {
+    display: block;
+    min-inline-size: 12rem;
+    max-inline-size: 28rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .diff {
     display: block;
     max-inline-size: 22rem;

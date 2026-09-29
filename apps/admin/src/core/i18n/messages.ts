@@ -175,6 +175,20 @@ export const en = {
   'exception.submit': 'Grant exception',
   'exception.done': 'Exception granted until {until}.',
 
+  'exceptions.title': 'Drift exceptions',
+  'exceptions.description':
+    'Who may change what in the Keycloak Admin Console, and until when, newest first. Expired ones stay listed: each is the record of why a change was left in place.',
+  'exceptions.caption': 'Drift exceptions for this client',
+  'exceptions.column.granted': 'Granted',
+  'exceptions.column.field': 'What may change',
+  'exceptions.column.actor': 'Keycloak user',
+  'exceptions.column.reason': 'Reason',
+  'exceptions.column.grantedBy': 'Granted by',
+  'exceptions.column.until': 'Until',
+  'exceptions.inForce': 'In force',
+  'exceptions.expired': 'Expired',
+  'exceptions.empty': 'No drift exception has been granted for this client.',
+
   'shell.nav.principals': 'Principals',
 
   'principals.eyebrow': 'Identities',
@@ -398,6 +412,20 @@ export const id: Messages = {
   'exception.duration.option': '{hours, number} jam',
   'exception.submit': 'Beri pengecualian',
   'exception.done': 'Pengecualian berlaku sampai {until}.',
+
+  'exceptions.title': 'Pengecualian drift',
+  'exceptions.description':
+    'Siapa yang boleh mengubah apa di Admin Console Keycloak, dan sampai kapan, terbaru di atas. Yang sudah habis tetap tampil: masing-masing adalah catatan kenapa sebuah perubahan dibiarkan.',
+  'exceptions.caption': 'Pengecualian drift untuk client ini',
+  'exceptions.column.granted': 'Diberikan',
+  'exceptions.column.field': 'Yang boleh diubah',
+  'exceptions.column.actor': 'User Keycloak',
+  'exceptions.column.reason': 'Alasan',
+  'exceptions.column.grantedBy': 'Diberikan oleh',
+  'exceptions.column.until': 'Sampai',
+  'exceptions.inForce': 'Berlaku',
+  'exceptions.expired': 'Habis',
+  'exceptions.empty': 'Belum pernah ada pengecualian drift untuk client ini.',
 
   'shell.nav.principals': 'Principal',
 
