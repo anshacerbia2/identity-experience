@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { Icon, StatusPill } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
+import type { MessageKey } from '@/core/i18n/messages';
 
 import styles from './AppShell.module.scss';
 import { LocaleSwitch } from './LocaleSwitch';
@@ -14,11 +15,19 @@ import { ThemeToggle } from './ThemeToggle';
 // environment and the session, and the page. The environment and the session are always visible,
 // because STD-GLB-FE-009 requires the current administrative scope to be.
 
+const signInNotices: ReadonlyMap<string, MessageKey> = new Map<string, MessageKey>([
+  ['failed', 'shell.session.signInFailed'],
+  ['unavailable', 'shell.session.signInUnavailable'],
+]);
+
 export function AppShell({ children }: { readonly children: ReactNode }): ReactElement {
-  // The BFF lands a refused sign-in on /?sign-in=failed; why it was refused stays in its log.
-  const signInFailed = useRouterState({
-    select: (state) => new URLSearchParams(state.location.searchStr).get('sign-in') === 'failed',
+  // The BFF lands a failed sign-in on /?sign-in=failed when it was refused, and on
+  // /?sign-in=unavailable when Keycloak did not answer; why stays in its log. Only the second is
+  // worth simply trying again, so the two read differently.
+  const signIn = useRouterState({
+    select: (state) => new URLSearchParams(state.location.searchStr).get('sign-in'),
   });
+  const signInNotice = signInNotices.get(signIn ?? '');
   return (
     <div className={styles['root']}>
       <a className={styles['skip']} href="#main">
@@ -77,12 +86,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
           </div>
         </header>
 
-        {signInFailed ? (
+        {signInNotice === undefined ? null : (
           <p className={styles['notice']} role="alert">
             <Icon name="alert" />
-            <Message id="shell.session.signInFailed" />
+            <Message id={signInNotice} />
           </p>
-        ) : null}
+        )}
 
         <main id="main" className={styles['main']} tabIndex={-1}>
           {children}

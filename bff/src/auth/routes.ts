@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as client from 'openid-client';
 
-import { OidcError, type Oidc } from './oidc.js';
+import { IdentityProviderUnavailable, OidcError, type Oidc } from './oidc.js';
 import { authenticate } from '../http/authenticate.js';
 import {
   clearLoginCookie,
@@ -29,6 +29,10 @@ export interface AuthRoutesOptions {
 // Where a failed sign-in lands. The application reads the marker and offers to try again; the
 // reason stays in the log, because it may describe what an attacker presented.
 const signInFailed = '/?sign-in=failed';
+
+// Where a sign-in lands when the identity kernel did not answer. Trying again can work, so the
+// application says so, unlike a refusal.
+const signInUnavailable = '/?sign-in=unavailable';
 
 const logoutTokenLimit = 16 * 1024;
 
@@ -120,6 +124,12 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     try {
       grant = await oidc.exchange(queryOf(request), login);
     } catch (error) {
+      if (error instanceof IdentityProviderUnavailable) {
+        // The code is spent or will lapse unused either way; the user starts again, which is what
+        // the landing page offers.
+        request.log.error({ err: error }, 'sign-in could not reach the identity kernel');
+        return reply.redirect(signInUnavailable, 302);
+      }
       if (error instanceof OidcError) {
         return fail('the authorization response or its tokens were refused', error);
       }

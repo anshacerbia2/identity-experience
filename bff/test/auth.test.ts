@@ -28,6 +28,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   harness.provider.refreshBehaviour = 'rotate';
+  harness.provider.codeExchangeUnavailable = false;
   harness.provider.tamper = null;
   harness.upstream.answer = {
     status: 200,
@@ -151,6 +152,16 @@ describe('sign-in', () => {
       expect(response.headers.location).toBe('/?sign-in=failed');
       expect(cookieValue(response, '__Host-ident_session')).toBeUndefined();
     };
+
+    // Not a refusal: the kernel did not answer, so the user is told to try again, and the log says
+    // outage rather than refused.
+    it('nothing, and says so differently, when the kernel is unavailable at the code exchange', async () => {
+      harness.provider.codeExchangeUnavailable = true;
+      const response = await callbackWith(() => undefined);
+      expect(response.statusCode).toBe(302);
+      expect(response.headers.location).toBe('/?sign-in=unavailable');
+      expect(cookieValue(response, '__Host-ident_session')).toBeUndefined();
+    });
 
     it('a mismatched state', async () => {
       refused(

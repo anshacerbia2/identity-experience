@@ -122,8 +122,16 @@ it, a code and state captured in one browser and delivered to another would sign
 second in as the first: login cross-site request forgery. The pre-session is consumed by
 the callback, so a replayed callback finds nothing, and it lapses after ten minutes.
 `return_to` is accepted only as a path on this origin, outside `/auth`, so the flow is
-not an open redirect. A refused callback lands on `/?sign-in=failed`; the reason is
+not an open redirect. A refused callback lands on `/?sign-in=failed`. The reason is
 logged, not shown, because it may describe what an attacker presented.
+
+A callback that could not reach Keycloak is not a refusal. That means no connection, a
+timeout, or a 5xx from the token or key endpoint. It lands on `/?sign-in=unavailable`,
+is logged as an outage, and the application says Keycloak could not be reached and that
+trying again may work. The first failed sign-in against the development kernel was
+exactly this: the dev tunnel dropped the connection while the BFF fetched the realm's
+keys, and the user was told it had been refused. Refresh classifies the same way (see
+§Refresh). A token that fails validation is a refusal on either path, never an outage.
 
 The ID token's signature is verified even though it arrives directly from the token
 endpoint. The BFF may reach Keycloak on an internal address without TLS, and PS256 is
