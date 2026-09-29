@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.3.0
+  version: 1.4.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -76,11 +76,11 @@ approved secret manager and never leaves this process. Identity Control register
 the public key. STD-IAM-001 §3.2 prohibits any public browser application from holding such
 a key.
 
-**Today, on the development server, the BFF holds a client secret instead.**
-`deploy/dev/create-bff-client.sh` creates `identity-experience-bff` directly, because Identity
-Control cannot register a confidential client yet. That is the bootstrap exemption STD-IAM-001
-§3.2 allows in development only. When Identity Control registers the client, the BFF moves to
-`private_key_jwt`, and the secret is removed from its configuration.
+The key's `kid` is its RFC 7638 thumbprint, which the BFF computes from the key itself, so the
+key file is the only configuration it needs. On the development server,
+`deploy/dev/create-bff-client.sh` creates `identity-experience-bff` directly, with the developer's
+public key, because Identity Control cannot register a confidential client yet. The client has no
+secret there either: STD-IAM-001 §3.2 allows none in any shared environment.
 
 This experience is `privileged` in the audience taxonomy of STD-IAM-002 §3.1, so its
 access tokens take lifetime class `L0`: a four-minute lifetime derived from a
@@ -407,9 +407,7 @@ user-experience control only.
 | `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
 | `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
 | `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
-| `IDENTITY_EXPERIENCE_CLIENT_KEY` | none, required once registered | The client's private key (PKCS#8 PEM, RSA ≥ 3072), from the approved secret manager |
-| `IDENTITY_EXPERIENCE_CLIENT_KEY_ID` | none, required once registered | The registered key's `kid`, sent in each assertion's header |
-| `IDENTITY_EXPERIENCE_CLIENT_SECRET` | none; development bootstrap only | The script-created client's secret, until Identity Control registers the client |
+| `IDENTITY_EXPERIENCE_CLIENT_KEY_FILE` | none, required | The client's private key as a PEM file (RSA ≥ 3072), mounted from the approved secret manager. Its `kid` is its thumbprint |
 | `IDENTITY_EXPERIENCE_REDIRECT_URI` | none, required | Exactly registered, no wildcard; must be the public origin's `/auth/callback` |
 | `IDENTITY_EXPERIENCE_SESSION_KEY` | none, required | 32 bytes, base64; seals the tokens a session row holds |
 | `IDENTITY_EXPERIENCE_DATABASE_URL` | none, required | Session store, as the DML-only serving role |
@@ -467,9 +465,11 @@ the build emits styles and fonts as files served from this origin, never inline.
 - No response body, header, or client-side bundle contains an access token, refresh
   token, ID token, client secret, or private key, asserted by scanning every endpoint
   response and the built artifact.
-- Once registered, the token and logout requests carry a signed assertion and no
-  `client_secret` and no `Authorization: Basic` header, asserted against the identity
-  provider mock.
+- The token and logout requests carry a PS256 assertion signed by the registered key,
+  each with a fresh `jti`, and no `client_secret` and no `Authorization: Basic` header,
+  asserted against the identity provider mock.
+- A client key file that is missing, unreadable, or below 3072 bits is a configuration
+  error that names the problem and never the key.
 - `localStorage` and `sessionStorage` hold no credential after a full sign-in flow.
 - A session cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, `__Host-` prefixed, and
   carries no encoded state.

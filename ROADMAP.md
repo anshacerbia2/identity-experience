@@ -75,18 +75,18 @@ runs the BFF on a developer's machine against it, with no Docker. The laptop sid
 the authorization request: the issuer matches, the realm publishes a PS256 key, and the token
 endpoint answers.
 
-**Owed to identity-control.** `identity-experience-bff` is created by a script with a client secret,
-and it is not registered. identity-control's registration API builds public and resource clients
-only. A confidential client needs client key registration, which is designed (TDD-identity-control-003
-§Client Key Records) and not built. Before identity-control starts disabling unmanaged clients, this
-client must be registered, or it is disabled with every session it holds.
+✅ **The BFF authenticates with its own key** (TDD-001 1.4.0, `ADR-IAM-001 §5.12`). It signs a
+PS256 client assertion with its private key, through `openid-client`'s `PrivateKeyJwt` for the token
+endpoint and `jose` for the logout endpoint. The key is made on the developer's machine by
+`scripts/new-client-key.mjs`, and only its public half goes to the server. The client has no secret.
+The stand-in kernel in the tests refuses a secret, a replayed assertion, and a key other than the
+registered one.
 
-Registering it moves the BFF from the secret to `private_key_jwt` (TDD-001 1.3.0, `ADR-IAM-001
-§5.12`):
-
-- it signs a PS256 client assertion with its own private key, which `openid-client` supports as
-  `PrivateKeyJwt`;
-- the secret stays only under the development bootstrap exemption until then.
+**Owed to identity-control.** `identity-experience-bff` is created by a script, not registered.
+identity-control's registration API builds public and resource clients only. A confidential client
+needs client key registration, which is designed (TDD-identity-control-003 §Client Key Records) and
+not built. Before identity-control starts disabling unmanaged clients, this client must be
+registered, or it is disabled with every session it holds.
 
 - Authorization code exchange with PKCE `S256`, confidential client authentication
 - `state` and `nonce` generated, stashed, and validated on return

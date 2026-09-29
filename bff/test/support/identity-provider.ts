@@ -2,7 +2,18 @@ import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-import { exportJWK, generateKeyPair, SignJWT, type CryptoKey, type JWTPayload } from 'jose';
+import {
+  calculateJwkThumbprint,
+  decodeProtectedHeader,
+  exportJWK,
+  generateKeyPair,
+  jwtVerify,
+  SignJWT,
+  type CryptoKey,
+  type JWTPayload,
+} from 'jose';
+
+import { testClientKey } from './client-key.js';
 
 // A stand-in for the identity kernel's realm: the Keycloak endpoints the BFF calls, signing with
 // PS256 as STD-IAM-002 requires. It is a test double of the protocol, not of Keycloak: it enforces
@@ -52,7 +63,8 @@ const readBody = async (request: IncomingMessage): Promise<string> => {
 
 export class IdentityProvider {
   readonly clientId = 'identity-experience';
-  readonly clientSecret = randomBytes(24).toString('base64url');
+  // Every client assertion the BFF presented, so a test can see it never repeats one.
+  readonly assertionIds = new Set<string>();
   readonly accessTokenLifetimeSeconds = 240;
 
   issuer = '';
@@ -191,24 +203,53 @@ export class IdentityProvider {
     return { status: 404, body: { error: 'not_found' } };
   }
 
-  #authenticated(request: IncomingMessage): boolean {
-    const [scheme, credentials] = (request.headers.authorization ?? '').split(' ');
-    const [id, secret] = Buffer.from(credentials ?? '', 'base64')
-      .toString('utf8')
-      .split(':')
-      .map((part) => decodeURIComponent(part));
-    return scheme === 'Basic' && id === this.clientId && secret === this.clientSecret;
+  // #authenticated checks the client the way the kernel checks a private_key_jwt client: a PS256
+  // assertion signed by the key registered on the client, whose kid is that key's thumbprint, naming
+  // the client as iss and sub and this realm's issuer as aud, never seen before. A request that
+  // also carries a secret, in the body or as Basic, is refused: this client has none.
+  async #authenticated(request: IncomingMessage, form: URLSearchParams): Promise<boolean> {
+    if (request.headers.authorization !== undefined || form.has('client_secret')) {
+      return false;
+    }
+    const assertion = form.get('client_assertion') ?? '';
+    if (
+      form.get('client_assertion_type') !== 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer' ||
+      assertion === ''
+    ) {
+      return false;
+    }
+    try {
+      const { publicKey } = testClientKey();
+      const header = decodeProtectedHeader(assertion);
+      const registeredKid = await calculateJwkThumbprint(publicKey.export({ format: 'jwk' }));
+      const { payload } = await jwtVerify(assertion, publicKey, {
+        algorithms: ['PS256'],
+        issuer: this.clientId,
+        subject: this.clientId,
+        audience: this.issuer,
+      });
+      if (
+        header.kid !== registeredKid ||
+        typeof payload.jti !== 'string' ||
+        this.assertionIds.has(payload.jti)
+      ) {
+        return false;
+      }
+      this.assertionIds.add(payload.jti);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Keycloak's logout endpoint, called by a confidential client with a refresh token: the user
   // session it belongs to ends, and every refresh token of it with it.
   async #logout(request: IncomingMessage): Promise<{ status: number; body: unknown }> {
-    if (!this.#authenticated(request)) {
+    const form = new URLSearchParams(await readBody(request));
+    if (!(await this.#authenticated(request, form))) {
       return { status: 401, body: { error: 'invalid_client' } };
     }
-    const grant = this.#refreshTokens.get(
-      new URLSearchParams(await readBody(request)).get('refresh_token') ?? '',
-    );
+    const grant = this.#refreshTokens.get(form.get('refresh_token') ?? '');
     if (grant === undefined) {
       return { status: 400, body: { error: 'invalid_grant' } };
     }
@@ -222,10 +263,10 @@ export class IdentityProvider {
   }
 
   async #token(request: IncomingMessage): Promise<{ status: number; body: unknown }> {
-    if (!this.#authenticated(request)) {
+    const form = new URLSearchParams(await readBody(request));
+    if (!(await this.#authenticated(request, form))) {
       return { status: 401, body: { error: 'invalid_client' } };
     }
-    const form = new URLSearchParams(await readBody(request));
 
     if (form.get('grant_type') === 'authorization_code' && this.codeExchangeUnavailable) {
       return { status: 503, body: { error: 'temporarily_unavailable' } };

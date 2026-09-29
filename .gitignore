@@ -8,3 +8,7 @@ test-results/
 .env.*
 !.env.example
 .vite/
+
+# The BFF's private client key, made by scripts/new-client-key.mjs. It never leaves this machine.
+keys/
+*.pem

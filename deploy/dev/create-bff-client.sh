@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Registers identity-experience-bff in the development kernel, and prints its secret once as an
-# .env line. Run once, on the server, by whoever operates it:
+# Registers identity-experience-bff in the development kernel. The client authenticates with the
+# BFF's own key by signed JWT (private_key_jwt) and holds no secret (ADR-IAM-001 §5.12). Run once, on
+# the server, by whoever operates it:
 #
-#   ./create-bff-client.sh /path/to/identity-control/deploy/dev/.env
+#   ./create-bff-client.sh /path/to/identity-control/deploy/dev/.env /path/to/identity-experience-bff.jwk.json
 #
-# The argument is the file that already holds the kernel's Keycloak container name and bootstrap
-# administrator (KERNEL_KEYCLOAK_CONTAINER, KC_BOOTSTRAP_ADMIN_USERNAME, KC_BOOTSTRAP_ADMIN_PASSWORD),
-# so no password is typed on a command line or copied into a second file.
+# The first argument is the file that already holds the kernel's Keycloak container name, its
+# bootstrap administrator and its key tools (KERNEL_KEYCLOAK_CONTAINER, KC_BOOTSTRAP_ADMIN_USERNAME,
+# KC_BOOTSTRAP_ADMIN_PASSWORD, KERNEL_DEPLOY_DIR), so no password is typed on a command line or copied
+# into a second file. The second is the public JWK the developer made with
+# scripts/new-client-key.mjs. The private key stays on the developer's machine; nothing secret
+# crosses to the server, and nothing is printed.
 #
 #   identity-experience-bff  the BFF's confidential client (TDD-identity-experience-001).
 #                            Authorization Code with PKCE S256 and nothing else: no password grant,
@@ -25,21 +29,21 @@
 # kernel still ends the BFF session at its next refresh, within four minutes.
 #
 # It creates this one client and changes nothing else: no realm setting, no scope, no other client.
-# It refuses when the client exists, because a secret cannot be read back and a second run would
-# have to replace the one a developer holds. identity-control's create-kernel-clients.sh and
+# It refuses when the client exists. A second developer's key, or a new key, is installed with the
+# kernel's set-client-key.sh instead (README.md). identity-control's create-kernel-clients.sh and
 # dev-keycloak.ps1 are never run for this.
 #
 # Not yet a registration. identity-control registers public and resource clients through its API;
 # confidential registration needs client key registration, which is not built. Until it is, this
-# client is created here with a secret, as identity-control's own clients were. That is the
-# development bootstrap exemption in STD-IAM-001 §3.2. ROADMAP.md records that it must be registered,
-# and move to private_key_jwt, before unmanaged clients start being disabled.
+# client is created here, as identity-control's own clients are, with its key from the start.
+# ROADMAP.md records that it must be registered before unmanaged clients start being disabled.
 set -euo pipefail
 
-if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
-	echo "usage: $0 /path/to/identity-control/deploy/dev/.env" >&2
+if [ "$#" -ne 2 ] || [ ! -r "$1" ] || [ ! -r "$2" ]; then
+	echo "usage: $0 /path/to/identity-control/deploy/dev/.env /path/to/identity-experience-bff.jwk.json" >&2
 	exit 2
 fi
+jwk="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
 
 set -a
 # shellcheck disable=SC1090
@@ -50,7 +54,7 @@ container="${KERNEL_KEYCLOAK_CONTAINER:-scnehaux-identity-dev-keycloak-1}"
 realm=scnehaux
 client=identity-experience-bff
 redirect_uri=http://127.0.0.1:8090/auth/callback
-random() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
+kernel="${KERNEL_DEPLOY_DIR:?the identity-control .env must set KERNEL_DEPLOY_DIR to the kernel checkout's deploy/dev}"
 
 kc() {
 	docker exec -i "$container" /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm-identity-experience-bff.config
@@ -61,7 +65,7 @@ kc config credentials --server http://localhost:8080 --realm master \
 
 if [ -n "$(kc get clients -r "$realm" -q "clientId=$client" --fields id --format csv --noquotes | head -n 1)" ]; then
 	echo "create-bff-client: $client already exists in realm $realm; nothing created." >&2
-	echo "Its secret cannot be read back here. Regenerate it in the Admin Console if it was lost." >&2
+	echo "To install a key on it: $kernel/set-client-key.sh $realm $client JWK [JWK]" >&2
 	exit 1
 fi
 
@@ -72,9 +76,9 @@ if [ -z "$scope" ]; then
 	exit 1
 fi
 
-secret="$(random)"
 uuid="$(kc create clients -r "$realm" -i \
 	-s clientId="$client" -s enabled=true -s publicClient=false \
+	-s clientAuthenticatorType=client-jwt \
 	-s serviceAccountsEnabled=false -s standardFlowEnabled=true \
 	-s directAccessGrantsEnabled=false -s implicitFlowEnabled=false \
 	-s frontchannelLogout=false \
@@ -82,8 +86,7 @@ uuid="$(kc create clients -r "$realm" -i \
 	-s 'attributes."pkce.code.challenge.method"=S256' \
 	-s 'attributes."access.token.signed.response.alg"=PS256' \
 	-s 'attributes."id.token.signed.response.alg"=PS256' \
-	-s 'attributes."access.token.lifespan"=240' \
-	-s "secret=$secret")"
+	-s 'attributes."access.token.lifespan"=240')"
 # The audience belongs to the client relationship, not to the claim profile, as on
 # identity-control-caller: the provider scope does not make every provider token valid at every API.
 kc create "clients/$uuid/protocol-mappers/models" -r "$realm" \
@@ -93,4 +96,6 @@ kc create "clients/$uuid/protocol-mappers/models" -r "$realm" \
 	-s 'config."introspection.token.claim"=true' >/dev/null
 kc update "clients/$uuid/default-client-scopes/$scope" -r "$realm"
 
-echo "IDENTITY_EXPERIENCE_CLIENT_SECRET=$secret"
+# The developer's public key, installed by the kernel's tool, which also regenerates, unprinted, the
+# secret Keycloak gave the new client by default.
+"$kernel/set-client-key.sh" "$realm" "$client" "$jwk"

@@ -29,8 +29,8 @@ to server-managed session control.
 
 So the browser holds an opaque `__Host-` session cookie and never holds a token. Every
 token lives server-side in the BFF, which is a confidential OAuth client. It authenticates to
-Keycloak with its own private key (`private_key_jwt`), which the browser never sees. On the
-development server it still uses a client secret until identity-control can register it.
+Keycloak with its own private key (`private_key_jwt`), which the browser never sees. The client
+has no secret, on the development server as everywhere else.
 
 ```text
 Browser  ──opaque session cookie──►  BFF  ──access token──►  Identity Control API
@@ -118,14 +118,26 @@ TDD-001 §Configuration.
 
 ### Signing in against the development kernel
 
-Keycloak runs on the development server; nothing here needs Docker. Once, on the server:
+Keycloak runs on the development server, and nothing here needs Docker. The BFF authenticates with
+its own key, so the first step is on this machine:
 
-```sh
-deploy/dev/create-bff-client.sh /path/to/identity-control/deploy/dev/.env
+```powershell
+node scripts/new-client-key.mjs     # keys/identity-experience-bff.pem stays here; send the .jwk.json
 ```
 
-It creates the confidential client `identity-experience-bff` and prints its secret once. Then, on
-this machine, copy `.env.example` to `.env`, put the secret in it and nowhere else, and:
+Send `keys/identity-experience-bff.jwk.json`, the public half, to whoever operates the server. It is
+not secret. They install it once, depending on whether the client exists yet:
+
+```sh
+# the client does not exist yet
+deploy/dev/create-bff-client.sh /path/to/identity-control/deploy/dev/.env /path/to/identity-experience-bff.jwk.json
+# the client exists, for example created with a secret before keys: give it the key instead
+/path/to/identity-kernel/deploy/dev/set-client-key.sh scnehaux identity-experience-bff /path/to/identity-experience-bff.jwk.json
+```
+
+`set-client-key.sh` also regenerates the client's old secret without printing it, so a secret that
+was ever exposed stops working. Then, on this machine, copy `.env.example` to `.env` (delete any
+`IDENTITY_EXPERIENCE_CLIENT_SECRET` line an older `.env` has), and:
 
 ```powershell
 ./scripts/dev-local.ps1

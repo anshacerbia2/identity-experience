@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { testClientKey } from './support/client-key.js';
 import {
   cookieValue,
   minutes,
@@ -227,7 +228,18 @@ describe('sign-in', () => {
 });
 
 describe('token containment', () => {
-  it('no response carries a token or the client secret', async () => {
+  // The BFF authenticates with its own key (private_key_jwt), so the stand-in kernel refuses any
+  // request that carries a secret or a replayed assertion. A completed sign-in and logout therefore
+  // prove both calls were signed, each with an assertion of its own.
+  it('authenticates the code exchange and the logout with a fresh signed assertion each', async () => {
+    const before = harness.provider.assertionIds.size;
+    const { session } = await signIn(harness);
+    const logout = await mutate(session, '/auth/logout');
+    expect(logout.statusCode).toBe(204);
+    expect(harness.provider.assertionIds.size - before).toBe(2);
+  });
+
+  it('no response carries a token or the client private key', async () => {
     const { session, login, callback } = await signIn(harness);
     const responses = [
       login,
@@ -241,7 +253,13 @@ describe('token containment', () => {
       await mutate(session, '/api/v1/registrations'),
       await mutate(session, '/auth/logout'),
     ];
-    const secrets = [...harness.provider.issuedSecrets, harness.provider.clientSecret];
+    // The private key's own members, as they would appear in a JWK or a PEM that leaked.
+    const privateJwk = testClientKey().key.privateKey.export({ format: 'jwk' });
+    const pemBody = testClientKey()
+      .pem.split('\n')
+      .filter((line) => line !== '' && !line.startsWith('-----'))
+      .slice(1, 3);
+    const secrets = [...harness.provider.issuedSecrets, String(privateJwk.d), ...pemBody];
     for (const response of responses) {
       const surface = `${JSON.stringify(response.headers)}\n${response.body}`;
       for (const secret of secrets) {

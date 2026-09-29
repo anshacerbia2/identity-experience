@@ -1,4 +1,8 @@
+import { generateKeyPairSync } from 'node:crypto';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -6,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { ConfigError, loadConfig } from '../src/config.js';
 import { contentSecurityPolicy, securityHeaders } from '../src/http/security-headers.js';
 import { buildServer } from '../src/server.js';
+import { testClientKey } from './support/client-key.js';
 import { publicOrigin, testConfig } from './support/harness.js';
 
 let app: FastifyInstance;
@@ -19,7 +24,7 @@ beforeAll(async () => {
         issuer: 'http://127.0.0.1:9/realms/test',
         internalBaseUrl: 'http://127.0.0.1:9/realms/test',
         clientId: 'identity-experience',
-        clientSecret: 'unused',
+        clientKey: testClientKey().key,
         redirectUri: `${publicOrigin}/auth/callback`,
       },
       databaseUrl: 'postgres://unused@127.0.0.1:9/unused',
@@ -208,7 +213,7 @@ describe('configuration', () => {
     IDENTITY_EXPERIENCE_WEB_ROOT: './web/dist',
     IDENTITY_EXPERIENCE_ISSUER: 'https://sso.example.com/realms/scnehaux',
     IDENTITY_EXPERIENCE_CLIENT_ID: 'identity-experience',
-    IDENTITY_EXPERIENCE_CLIENT_SECRET: 'not-a-real-secret',
+    IDENTITY_EXPERIENCE_CLIENT_KEY_FILE: testClientKey().file,
     IDENTITY_EXPERIENCE_REDIRECT_URI: 'https://id.example.com/auth/callback',
     IDENTITY_EXPERIENCE_SESSION_KEY: Buffer.alloc(32, 1).toString('base64'),
     IDENTITY_CONTROL_BASE_URL: 'http://identity-control:8080/',
@@ -233,6 +238,32 @@ describe('configuration', () => {
     });
     // The internal address defaults to the issuer: one address for both, the simple deployment.
     expect(config.oidc.internalBaseUrl).toBe(complete.IDENTITY_EXPERIENCE_ISSUER);
+  });
+
+  it('reads the client key from its file, with the kid as its thumbprint', () => {
+    const config = loadConfig(complete);
+    expect(config.oidc.clientKey.kid).toBe(testClientKey().key.kid);
+    expect(config.oidc.clientKey.kid).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+
+  it('refuses a client key file that is missing, or a key below 3072 bits, without printing it', () => {
+    expect(() =>
+      loadConfig({ ...complete, IDENTITY_EXPERIENCE_CLIENT_KEY_FILE: `${testClientKey().file}.absent` }),
+    ).toThrow(/CLIENT_KEY_FILE: .* could not be read/);
+
+    const short = generateKeyPairSync('rsa', { modulusLength: 2048 })
+      .privateKey.export({ type: 'pkcs8', format: 'pem' })
+      .toString();
+    const file = join(mkdtempSync(join(tmpdir(), 'bff-short-key-')), 'short.pem');
+    writeFileSync(file, short, { mode: 0o600 });
+    let caught: unknown;
+    try {
+      loadConfig({ ...complete, IDENTITY_EXPERIENCE_CLIENT_KEY_FILE: file });
+    } catch (error) {
+      caught = error;
+    }
+    expect(String(caught)).toMatch(/2048 bits; at least 3072/);
+    expect(String(caught)).not.toContain(short.split('\n')[1]);
   });
 
   it('refuses a callback other than this origin’s /auth/callback', () => {
