@@ -106,7 +106,7 @@ Node 24 and pnpm 10:
 
 ```sh
 pnpm install
-pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :8080
+pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :8090
 pnpm test && pnpm lint && pnpm build
 ```
 

@@ -10,33 +10,54 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RegistrationsIndexRouteImport } from './routes/registrations/index'
+import { Route as RegistrationsRegistrationIdRouteImport } from './routes/registrations/$registrationId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegistrationsIndexRoute = RegistrationsIndexRouteImport.update({
+  id: '/registrations/',
+  path: '/registrations/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegistrationsRegistrationIdRoute =
+  RegistrationsRegistrationIdRouteImport.update({
+    id: '/registrations/$registrationId',
+    path: '/registrations/$registrationId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/registrations/': typeof RegistrationsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/registrations': typeof RegistrationsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/registrations/': typeof RegistrationsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/registrations/$registrationId' | '/registrations/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/registrations/$registrationId' | '/registrations'
+  id: '__root__' | '/' | '/registrations/$registrationId' | '/registrations/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
+  RegistrationsIndexRoute: typeof RegistrationsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +69,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/registrations/': {
+      id: '/registrations/'
+      path: '/registrations'
+      fullPath: '/registrations/'
+      preLoaderRoute: typeof RegistrationsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/registrations/$registrationId': {
+      id: '/registrations/$registrationId'
+      path: '/registrations/$registrationId'
+      fullPath: '/registrations/$registrationId'
+      preLoaderRoute: typeof RegistrationsRegistrationIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
+  RegistrationsIndexRoute: RegistrationsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -31,7 +31,7 @@ const surfaces: readonly Surface[] = [
     title: 'overview.card.registrations.title',
     body: 'overview.card.registrations.body',
     tone: 'info',
-    status: 'overview.status.next',
+    status: 'overview.status.inProgress',
   },
   {
     icon: 'users',

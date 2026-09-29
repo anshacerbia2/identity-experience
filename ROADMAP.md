@@ -121,6 +121,13 @@ carries an idempotency key, an optimistic version, and a reason.
 
 ## Week 4 · Administration and developer console
 
+**Started early, with the first real sign-in:** registrations and drift (TDD-003 1.2.0, §Registration
+Drift Oversight). The list is paged by identity-control's new `GET /v1/registrations` cursor
+(identity-control#19). It shows each client's open findings, the reconciler's last run, and one
+registration with every finding and its convergence time. Read-only so far. **Next:** the operator
+actions, which are applying desired state to named findings with a reason, and granting a drift
+exception.
+
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration
 - Credential rotation request flow

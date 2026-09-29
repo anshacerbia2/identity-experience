@@ -43,6 +43,7 @@ Three rules keep that one-line change honest:
 | `system/panel`                     | none yet                               | local                                                       |
 | `system/status-pill`               | none yet                               | local                                                       |
 | `system/icon`                      | none yet                               | local                                                       |
+| `system/table`                     | none yet                               | local; a `<table>` with a required caption                  |
 | `styles/tokens/_ds-temporary.scss` | `@scnx/system/themes/*`                | platform names, local values                                |
 
 ## Styling rules
@@ -50,6 +51,10 @@ Three rules keep that one-line change honest:
 These follow STD-GLB-FE-005, and stylelint enforces them:
 
 - Styles are SCSS Modules beside their component, inside `@layer components`.
+- The layer order (`reset, tokens, base, components, utilities, overrides`) is stated at the top of
+  every stylesheet by the application's Vite config (`css.preprocessorOptions.scss.additionalData`).
+  A browser takes the order from the first stylesheet that names a layer. A split CSS chunk can load
+  before the global one, and without the statement the reset's button rules beat every Button's own.
 - Colours are OKLCH. HEX, `rgb()` and `hsl()` are refused.
 - Properties are logical only. `margin-left`, `width` and their kind are refused.
 - Nesting is at most two levels deep, and no `!important`.
