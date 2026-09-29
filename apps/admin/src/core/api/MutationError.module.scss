@@ -1,0 +1,26 @@
+@layer components {
+  .root {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-spacing-sm);
+    padding: var(--ds-spacing-sm) var(--ds-spacing-md);
+    border: var(--ds-stroke-thin) solid var(--ds-color-danger-border-default-default);
+    border-radius: var(--ds-radius-md);
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-danger-text-default-default);
+    background: var(--ds-color-danger-surface-subtle-default);
+  }
+
+  .text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-3xs);
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .reference {
+    font-family: var(--ds-font-family-mono);
+    font-size: var(--ds-font-size-xs);
+  }
+}

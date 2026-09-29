@@ -1,0 +1,72 @@
+@layer components {
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-2xs);
+    inline-size: 100%;
+    min-inline-size: 0;
+  }
+
+  .label {
+    font-size: var(--ds-font-size-sm);
+    font-weight: var(--ds-font-weight-medium);
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .control {
+    inline-size: 100%;
+    min-block-size: var(--ds-size-control-md);
+    padding: var(--ds-spacing-xs) var(--ds-spacing-sm);
+    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-default-default);
+    border-radius: var(--ds-radius-md);
+    font: inherit;
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-strong-default);
+    background: var(--ds-color-neutral-surface-sunken-default);
+    transition:
+      border-color var(--ds-duration-fast) var(--ds-easing-standard),
+      box-shadow var(--ds-duration-fast) var(--ds-easing-standard);
+
+    &:hover {
+      border-color: var(--ds-color-neutral-border-strong-default);
+    }
+
+    &:focus-visible {
+      border-color: var(--ds-color-neutral-border-default-focus);
+      outline: none;
+      box-shadow: var(--ds-shadow-focus);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--ds-color-danger-border-default-default);
+    }
+  }
+
+  .area {
+    min-block-size: 6rem;
+    resize: vertical;
+    line-height: var(--ds-line-height-relaxed);
+  }
+
+  .select {
+    cursor: pointer;
+  }
+
+  .hint {
+    font-size: var(--ds-font-size-xs);
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+
+  // The error reads as an error by its words as well as its colour: the message says what is wrong.
+  .error {
+    font-size: var(--ds-font-size-xs);
+    font-weight: var(--ds-font-weight-medium);
+    color: var(--ds-color-danger-text-default-default);
+  }
+
+  @media (forced-colors: active) {
+    .control {
+      border-color: CanvasText;
+    }
+  }
+}

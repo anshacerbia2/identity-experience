@@ -86,6 +86,49 @@ export const needsOperator = (finding: Finding): boolean =>
     finding.finding_class === 'unattributed' ||
     finding.finding_class === 'missing');
 
+// The field classes a drift exception may cover, and the longest it may last: what the API
+// accepts (TDD-identity-control-003 §Drift Reconciliation). The console offers nothing else.
+export const exceptionFields = ['redirect_uris', 'token_lifespan'] as const;
+export type ExceptionField = (typeof exceptionFields)[number];
+export const exceptionHours = [1, 4, 8, 24] as const;
+
+export interface DriftException {
+  readonly exception_id: string;
+  readonly registration_id: string;
+  readonly field_class: ExceptionField;
+  readonly actor: string;
+  readonly reason: string;
+  readonly granted_by: string;
+  readonly granted_at: string;
+  readonly expires_at: string;
+}
+
+// An administrative reason travels in an HTTP header (X-Administrative-Reason), which holds one
+// line of Latin-1. Line breaks typed in the form become spaces; anything outside Latin-1 is
+// refused with a message rather than failing inside fetch.
+export const normalizeReason = (reason: string): string => reason.replace(/\s+/g, ' ').trim();
+
+export const minReasonLength = 10;
+export const maxReasonLength = 500;
+
+export type ReasonProblem = 'short' | 'long' | 'characters';
+
+const headerSafe = /^[\x20-\x7E\xA0-\xFF]*$/;
+
+export function reasonProblem(reason: string): ReasonProblem | null {
+  const normalized = normalizeReason(reason);
+  if (normalized.length < minReasonLength) {
+    return 'short';
+  }
+  if (normalized.length > maxReasonLength) {
+    return 'long';
+  }
+  if (!headerSafe.test(normalized)) {
+    return 'characters';
+  }
+  return null;
+}
+
 // openFindingsByRegistration counts every finding that has not converged, per registration.
 export function openFindingsByRegistration(findings: readonly Finding[] | null): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();

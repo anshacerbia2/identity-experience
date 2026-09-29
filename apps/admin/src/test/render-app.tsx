@@ -26,21 +26,37 @@ export function renderApp(path: string, locale: Locale = 'en'): RenderResult {
 
 // A fetch stand-in routed by path: the BFF's /auth and /api answered by the test. It records every
 // request, so a test can assert what the page asked for.
-export type Responder = (url: URL) => Response | undefined;
+export interface Sent {
+  readonly url: URL;
+  readonly method: string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly body: unknown;
+}
 
-export function stubFetch(responder: Responder): { readonly requests: URL[] } {
+export type Responder = (url: URL, sent: Sent) => Response | undefined;
+
+export function stubFetch(responder: Responder): { readonly requests: URL[]; readonly sent: Sent[] } {
   const requests: URL[] = [];
-  const fetchStub = (input: RequestInfo | URL): Promise<Response> => {
+  const sent: Sent[] = [];
+  const fetchStub = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = new URL(
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
       'http://localhost',
     );
+    const body = typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : null;
+    const request: Sent = {
+      url,
+      method: init?.method ?? 'GET',
+      headers: Object.fromEntries(new Headers(init?.headers).entries()),
+      body,
+    };
     requests.push(url);
-    return Promise.resolve(responder(url) ?? new Response(null, { status: 404 }));
+    sent.push(request);
+    return Promise.resolve(responder(url, request) ?? new Response(null, { status: 404 }));
   };
   // Undone by vi.unstubAllGlobals() in the test's afterEach.
   vi.stubGlobal('fetch', fetchStub);
-  return { requests };
+  return { requests, sent };
 }
 
 export const json = (body: unknown, status = 200): Response =>

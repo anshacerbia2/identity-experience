@@ -21,3 +21,5 @@ export { Panel } from './system/panel';
 export { StatusPill } from './system/status-pill';
 export type { StatusTone } from './system/status-pill';
 export { Table } from './system/table';
+export { SelectField, TextAreaField, TextField } from './system/field';
+export type { SelectOption } from './system/field';
