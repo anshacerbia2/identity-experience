@@ -49,6 +49,52 @@ export class IdentityProviderUnavailable extends Error {
 
 const trimSlash = (url: string): string => url.replace(/\/+$/, '');
 
+// The socket-level failures undici reports: no connection, a connection that stalled, a name that
+// did not resolve.
+const networkCodes = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT',
+  'UND_ERR_SOCKET',
+]);
+
+// isOutage tells an identity kernel that did not answer from one that answered no. Only an outage
+// keeps a session through a failed refresh, or tells a user at sign-in to try again: a refusal
+// repeated is still a refusal. An outage is a 5xx, or a request that never got an answer — which is
+// what a dev tunnel dropping a connection looks like, and it happened mid-sign-in on 2026-09-29.
+// Anything else, including every validation failure, is a refusal.
+export function isOutage(error: unknown): boolean {
+  if (error instanceof client.ResponseBodyError) {
+    return error.status >= 500;
+  }
+  let current: unknown = error;
+  for (let depth = 0; depth < 6 && current instanceof Error; depth += 1) {
+    if (current.name === 'AbortError' || current.name === 'TimeoutError') {
+      return true;
+    }
+    if (current instanceof TypeError && current.message === 'fetch failed') {
+      return true;
+    }
+    const code: unknown = (current as { code?: unknown }).code;
+    if (typeof code === 'string' && networkCodes.has(code)) {
+      return true;
+    }
+    // A non-2xx from the key endpoint arrives as a processing error carrying the response.
+    if (current.cause instanceof Response && current.cause.status >= 500) {
+      return true;
+    }
+    current = current.cause;
+  }
+  return false;
+}
+
 const stringClaim = (claims: JWTPayload | client.IDToken | undefined, name: string): string | null => {
   const value = claims?.[name];
   return typeof value === 'string' && value !== '' ? value : null;
@@ -141,6 +187,14 @@ export class Oidc {
       });
       return this.#grant(response, null);
     } catch (error) {
+      if (isOutage(error)) {
+        throw new IdentityProviderUnavailable(
+          'the identity kernel could not be reached to complete a sign-in',
+          {
+            cause: error,
+          },
+        );
+      }
       throw new OidcError('the authorization response or the token exchange was refused', { cause: error });
     }
   }
@@ -153,14 +207,14 @@ export class Oidc {
     try {
       response = await client.refreshTokenGrant(this.#configuration, current.refreshToken);
     } catch (error) {
-      // An OAuth error response (invalid_grant: the Keycloak session is gone) is a refusal, and
-      // ends the session. A network failure or a 5xx is an outage: the session outlives it.
-      if (error instanceof client.ResponseBodyError && error.status < 500) {
-        throw new OidcError('the refresh was refused', { cause: error });
+      // An OAuth error response (invalid_grant: the Keycloak session is gone) or a token that fails
+      // validation is a refusal, and ends the session. An outage does not: the session outlives it.
+      if (isOutage(error)) {
+        throw new IdentityProviderUnavailable('the identity kernel could not be reached for a refresh', {
+          cause: error,
+        });
       }
-      throw new IdentityProviderUnavailable('the identity kernel could not be reached for a refresh', {
-        cause: error,
-      });
+      throw new OidcError('the refresh was refused', { cause: error });
     }
     try {
       return this.#grant(response, current);

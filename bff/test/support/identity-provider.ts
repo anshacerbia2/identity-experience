@@ -58,6 +58,8 @@ export class IdentityProvider {
   issuer = '';
   refreshBehaviour: RefreshBehaviour = 'rotate';
   refreshCalls = 0;
+  // codeExchangeUnavailable answers the code exchange with a 503, as a kernel mid-restart does.
+  codeExchangeUnavailable = false;
   // refreshDelayMs holds a refresh open, so concurrent requests overlap on it.
   refreshDelayMs = 0;
   tamper: IdTokenTamper | null = null;
@@ -225,6 +227,9 @@ export class IdentityProvider {
     }
     const form = new URLSearchParams(await readBody(request));
 
+    if (form.get('grant_type') === 'authorization_code' && this.codeExchangeUnavailable) {
+      return { status: 503, body: { error: 'temporarily_unavailable' } };
+    }
     if (form.get('grant_type') === 'authorization_code') {
       const pending = this.#codes.get(form.get('code') ?? '');
       this.#codes.delete(form.get('code') ?? '');
