@@ -54,7 +54,7 @@ container="${KERNEL_KEYCLOAK_CONTAINER:-scnehaux-identity-dev-keycloak-1}"
 realm=scnehaux
 client=identity-experience-bff
 redirect_uri=http://127.0.0.1:8090/auth/callback
-kernel="${KERNEL_DEPLOY_DIR:?the identity-control .env must set KERNEL_DEPLOY_DIR to the kernel checkout's deploy/dev}"
+kernel="${KERNEL_DEPLOY_DIR:?the identity-control .env must set KERNEL_DEPLOY_DIR to the deploy/dev directory of the kernel checkout}"
 
 kc() {
 	docker exec -i "$container" /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm-identity-experience-bff.config
