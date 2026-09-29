@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.4.0
+  version: 1.5.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -179,6 +179,7 @@ GET   /api/v1/registrations/{registration_id}/findings
 GET   /api/v1/registrations:drift
 POST  /api/v1/registrations:reconcile            a sweep; with findings and a reason, apply
 POST  /api/v1/registrations/{registration_id}/drift-exceptions
+GET   /api/v1/registrations/{registration_id}/drift-exceptions
 ```
 
 **The list.** The list is paged by the API's cursor. "Load more" appends the next page
@@ -199,6 +200,14 @@ and every finding for it, newest first. Findings that have converged are include
 because a repaired console change is the evidence it happened. A converged finding
 shows how long the change lasted, from the admin event's time to convergence, which is
 the measure the drift proof reports.
+
+**Drift exceptions.** The same page lists the registration's drift exceptions, newest
+first. Each row shows the field class, the Keycloak user it names, the reason, the
+granting Principal, and when it ends. Expired exceptions stay listed, because each is the
+record of why a `sanctioned` change was left in place. Each row says whether the
+exception is in force, judged against the moment the list was read so every row uses the
+same clock. The list is read again after an exception is granted. It is shown for any
+registration, and the grant form below it only for an `active` one.
 
 **Actions.** Three commands, each carrying the session's CSRF token. None is retried
 behind the operator's back. The page never offers an action the API would refuse.
@@ -311,6 +320,9 @@ again and shows the user signed out rather than a page of errors.
 - A reason that is too short, or has characters a header cannot carry, is refused before sending.
 - A drift exception is offered only for an active registration, with only the field classes and
   durations the API accepts. It requires the Keycloak user ID.
+- Drift exceptions are listed newest first, expired ones included, each marked in force or
+  expired. The list is read again after a grant, and is still shown for a registration that
+  is not active.
 - A refusal is shown with the API's sentence, attributed to it, and with its reference.
 
 ### Principals

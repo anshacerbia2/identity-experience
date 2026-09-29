@@ -17,7 +17,7 @@ import {
 } from '@/domain/registration';
 
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
-import { ExceptionForm } from './ExceptionForm';
+import { DriftExceptions } from './DriftExceptions';
 import { attentionTone, fieldLabel, findingClassLabel, profileLabel, stateLabel, stateTone } from './labels';
 import { useFindings, useRegistration } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
@@ -295,14 +295,14 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
         </StatusPill>
       </header>
       <Details registration={found} />
-      {found.state === 'active' ? <ExceptionForm registrationId={registrationId} /> : null}
       <Findings registrationId={registrationId} />
+      <DriftExceptions registrationId={registrationId} grantable={found.state === 'active'} />
     </>
   );
 }
 
-// RegistrationDetailPage is one registration as desired state records it, and every divergence
-// the reconciler found between it and Keycloak.
+// RegistrationDetailPage is one registration as desired state records it, every divergence the
+// reconciler found between it and Keycloak, and the drift exceptions granted for it.
 export function RegistrationDetailPage({
   registrationId,
 }: {

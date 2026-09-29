@@ -125,7 +125,8 @@ carries an idempotency key, an optimistic version, and a reason.
 Drift Oversight). The list is paged by identity-control's new `GET /v1/registrations` cursor
 (identity-control#19). It shows each client's open findings, the reconciler's last run, and one
 registration with every finding and its convergence time. The operator actions followed: run a sweep, apply the registered state to a finding with a reason, and
-grant a drift exception. Principals followed (§Principal Provisioning and Portability): create a person or a workload, and relink a mapping whose Keycloak user is gone. Search and security state wait for TDD-identity-control-005. **Next:** connecting the laptop BFF to identity-control so
+grant a drift exception. Each registration also lists its drift exceptions, in force or expired
+(TDD-003 1.5.0, on identity-control#20's `GET` of the same path). Principals followed (§Principal Provisioning and Portability): create a person or a workload, and relink a mapping whose Keycloak user is gone. Search and security state wait for TDD-identity-control-005. **Next:** connecting the laptop BFF to identity-control so
 these screens read real data.
 
 - Identity administration and investigation surfaces
