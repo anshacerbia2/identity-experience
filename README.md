@@ -28,8 +28,9 @@ equivalent long-lived bearer secrets, and directs privileged administrative expe
 to server-managed session control.
 
 So the browser holds an opaque `__Host-` session cookie and never holds a token. Every
-token lives server-side in the BFF, which is a confidential OAuth client holding a
-client secret the browser never sees.
+token lives server-side in the BFF, which is a confidential OAuth client. It authenticates to
+Keycloak with its own private key (`private_key_jwt`), which the browser never sees. On the
+development server it still uses a client secret until identity-control can register it.
 
 ```text
 Browser  ──opaque session cookie──►  BFF  ──access token──►  Identity Control API

@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.2.0
+  version: 1.3.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-29
+  last_reviewed: 2026-09-30
   parent_sad: SAD-002
 ---
 
@@ -69,9 +69,18 @@ defect against this design yields the ability to make requests while the tab is 
 which is bounded by the session and revocable server-side. The difference is
 exfiltration versus use.
 
-The BFF is a confidential client. It holds a client secret sourced from the approved
-secret manager, which STD-IAM-001 §3.2 prohibits any public browser application from
-holding.
+The BFF is a confidential client. It authenticates to the token and logout endpoints with a
+signed client assertion (`private_key_jwt`, PS256), as STD-IAM-001 §3.2 requires of a
+registered confidential client (`ADR-IAM-001 §5.12`). Its private key is sourced from the
+approved secret manager and never leaves this process. Identity Control registers only
+the public key. STD-IAM-001 §3.2 prohibits any public browser application from holding such
+a key.
+
+**Today, on the development server, the BFF holds a client secret instead.**
+`deploy/dev/create-bff-client.sh` creates `identity-experience-bff` directly, because Identity
+Control cannot register a confidential client yet. That is the bootstrap exemption STD-IAM-001
+§3.2 allows in development only. When Identity Control registers the client, the BFF moves to
+`private_key_jwt`, and the secret is removed from its configuration.
 
 This experience is `privileged` in the audience taxonomy of STD-IAM-002 §3.1, so its
 access tokens take lifetime class `L0`: a four-minute lifetime derived from a
@@ -107,7 +116,7 @@ sequenceDiagram
     K-->>B: 302 back with code, state and iss
     B->>F: GET /auth/callback?code&state&iss, with the login binding
     F->>S: Consume the pre-session the binding names; validate state
-    F->>K: Exchange code with verifier and client secret
+    F->>K: Exchange code with verifier and a signed client assertion
     K-->>F: Access token, refresh token, ID token
     F->>F: Validate ID token: iss, aud, nonce, PS256 signature, exp
     F->>S: Create session, store tokens sealed server-side
@@ -381,8 +390,8 @@ API, and the BFF surfaces the refusal rather than retrying.
 - It makes no authorization decision. Every command is reauthorized by the Identity
   Control API, per SAD-002 §8.
 - It holds no business state and no domain logic.
-- It never returns an access token, refresh token, ID token, or client secret to the
-  browser, on any endpoint, including diagnostics.
+- It never returns an access token, refresh token, ID token, client private key, or client
+  secret to the browser, on any endpoint, including diagnostics.
 - It never accepts a Tenant identifier from the browser as authority; a requested
   context is validated against the session and the API.
 
@@ -398,7 +407,9 @@ user-experience control only.
 | `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
 | `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
 | `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
-| `IDENTITY_EXPERIENCE_CLIENT_SECRET` | none, required | Sourced from the approved secret manager |
+| `IDENTITY_EXPERIENCE_CLIENT_KEY` | none, required once registered | The client's private key (PKCS#8 PEM, RSA ≥ 3072), from the approved secret manager |
+| `IDENTITY_EXPERIENCE_CLIENT_KEY_ID` | none, required once registered | The registered key's `kid`, sent in each assertion's header |
+| `IDENTITY_EXPERIENCE_CLIENT_SECRET` | none; development bootstrap only | The script-created client's secret, until Identity Control registers the client |
 | `IDENTITY_EXPERIENCE_REDIRECT_URI` | none, required | Exactly registered, no wildcard; must be the public origin's `/auth/callback` |
 | `IDENTITY_EXPERIENCE_SESSION_KEY` | none, required | 32 bytes, base64; seals the tokens a session row holds |
 | `IDENTITY_EXPERIENCE_DATABASE_URL` | none, required | Session store, as the DML-only serving role |
@@ -454,8 +465,11 @@ the build emits styles and fonts as files served from this origin, never inline.
 ### Token Containment
 
 - No response body, header, or client-side bundle contains an access token, refresh
-  token, ID token, or client secret, asserted by scanning every endpoint response and
-  the built artifact.
+  token, ID token, client secret, or private key, asserted by scanning every endpoint
+  response and the built artifact.
+- Once registered, the token and logout requests carry a signed assertion and no
+  `client_secret` and no `Authorization: Basic` header, asserted against the identity
+  provider mock.
 - `localStorage` and `sessionStorage` hold no credential after a full sign-in flow.
 - A session cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, `__Host-` prefixed, and
   carries no encoded state.
@@ -513,7 +527,7 @@ a stolen refresh token is usable from anywhere, for as long as it lives, with no
 signal. Cross-site request forgery is bounded to what an open session can do, is
 detectable at the server, and has three independent deterministic defences.
 
-The client secret makes this a confidential client, which is what permits refresh
+Client authentication makes this a confidential client, which is what permits refresh
 tokens to exist at all for a browser-facing experience. A public client holding a
 refresh token in the browser is prohibited by STD-IAM-001 §3.2 and is the pattern
 this design replaces.
@@ -551,7 +565,7 @@ by itself a defect. It is correlated against revocation events before being trea
 as an incident.
 
 Runbooks required before production: session-store outage, back-channel logout
-failure, client secret rotation, and suspected session fixation.
+failure, client key rotation, and suspected session fixation.
 
 ## Traceability
 
@@ -561,7 +575,8 @@ failure, client secret rotation, and suspected session fixation.
 | Realizes capability | PAD-PLT-001 — Identity & Access Platform |
 | Governed by | ADR-IAM-001 — Adopt Keycloak Identity Kernel |
 | Conforms to | STD-IAM-001 §3.9 — no browser-held refresh tokens; BFF session control for privileged experiences |
-| Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication |
+| Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication by `private_key_jwt` |
+| Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys |
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |

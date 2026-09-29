@@ -22,7 +22,7 @@ worked around.
 | `TDD-identity-experience-001` | Backend-for-frontend session and browser security                  | approved |
 | `TDD-identity-experience-002` | Account security: sessions, devices, authenticators, consent       | approved |
 | `TDD-identity-experience-003` | Identity administration and investigation                          | approved |
-| `TDD-identity-experience-004` | Developer console: application onboarding and credential lifecycle | approved |
+| `TDD-identity-experience-004` | Developer console: application onboarding and client key lifecycle | approved |
 
 ## Build decisions, 2026-09-28
 
@@ -75,10 +75,18 @@ runs the BFF on a developer's machine against it, with no Docker. The laptop sid
 the authorization request: the issuer matches, the realm publishes a PS256 key, and the token
 endpoint answers.
 
-**Owed to identity-control.** `identity-experience-bff` is created by a script, not registered:
-identity-control's registration API builds public and resource clients only, and a confidential one
-needs credential issuance. Before identity-control starts disabling unmanaged clients, this client
-must be registered, or it is disabled with every session it holds.
+**Owed to identity-control.** `identity-experience-bff` is created by a script with a client secret,
+and it is not registered. identity-control's registration API builds public and resource clients
+only. A confidential client needs client key registration, which is designed (TDD-identity-control-003
+§Client Key Records) and not built. Before identity-control starts disabling unmanaged clients, this
+client must be registered, or it is disabled with every session it holds.
+
+Registering it moves the BFF from the secret to `private_key_jwt` (TDD-001 1.3.0, `ADR-IAM-001
+§5.12`):
+
+- it signs a PS256 client assertion with its own private key, which `openid-client` supports as
+  `PrivateKeyJwt`;
+- the secret stays only under the development bootstrap exemption until then.
 
 - Authorization code exchange with PKCE `S256`, confidential client authentication
 - `state` and `nonce` generated, stashed, and validated on return
@@ -89,7 +97,7 @@ must be registered, or it is disabled with every session it holds.
 - Server-side refresh, with failure destroying the session
 - Idle and absolute expiry
 
-**Exit:** no response body, header, or built artifact contains a token or client secret,
+**Exit:** no response body, header, or built artifact contains a token, client secret, or private key,
 asserted by scanning every endpoint; a cross-site form post carrying the session cookie
 is rejected.
 
@@ -131,7 +139,7 @@ these screens read real data.
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration
-- Credential rotation request flow
+- Client public-key registration and rotation flow (TDD-004 1.2.0)
 - Privileged action reason and evidence capture
 
 **Exit:** no administrative control is available in the interface that the Control API
@@ -168,4 +176,4 @@ Recorded so scope creep is visible rather than convenient:
 response and the built artifact, all three forgery defences tested independently,
 measured revocation-to-session-destruction inside the class `L0` bound, WCAG 2.2 AA
 conformance evidence, and runbooks written for session-store outage, back-channel
-logout failure, client secret rotation, and suspected session fixation.
+logout failure, client key rotation, and suspected session fixation.
