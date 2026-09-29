@@ -30,9 +30,10 @@
 # dev-keycloak.ps1 are never run for this.
 #
 # Not yet a registration. identity-control registers public and resource clients through its API;
-# confidential registration needs credential issuance, which is not built. Until it is, this client
-# is created here, as identity-control's own clients were, and ROADMAP.md records that it must be
-# registered before unmanaged clients start being disabled.
+# confidential registration needs client key registration, which is not built. Until it is, this
+# client is created here with a secret, as identity-control's own clients were. That is the
+# development bootstrap exemption in STD-IAM-001 §3.2. ROADMAP.md records that it must be registered,
+# and move to private_key_jwt, before unmanaged clients start being disabled.
 set -euo pipefail
 
 if [ "$#" -ne 1 ] || [ ! -r "$1" ]; then
