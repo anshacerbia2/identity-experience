@@ -70,6 +70,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
                 <Message id="shell.nav.registrations" />
               </Link>
             </li>
+            <li>
+              <Link to="/principals" className={styles['navItem']} activeProps={{ 'aria-current': 'page' }}>
+                <Icon name="users" />
+                <Message id="shell.nav.principals" />
+              </Link>
+            </li>
           </ul>
         </nav>
       </aside>

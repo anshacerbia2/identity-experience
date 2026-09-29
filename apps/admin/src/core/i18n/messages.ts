@@ -174,6 +174,53 @@ export const en = {
   'exception.duration.option': '{hours, plural, one {# hour} other {# hours}}',
   'exception.submit': 'Grant exception',
   'exception.done': 'Exception granted until {until}.',
+
+  'shell.nav.principals': 'Principals',
+
+  'principals.eyebrow': 'Identities',
+  'principals.title': 'Principals',
+  'principals.lead':
+    'Create a Principal, and give one whose Keycloak user is gone a user again. There is no list of every Principal: search arrives with the investigation API, and a directory export is not administration.',
+
+  'principals.create.open': 'Create a Principal',
+  'principals.create.title': 'New Principal',
+  'principals.create.body':
+    'identity-control issues the principal_id and creates the Keycloak user. It never holds the credential: a person sets their own password at first sign-in.',
+  'principals.create.kind': 'Kind',
+  'principals.subject.human': 'Person',
+  'principals.subject.workload': 'Workload',
+  'principals.create.username': 'Username',
+  'principals.create.username.required': 'A username is required.',
+  'principals.create.email': 'Email',
+  'principals.create.email.hint': 'Optional. Where Keycloak sends the account messages.',
+  'principals.create.owner': 'Accountable owner',
+  'principals.create.owner.hint': 'The principal_id of the person accountable for this workload.',
+  'principals.create.owner.invalid':
+    'Enter a principal_id: a UUID such as 01a0da74-44e7-7000-b600-b464c5cb8cec.',
+  'principals.create.submit': 'Create Principal',
+  'principals.created.title': 'Principal created',
+  'principals.created.id': 'principal_id',
+  'principals.created.human': 'Keycloak asks this person to set a password at first sign-in.',
+  'principals.created.workload': 'A workload signs in with a client credential, not a password.',
+  'principals.create.another': 'Create another',
+
+  'principals.dangling.title': 'Mappings whose Keycloak user is gone',
+  'principals.dangling.description':
+    'Each keeps its principal_id and every Membership. A relink gives it a Keycloak user again, under the same principal_id.',
+  'principals.dangling.caption': 'Principals whose Keycloak user is gone',
+  'principals.dangling.empty': 'Every active Principal has its Keycloak user.',
+  'principals.dangling.column.principal': 'Principal',
+  'principals.dangling.column.detected': 'Detected',
+  'principals.dangling.column.action': 'Action',
+  'principals.relink': 'Relink',
+  'principals.relink.title': 'Relink this Principal',
+  'principals.relink.body':
+    'The Principal returns to pending, and recovery adopts or recreates a Keycloak user carrying the same principal_id. Your reason is recorded with the relink.',
+  'principals.relink.active': 'Relinked. The Principal has a Keycloak user again.',
+  'principals.relink.pending':
+    'Relinked. The Principal is pending; the scheduled recovery gives it a Keycloak user.',
+  'principals.sweep': 'Run the Principal sweep now',
+  'principals.sweep.done': 'Sweep finished: {recovered, number} recovered, {dangling, number} dangling.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -351,6 +398,54 @@ export const id: Messages = {
   'exception.duration.option': '{hours, number} jam',
   'exception.submit': 'Beri pengecualian',
   'exception.done': 'Pengecualian berlaku sampai {until}.',
+
+  'shell.nav.principals': 'Principal',
+
+  'principals.eyebrow': 'Identitas',
+  'principals.title': 'Principal',
+  'principals.lead':
+    'Buat Principal, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Tidak ada daftar semua Principal: pencarian datang bersama API investigasi, dan mengekspor direktori bukan administrasi.',
+
+  'principals.create.open': 'Buat Principal',
+  'principals.create.title': 'Principal baru',
+  'principals.create.body':
+    'identity-control menerbitkan principal_id dan membuat user Keycloak-nya. Ia tidak pernah memegang kredensialnya: orang itu mengatur password-nya sendiri saat pertama masuk.',
+  'principals.create.kind': 'Jenis',
+  'principals.subject.human': 'Orang',
+  'principals.subject.workload': 'Workload',
+  'principals.create.username': 'Username',
+  'principals.create.username.required': 'Username wajib diisi.',
+  'principals.create.email': 'Email',
+  'principals.create.email.hint': 'Opsional. Ke sini Keycloak mengirim pesan akun.',
+  'principals.create.owner': 'Penanggung jawab',
+  'principals.create.owner.hint': 'principal_id orang yang bertanggung jawab atas workload ini.',
+  'principals.create.owner.invalid':
+    'Isi dengan principal_id: UUID seperti 01a0da74-44e7-7000-b600-b464c5cb8cec.',
+  'principals.create.submit': 'Buat Principal',
+  'principals.created.title': 'Principal dibuat',
+  'principals.created.id': 'principal_id',
+  'principals.created.human': 'Keycloak meminta orang ini mengatur password saat pertama masuk.',
+  'principals.created.workload': 'Workload masuk dengan kredensial client, bukan password.',
+  'principals.create.another': 'Buat lagi',
+
+  'principals.dangling.title': 'Mapping yang user Keycloak-nya hilang',
+  'principals.dangling.description':
+    'Masing-masing tetap memegang principal_id dan semua Membership-nya. Relink memberinya user Keycloak lagi, dengan principal_id yang sama.',
+  'principals.dangling.caption': 'Principal yang user Keycloak-nya hilang',
+  'principals.dangling.empty': 'Semua Principal aktif masih punya user Keycloak.',
+  'principals.dangling.column.principal': 'Principal',
+  'principals.dangling.column.detected': 'Terdeteksi',
+  'principals.dangling.column.action': 'Tindakan',
+  'principals.relink': 'Relink',
+  'principals.relink.title': 'Relink Principal ini',
+  'principals.relink.body':
+    'Principal kembali ke status menunggu, lalu pemulihan mengadopsi atau membuat ulang user Keycloak dengan principal_id yang sama. Alasanmu dicatat bersama relink ini.',
+  'principals.relink.active': 'Relink selesai. Principal sudah punya user Keycloak lagi.',
+  'principals.relink.pending':
+    'Relink tercatat. Principal menunggu; pemulihan terjadwal akan memberinya user Keycloak.',
+  'principals.sweep': 'Jalankan pembanding Principal sekarang',
+  'principals.sweep.done':
+    'Pembanding selesai: {recovered, number} dipulihkan, {dangling, number} kehilangan user.',
 };
 
 export type Locale = 'en' | 'id';

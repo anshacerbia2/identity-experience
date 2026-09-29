@@ -4,7 +4,7 @@ import type { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 import { TextAreaField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
-import { maxReasonLength, minReasonLength, reasonProblem } from '@/domain/registration';
+import { maxReasonLength, minReasonLength, reasonProblem } from '@/domain/reason';
 
 // reasonRules is how a form registers its reason. The reason is collected before submission and is
 // required (TDD-identity-experience-003 §Security Notes): a reason written afterwards is written by

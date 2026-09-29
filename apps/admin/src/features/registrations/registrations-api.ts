@@ -2,8 +2,8 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { apiGet, apiPost } from '@/core/api/api-client';
 import { useSession } from '@/core/session/session';
+import { normalizeReason } from '@/domain/reason';
 import {
-  normalizeReason,
   type DriftException,
   type DriftStatus,
   type ExceptionField,
