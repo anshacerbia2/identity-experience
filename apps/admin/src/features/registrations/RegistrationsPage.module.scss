@@ -1,0 +1,203 @@
+@layer components {
+  .root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-lg);
+  }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ds-spacing-sm);
+    max-inline-size: 48rem;
+    padding-block: var(--ds-spacing-lg) var(--ds-spacing-xs);
+  }
+
+  .eyebrow {
+    font-family: var(--ds-font-family-mono);
+    font-size: var(--ds-font-size-xs);
+    letter-spacing: var(--ds-letter-spacing-wide);
+    text-transform: uppercase;
+    color: var(--ds-color-primary-text-default-default);
+  }
+
+  .title {
+    font-size: var(--ds-font-size-xl);
+    font-weight: var(--ds-font-weight-semibold);
+    letter-spacing: -0.03em;
+    overflow-wrap: anywhere;
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .lead {
+    max-inline-size: 40rem;
+    line-height: var(--ds-line-height-relaxed);
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+
+  .summary {
+    min-block-size: 7rem;
+  }
+
+  .summaryRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-spacing-sm);
+  }
+
+  .meta {
+    display: inline-flex;
+    gap: var(--ds-spacing-3xs);
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+
+  .filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-spacing-sm);
+  }
+
+  .filterLabel {
+    font-size: var(--ds-font-size-xs);
+    letter-spacing: var(--ds-letter-spacing-wide);
+    text-transform: uppercase;
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+
+  .filterList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-spacing-3xs);
+    padding: var(--ds-spacing-3xs);
+    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-subtle-default);
+
+    // Not a full pill: on a narrow screen the list wraps, and a pill around two rows reads broken.
+    border-radius: var(--ds-radius-lg);
+    background: var(--ds-color-neutral-surface-sunken-default);
+  }
+
+  .filterItem {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--ds-size-control-sm);
+    padding-inline: var(--ds-spacing-sm);
+    border-radius: var(--ds-radius-full);
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-default-default);
+
+    &:hover {
+      background: var(--ds-color-neutral-surface-default-hover);
+    }
+
+    // The current filter reads as selected by weight and a ring, not by colour alone.
+    &[aria-current='page'] {
+      font-weight: var(--ds-font-weight-semibold);
+      color: var(--ds-color-neutral-text-strong-default);
+      background: var(--ds-color-neutral-surface-default-selected);
+      box-shadow: inset 0 0 0 var(--ds-stroke-thin) var(--ds-color-primary-border-default-default);
+    }
+  }
+
+  .tableBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ds-spacing-md);
+  }
+
+  .clientLink {
+    color: var(--ds-color-primary-text-default-default);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+
+    &:hover {
+      text-decoration-color: currentcolor;
+    }
+  }
+
+  .quiet {
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-subtle-default);
+
+    // The arrow points back: the shared glyph points forward.
+    & > svg {
+      transform: scaleX(-1);
+    }
+  }
+
+  .fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--ds-spacing-md) var(--ds-spacing-lg);
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-3xs);
+    min-inline-size: 0;
+    font-size: var(--ds-font-size-sm);
+
+    & > dt {
+      font-size: var(--ds-font-size-xs);
+      letter-spacing: var(--ds-letter-spacing-wide);
+      text-transform: uppercase;
+      color: var(--ds-color-neutral-text-subtle-default);
+    }
+
+    & > dd {
+      overflow-wrap: anywhere;
+      color: var(--ds-color-neutral-text-strong-default);
+    }
+  }
+
+  .values {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-3xs);
+    font-family: var(--ds-font-family-mono);
+    font-size: var(--ds-font-size-xs);
+  }
+
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-sm);
+  }
+
+  .sectionTitle {
+    font-size: var(--ds-font-size-lg);
+    font-weight: var(--ds-font-weight-semibold);
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-3xs);
+  }
+
+  .diff {
+    display: block;
+    max-inline-size: 22rem;
+    overflow: hidden;
+    font-family: var(--ds-font-family-mono);
+    font-size: var(--ds-font-size-xs);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
+}

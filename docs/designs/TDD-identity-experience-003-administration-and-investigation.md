@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.1.0
+  version: 1.2.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-08-14
+  last_reviewed: 2026-09-29
   parent_sad: SAD-002
 ---
 
@@ -33,6 +33,7 @@ it inherits the obligation to be safer than the console rather than merely prett
 - Containment: quarantine, session termination, authenticator revocation.
 - Reason and evidence capture on every privileged action.
 - The self-action boundary.
+- Oversight of protocol client registrations and their drift.
 
 **Out of scope**
 
@@ -163,6 +164,54 @@ action, reason, correlation, assurance, and outcome. It renders the enterprise r
 rather than a local log, so what an administrator sees during an investigation is what
 an auditor will see afterwards.
 
+### Registration Drift Oversight
+
+The same console shows the realm's protocol client registrations and what the
+reconciler found between them and Keycloak (`TDD-identity-control-003`). Before this, the
+Admin Console was the only place to see a client, and it shows the client as Keycloak
+holds it now, with no desired state to compare it against and no record of who changed
+it.
+
+```text
+GET   /api/v1/registrations                      one page, ?after=&limit=&state=
+GET   /api/v1/registrations/{registration_id}
+GET   /api/v1/registrations/{registration_id}/findings
+GET   /api/v1/registrations:drift
+POST  /api/v1/registrations:reconcile            next change
+POST  /api/v1/registrations/{registration_id}/drift-exceptions   next change
+```
+
+**The list.** The list is paged by the API's cursor. "Load more" appends the next page
+and never restarts from the first. It is listing, not search, which the Principal rule
+above forbids for people. A client registration discloses no person, and the population
+is bounded by what was registered, so an unbounded read of it is not a directory export.
+The state filter lives in the URL. A value the API does not know is dropped before any
+request, rather than sent.
+
+**Drift beside each client.** Each client carries its count of open findings. The page
+opens with the last run's outcome and time, the number of open findings, and how many of
+those wait for an operator: `blocked`, `unattributed` or `missing`, the ones a scheduled
+sweep will not settle on its own. Every outcome is a word and a glyph, never a colour
+alone.
+
+**One registration.** A registration's page shows it as desired state records it,
+and every finding for it, newest first. Findings that have converged are included,
+because a repaired console change is the evidence it happened. A converged finding
+shows how long the change lasted, from the admin event's time to convergence, which is
+the measure the drift proof reports.
+
+**Actions.** Applying desired state to named findings and granting a drift exception
+are mutations. They follow the rules of this document, which the next change builds:
+the reason is collected before submission, the request carries the session's CSRF
+token, and a refusal from the API is shown as it came. The page never offers an action
+the API would refuse: no apply for a finding that is not open and operator-settled, and
+no exception longer than 24 hours.
+
+A read that fails states why in words chosen from the status, and shows the correlation
+identifier an operator quotes. It never renders the server's detail text as the
+application's own. A 401 means the BFF ended the session, so the shell reads the session
+again and shows the user signed out rather than a page of errors.
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -199,6 +248,16 @@ an auditor will see afterwards.
 - Retiring a Principal requires typed confirmation and shows the count of Memberships
   that end.
 - Every mutation carries a reason; a request without one is refused by the API.
+
+### Registrations and Drift
+
+- The list follows the API's cursor, and loading more appends the next page.
+- A state the API does not know is dropped from the URL's filter, not sent.
+- A registration's open findings are counted beside it, and the drift summary counts the ones
+  that wait for an operator.
+- Converged findings are shown with their convergence time.
+- A refused read shows the correlation identifier. A 401 shows the user signed out.
+- Without a session, nothing is requested from the API.
 
 ## Security Notes
 
@@ -245,3 +304,4 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | `TDD-identity-experience-001` — BFF session, step-up, containment |
 | Conforms to | EAD-006 §5.3 — privileged access is scoped, attributable, time-bounded, and evidenced |
 | Depends on | `TDD-identity-control-005` - every refusal, guard, privileged-read event, and containment operation originates there |
+| Depends on | `TDD-identity-control-003` - registrations, their findings, and the reconciler's runs |

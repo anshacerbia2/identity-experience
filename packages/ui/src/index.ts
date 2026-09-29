@@ -20,3 +20,4 @@ export type { IconName } from './system/icon';
 export { Panel } from './system/panel';
 export { StatusPill } from './system/status-pill';
 export type { StatusTone } from './system/status-pill';
+export { Table } from './system/table';

@@ -15,6 +15,20 @@ export default defineConfig({
   },
   css: {
     modules: { localsConvention: 'camelCaseOnly' },
+    preprocessorOptions: {
+      scss: {
+        // Cascade layers take their order from the first stylesheet that names them. The build
+        // splits CSS into chunks, and a component's chunk can load before the global stylesheet
+        // that states the order: `components` was then declared first, `reset` after it, and the
+        // reset's button rules beat every Button's own. Stating the order at the top of every
+        // stylesheet makes it the same whichever loads first. A file with @use states it through
+        // _layers.scss, and Sass allows nothing before an @use.
+        additionalData: (source: string): string =>
+          source.includes('@use')
+            ? source
+            : `@layer reset, tokens, base, components, utilities, overrides;\n${source}`,
+      },
+    },
   },
   build: {
     assetsInlineLimit: 0,
@@ -26,8 +40,8 @@ export default defineConfig({
     // The BFF serves the built application in every environment that matters. Locally, Vite
     // serves it and forwards the BFF's routes, so the browser still sees one origin.
     proxy: {
-      '/api': 'http://127.0.0.1:8080',
-      '/auth': 'http://127.0.0.1:8080',
+      '/api': 'http://127.0.0.1:8090',
+      '/auth': 'http://127.0.0.1:8090',
     },
   },
   test: {

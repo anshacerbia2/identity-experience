@@ -1,0 +1,108 @@
+// Protocol client registrations and their drift, as the Identity Control API reports them
+// (TDD-identity-control-003 §API / Interface). This module is a read model: the API is the
+// authority, and nothing here decides anything it would refuse.
+
+export type RegistrationState = 'pending' | 'active' | 'suspended' | 'retired';
+
+export const registrationStates: readonly RegistrationState[] = ['pending', 'active', 'suspended', 'retired'];
+
+export const isRegistrationState = (value: unknown): value is RegistrationState =>
+  typeof value === 'string' && (registrationStates as readonly string[]).includes(value);
+
+export interface Registration {
+  readonly registration_id: string;
+  readonly realm: string;
+  readonly client_key: string;
+  readonly profile: 'confidential' | 'public' | 'workload' | 'resource';
+  readonly audience_class: string;
+  readonly application_authority: string;
+  readonly application_ref: string;
+  readonly registered_by: string;
+  readonly signing_algorithm: string;
+  readonly lifetime_class?: string;
+  readonly audience: readonly string[];
+  readonly redirect_uris: readonly string[];
+  readonly access_token_lifespan?: number;
+  readonly state: RegistrationState;
+  readonly version: number;
+  readonly created_at: string;
+}
+
+export interface RegistrationPage {
+  readonly registrations: readonly Registration[];
+  readonly next: string | null;
+}
+
+export type FindingClass = 'repaired' | 'blocked' | 'sanctioned' | 'unattributed' | 'missing' | 'recreated';
+
+export interface Finding {
+  readonly finding_id: string;
+  readonly registration_id: string;
+  readonly client_key: string;
+  readonly field_class?: string;
+  readonly finding_class: FindingClass;
+  readonly desired: unknown;
+  readonly observed: unknown;
+  readonly actor?: string;
+  readonly changed_at: string | null;
+  readonly detected_at: string;
+  readonly converged_at: string | null;
+}
+
+export interface ReconcileRun {
+  readonly run_id: string;
+  readonly started_at: string;
+  readonly finished_at: string | null;
+  readonly outcome?: 'converged' | 'drift' | 'unresolved';
+  readonly attribution: boolean | null;
+  readonly findings: number;
+}
+
+export interface DriftStatus {
+  readonly last_run: ReconcileRun | null;
+  readonly last_run_findings: readonly Finding[] | null;
+  readonly findings: readonly Finding[] | null;
+}
+
+// How much attention a finding asks for. A finding the sweep settled on its own (repaired,
+// recreated by an operator, sanctioned by an exception) is information; one it refused to settle
+// is a warning; a client that is gone is a danger.
+export type Attention = 'info' | 'success' | 'warning' | 'danger';
+
+export const findingAttention: Readonly<Record<FindingClass, Attention>> = {
+  repaired: 'success',
+  recreated: 'success',
+  sanctioned: 'info',
+  blocked: 'warning',
+  unattributed: 'warning',
+  missing: 'danger',
+};
+
+// Only these an operator may settle by applying desired state (TDD-identity-control-003): the
+// sweep refuses to do it on its own.
+export const needsOperator = (finding: Finding): boolean =>
+  finding.converged_at === null &&
+  (finding.finding_class === 'blocked' ||
+    finding.finding_class === 'unattributed' ||
+    finding.finding_class === 'missing');
+
+// openFindingsByRegistration counts every finding that has not converged, per registration.
+export function openFindingsByRegistration(findings: readonly Finding[] | null): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>();
+  for (const finding of findings ?? []) {
+    if (finding.converged_at === null) {
+      counts.set(finding.registration_id, (counts.get(finding.registration_id) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+// convergenceSeconds is how long a console change lasted before the client matched desired state
+// again: the drift proof's evidence. Null while it has not converged, or when the change's time is
+// unknown.
+export function convergenceSeconds(finding: Finding): number | null {
+  if (finding.converged_at === null || finding.changed_at === null) {
+    return null;
+  }
+  return Math.max(0, Math.round((Date.parse(finding.converged_at) - Date.parse(finding.changed_at)) / 1000));
+}
