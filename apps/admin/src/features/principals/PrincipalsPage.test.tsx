@@ -85,35 +85,12 @@ describe('PrincipalsPage', () => {
     expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it('asks a workload for its accountable owner, as a principal_id', async () => {
-    const { sent } = api(() =>
-      json(
-        { principal_id: '0192f0e0-3333-7000-8000-000000000001', subject_type: 'workload', realm: 'scnehaux' },
-        201,
-      ),
-    );
+  it('creates only a person: a workload is created on the Workloads page', async () => {
+    api();
     renderApp('/principals');
     await openCreate();
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Kind' }), 'workload');
-    await userEvent.type(screen.getByRole('textbox', { name: 'Username' }), 'orders-batch');
-    const owner = screen.getByRole('textbox', { name: 'Accountable owner' });
-    await userEvent.type(owner, 'the ops team');
-    await userEvent.click(screen.getByRole('button', { name: 'Create Principal' }));
-    expect(await screen.findByText(/Enter a principal_id/)).toBeInTheDocument();
-    expect(posts(sent)).toHaveLength(0);
-
-    await userEvent.clear(owner);
-    await userEvent.type(owner, signedIn.principalId);
-    await userEvent.click(screen.getByRole('button', { name: 'Create Principal' }));
-    expect(
-      await screen.findByText('A workload signs in with a client credential, not a password.'),
-    ).toBeInTheDocument();
-    expect(posts(sent)[0]?.body).toEqual({
-      username: 'orders-batch',
-      email: '',
-      subject_type: 'workload',
-      workload_owner: signedIn.principalId,
-    });
+    expect(screen.queryByRole('combobox', { name: 'Kind' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Accountable owner' })).not.toBeInTheDocument();
   });
 
   it('retries the same request under the same key, and a changed one under a new key', async () => {

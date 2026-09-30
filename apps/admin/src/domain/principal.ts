@@ -1,17 +1,17 @@
-// Principals as the Identity Control API exposes them today (TDD-identity-control-001): creation,
-// the mappings whose Keycloak user is gone, and relinking one. Search and a Principal's security
-// state (TDD-identity-control-005) are not built upstream, and nothing here stands in for them.
+// Principals as the Identity Control API exposes them today (TDD-identity-control-001): creating a
+// person, the mappings whose Keycloak user is gone, and relinking one. Search and a Principal's
+// security state (TDD-identity-control-005) are not built upstream, and nothing here stands in for
+// them.
+//
+// A workload is a Principal too, but it is not created here: identity-control refuses a workload on
+// this path, because its Keycloak user is its client's service-account user (domain/workload.ts).
 
 export type SubjectType = 'human' | 'workload';
-
-export const subjectTypes: readonly SubjectType[] = ['human', 'workload'];
 
 export interface CreatePrincipalRequest {
   readonly username: string;
   readonly email: string;
-  readonly subject_type: SubjectType;
-  // Required for a workload, refused for a human: a workload has an accountable owner.
-  readonly workload_owner?: string;
+  readonly subject_type: 'human';
 }
 
 export interface PrincipalCreated {
@@ -44,18 +44,10 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isPrincipalId = (value: string): boolean => uuid.test(value.trim());
 
-// createRequest shapes what the form holds into what the API accepts: a human carries no owner,
-// and a workload carries its owner's principal_id.
+// createRequest shapes what the form holds into what the API accepts.
 export function createRequest(values: {
   readonly username: string;
   readonly email: string;
-  readonly subjectType: SubjectType;
-  readonly workloadOwner: string;
 }): CreatePrincipalRequest {
-  const base = {
-    username: values.username.trim(),
-    email: values.email.trim(),
-    subject_type: values.subjectType,
-  };
-  return values.subjectType === 'workload' ? { ...base, workload_owner: values.workloadOwner.trim() } : base;
+  return { username: values.username.trim(), email: values.email.trim(), subject_type: 'human' };
 }

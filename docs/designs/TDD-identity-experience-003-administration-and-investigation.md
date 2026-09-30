@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.5.0
+  version: 1.6.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-29
+  last_reviewed: 2026-09-30
   parent_sad: SAD-002
 ---
 
@@ -244,11 +244,12 @@ POST  /api/v1/principals/{principal_id}:relink   X-Administrative-Reason
 POST  /api/v1/principals:reconcile
 ```
 
-**Creating a Principal.** Creation takes the kind (person or workload), a username, an
-optional email and, for a workload only, the accountable owner's `principal_id`. The
-console shows the `principal_id` the API issued. For a person, it adds that Keycloak asks
-them to set a password at first sign-in: identity-control creates the user with a
-required action and never holds a credential, so nothing here collects one. The request
+**Creating a person.** Creation takes a username and an optional email. The console shows the
+`principal_id` the API issued, and that Keycloak asks the person to set a password at first
+sign-in: identity-control creates the user with a required action and never holds a credential,
+so nothing here collects one. A workload is not created here. identity-control refuses a
+workload on this path, because a workload's Keycloak user is its client's service-account user
+(§Workloads). The request
 carries an Idempotency-Key. The key is kept per distinct request: resubmitting the same
 values after an outage reuses it, so the API returns the Principal the first attempt
 created. Changing a value takes a new key, because the API refuses a key reused for a
@@ -263,6 +264,36 @@ what the sweep found, not by the Principal population, so it is not the listing
 §Search Is Not Listing rules out. No page lists every Principal. **Run the Principal
 sweep now** runs pending recovery and the dangling-mapping sweep, as the schedule does,
 and reports how many it recovered and how many it found dangling.
+
+### Workloads
+
+What identity-control offers for workloads comes from `TDD-identity-control-004`:
+
+```text
+POST  /api/v1/workloads                              Idempotency-Key
+GET   /api/v1/workloads/{principal_id}
+POST  /api/v1/workloads/{principal_id}:reassign      X-Administrative-Reason
+```
+
+**Creating a workload.** Creation takes a name, a purpose, the type (service, job or connector),
+the accountable owner's `principal_id`, an optional team, the `client_key` it authenticates as,
+the Application it belongs to, an optional audience, and the workload's public key as a JWK. The
+workload's team generates the key pair and keeps the private key; the console never accepts,
+displays or stores one. A pasted JWK carrying any private member is refused before anything is
+sent, with a message that the key is exposed and must be replaced, as the developer console
+treats a client key (`TDD-identity-experience-004`). The size of the modulus and the thumbprint
+are identity-control's to check. An agent is not offered: identity-control refuses one until
+bounded delegation is built. The request carries an Idempotency-Key, kept per distinct request as
+for a Principal. The console shows the `principal_id` the API issued and the `client_key` the
+workload authenticates as.
+
+**Finding and reassigning a workload.** A workload is found by its `principal_id`. There is no
+list of every workload, for the reason there is none of every Principal: a directory of machine
+credentials is what an attacker reads first. The workload shows its state, `client_key`, type,
+owner, team, when its owner was recorded, and when it was created. An active or orphaned workload
+can be reassigned to a new owner with a reason, sent as `X-Administrative-Reason`. The console
+refuses the current owner before sending; whether the new owner is an active person is
+identity-control's to decide, and its refusal is shown attributed to it.
 
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the

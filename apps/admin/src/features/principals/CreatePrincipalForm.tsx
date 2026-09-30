@@ -1,29 +1,21 @@
 import { useRef, useState, type ReactElement } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 
-import { Button, Icon, Panel, SelectField, TextField } from '@identity-experience/ui';
+import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
 import { MutationError } from '@/core/api/MutationError';
 import { Message, useMessage } from '@/core/i18n/Message';
-import {
-  createRequest,
-  isPrincipalId,
-  subjectTypes,
-  type PrincipalCreated,
-  type SubjectType,
-} from '@/domain/principal';
+import { createRequest, type PrincipalCreated } from '@/domain/principal';
 
 import { useCreatePrincipal } from './principals-api';
 import styles from './PrincipalsPage.module.scss';
 
 interface Values {
-  readonly subjectType: SubjectType;
   readonly username: string;
   readonly email: string;
-  readonly workloadOwner: string;
 }
 
-const empty: Values = { subjectType: 'human', username: '', email: '', workloadOwner: '' };
+const empty: Values = { username: '', email: '' };
 
 // useIdempotencyKey keeps one key per distinct request. Resubmitting the same values after an
 // outage reuses it, so the API answers with the Principal the first attempt created instead of
@@ -54,9 +46,7 @@ function Created({
           <Message id="principals.created.title" />
         </Panel.Title>
         <Panel.Description>
-          <Message
-            id={created.subject_type === 'human' ? 'principals.created.human' : 'principals.created.workload'}
-          />
+          <Message id="principals.created.human" />
         </Panel.Description>
       </Panel.Header>
       <dl className={styles['created']}>
@@ -76,16 +66,15 @@ function Created({
   );
 }
 
-// CreatePrincipalForm creates a Principal. identity-control issues the principal_id and creates the
-// Keycloak user; for a person it asks Keycloak to demand a password at first sign-in, so no
-// credential passes through here (TDD-identity-control-001).
+// CreatePrincipalForm creates a person. identity-control issues the principal_id and creates the
+// Keycloak user, and asks Keycloak to demand a password at first sign-in, so no credential passes
+// through here (TDD-identity-control-001). A workload is created on the Workloads page.
 export function CreatePrincipalForm(): ReactElement {
   const t = useMessage();
   const [open, setOpen] = useState(false);
   const create = useCreatePrincipal();
   const keyFor = useIdempotencyKey();
   const form = useForm<Values>({ defaultValues: empty });
-  const subjectType = useWatch({ control: form.control, name: 'subjectType' });
 
   if (create.isSuccess) {
     return (
@@ -130,11 +119,6 @@ export function CreatePrincipalForm(): ReactElement {
         </Panel.Description>
       </Panel.Header>
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
-        <SelectField
-          {...form.register('subjectType')}
-          label={<Message id="principals.create.kind" />}
-          options={subjectTypes.map((type) => ({ value: type, label: t(`principals.subject.${type}`) }))}
-        />
         <div className={styles['formRow']}>
           <TextField
             {...form.register('username', {
@@ -154,22 +138,6 @@ export function CreatePrincipalForm(): ReactElement {
             autoComplete="off"
           />
         </div>
-        {subjectType === 'workload' ? (
-          <TextField
-            {...form.register('workloadOwner', {
-              validate: (value, values) =>
-                values.subjectType !== 'workload' ||
-                isPrincipalId(value) ||
-                t('principals.create.owner.invalid'),
-            })}
-            label={<Message id="principals.create.owner" />}
-            hint={<Message id="principals.create.owner.hint" />}
-            error={form.formState.errors.workloadOwner?.message}
-            autoComplete="off"
-            spellCheck={false}
-            required
-          />
-        ) : null}
         {create.isError ? <MutationError error={create.error} /> : null}
         <div className={styles['actions']}>
           <Button type="submit" disabled={create.isPending} icon={<Icon name="check" />}>
