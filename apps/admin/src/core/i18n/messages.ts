@@ -140,6 +140,32 @@ export const en = {
   'findings.field.signing_algorithm': 'Signing algorithm',
   'findings.field.profile': 'Profile',
   'findings.field.client': 'Whole client',
+  'findings.class.unmanaged': 'Unmanaged',
+  'findings.field.client_keys': 'Client keys',
+  'findings.field.suspension': 'Suspension',
+  'drift.unmanaged':
+    '{count, plural, one {# Keycloak client no registration describes} other {# Keycloak clients no registration describes}}',
+
+  'lifecycle.title': 'Lifecycle',
+  'lifecycle.description':
+    'A suspension stops the client and ends its sessions, and can be restored. A retirement deletes the client and cannot be undone.',
+  'lifecycle.suspend': 'Suspend',
+  'lifecycle.restore': 'Restore',
+  'lifecycle.retire': 'Retire',
+  'lifecycle.suspend.title': 'Suspend this client',
+  'lifecycle.suspend.body':
+    'The client stops getting tokens, and its sessions end. A restore brings it back, and its users sign in again.',
+  'lifecycle.restore.title': 'Restore this client',
+  'lifecycle.restore.body':
+    'The registered redirect URIs and keys are written back first, then the client is enabled. Its users sign in again.',
+  'lifecycle.retire.title': 'Retire this client',
+  'lifecycle.retire.body':
+    'The client is deleted from the identity kernel and cannot be restored. The registration stays as the record, and its client key can be registered again.',
+  'lifecycle.retire.confirm.label': 'Type {clientKey} to confirm',
+  'lifecycle.retire.confirm.mismatch': 'Type the client key exactly as shown.',
+  'lifecycle.done.suspend': 'The client is suspended.',
+  'lifecycle.done.restore': 'The client is restored.',
+  'lifecycle.done.retire': 'The client is retired.',
 
   'api.refused': 'The Identity Control API refused this.',
   'api.said': 'The API said: {detail}',
@@ -446,6 +472,31 @@ export const id: Messages = {
   'findings.field.signing_algorithm': 'Algoritma tanda tangan',
   'findings.field.profile': 'Profil',
   'findings.field.client': 'Seluruh client',
+  'findings.class.unmanaged': 'Tidak terkelola',
+  'findings.field.client_keys': 'Kunci client',
+  'findings.field.suspension': 'Penangguhan',
+  'drift.unmanaged': '{count, plural, other {# client Keycloak tanpa registrasi}}',
+
+  'lifecycle.title': 'Siklus hidup',
+  'lifecycle.description':
+    'Penangguhan menghentikan client dan mengakhiri sesinya, dan bisa dipulihkan. Pensiun menghapus client dan tidak bisa dibatalkan.',
+  'lifecycle.suspend': 'Tangguhkan',
+  'lifecycle.restore': 'Pulihkan',
+  'lifecycle.retire': 'Pensiunkan',
+  'lifecycle.suspend.title': 'Tangguhkan client ini',
+  'lifecycle.suspend.body':
+    'Client berhenti mendapat token, dan sesinya berakhir. Pemulihan mengembalikannya, dan penggunanya masuk lagi.',
+  'lifecycle.restore.title': 'Pulihkan client ini',
+  'lifecycle.restore.body':
+    'Redirect URI dan kunci yang terdaftar ditulis ulang dulu, lalu client diaktifkan. Penggunanya masuk lagi.',
+  'lifecycle.retire.title': 'Pensiunkan client ini',
+  'lifecycle.retire.body':
+    'Client dihapus dari identity kernel dan tidak bisa dipulihkan. Registrasinya tetap ada sebagai catatan, dan client key-nya bisa didaftarkan lagi.',
+  'lifecycle.retire.confirm.label': 'Ketik {clientKey} untuk konfirmasi',
+  'lifecycle.retire.confirm.mismatch': 'Ketik client key persis seperti yang ditampilkan.',
+  'lifecycle.done.suspend': 'Client sudah ditangguhkan.',
+  'lifecycle.done.restore': 'Client sudah dipulihkan.',
+  'lifecycle.done.retire': 'Client sudah dipensiunkan.',
 
   'api.refused': 'Identity Control API menolak ini.',
   'api.said': 'Kata API: {detail}',

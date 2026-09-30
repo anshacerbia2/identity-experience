@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { convergenceSeconds, needsOperator, openFindingsByRegistration, type Finding } from './registration';
+import {
+  convergenceSeconds,
+  lifecycleActions,
+  needsOperator,
+  openFindingsByRegistration,
+  unmanagedClients,
+  type Finding,
+  type Registration,
+} from './registration';
 
 const finding = (overrides: Partial<Finding>): Finding => ({
   finding_id: 'f',
@@ -46,5 +54,43 @@ describe('registration read model', () => {
     expect(needsOperator(finding({ finding_class: 'blocked', converged_at: '2026-09-29T10:00:00Z' }))).toBe(
       false,
     );
+  });
+
+  it('counts an unmanaged finding beside no registration, and on its own', () => {
+    const unmanaged = finding({ registration_id: null, finding_class: 'unmanaged', client_key: 'stray' });
+    const counts = openFindingsByRegistration([unmanaged, finding({ registration_id: 'r1' })]);
+    expect([...counts.keys()]).toEqual(['r1']);
+    expect(
+      unmanagedClients([unmanaged, finding({}), { ...unmanaged, converged_at: '2026-09-29T10:01:00Z' }]),
+    ).toBe(1);
+    expect(unmanagedClients(null)).toBe(0);
+    expect(needsOperator(unmanaged)).toBe(false);
+  });
+
+  it('offers the lifecycle actions the API accepts for the registration as it stands', () => {
+    const registration = (profile: Registration['profile'], state: Registration['state']): Registration => ({
+      registration_id: 'r1',
+      realm: 'scnehaux',
+      client_key: 'web',
+      profile,
+      audience_class: 'internal',
+      application_authority: 'manual',
+      application_ref: 'app',
+      registered_by: 'p',
+      signing_algorithm: 'PS256',
+      audience: [],
+      redirect_uris: [],
+      state,
+      version: 1,
+      created_at: '2026-09-29T10:00:00Z',
+    });
+    expect(lifecycleActions(registration('confidential', 'active'))).toEqual(['suspend']);
+    expect(lifecycleActions(registration('public', 'suspended'))).toEqual(['restore', 'retire']);
+    expect(lifecycleActions(registration('confidential', 'retired'))).toEqual([]);
+    expect(lifecycleActions(registration('confidential', 'pending'))).toEqual([]);
+    expect(lifecycleActions(registration('resource', 'active'))).toEqual(['retire']);
+    expect(lifecycleActions(registration('resource', 'retired'))).toEqual([]);
+    expect(lifecycleActions(registration('workload', 'active'))).toEqual([]);
+    expect(lifecycleActions(registration('workload', 'suspended'))).toEqual([]);
   });
 });

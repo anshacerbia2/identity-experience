@@ -19,6 +19,8 @@ const fieldLabels: Readonly<Record<string, MessageKey>> = {
   audience_scope: 'findings.field.audience_scope',
   signing_algorithm: 'findings.field.signing_algorithm',
   profile: 'findings.field.profile',
+  client_keys: 'findings.field.client_keys',
+  suspension: 'findings.field.suspension',
 };
 
 // A finding with no field class is about the whole client: it is missing, or was recreated.

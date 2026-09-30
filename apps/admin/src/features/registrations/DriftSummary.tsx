@@ -7,7 +7,7 @@ import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
 import { MutationError } from '@/core/api/MutationError';
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
-import { needsOperator, type DriftStatus } from '@/domain/registration';
+import { needsOperator, unmanagedClients, type DriftStatus } from '@/domain/registration';
 
 import { useDriftStatus, useRunSweep } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
@@ -73,6 +73,7 @@ export function DriftSummary(): ReactElement {
   }
   const open = drift.data.findings ?? [];
   const waiting = open.filter(needsOperator).length;
+  const unmanaged = unmanagedClients(open);
   return (
     <Panel.Root className={styles['summary']}>
       <Panel.Header>
@@ -91,6 +92,11 @@ export function DriftSummary(): ReactElement {
         {waiting === 0 ? null : (
           <StatusPill tone="danger">
             <Message id="drift.needsOperator" values={{ count: waiting }} />
+          </StatusPill>
+        )}
+        {unmanaged === 0 ? null : (
+          <StatusPill tone="danger">
+            <Message id="drift.unmanaged" values={{ count: unmanaged }} />
           </StatusPill>
         )}
       </div>
