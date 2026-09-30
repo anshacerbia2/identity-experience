@@ -134,7 +134,7 @@ Drift Oversight). The list is paged by identity-control's new `GET /v1/registrat
 (identity-control#19). It shows each client's open findings, the reconciler's last run, and one
 registration with every finding and its convergence time. The operator actions followed: run a sweep, apply the registered state to a finding with a reason, and
 grant a drift exception. Each registration also lists its drift exceptions, in force or expired
-(TDD-003 1.5.0, on identity-control#20's `GET` of the same path). Principals followed (§Principal Provisioning and Portability): create a person or a workload, and relink a mapping whose Keycloak user is gone. Search and security state wait for TDD-identity-control-005. **Next:** connecting the laptop BFF to identity-control so
+(TDD-003 1.5.0, on identity-control#20's `GET` of the same path). Principals followed (§Principal Provisioning and Portability): create a person, and relink a mapping whose Keycloak user is gone. Workloads followed identity-control#26 (§Workloads, TDD-003 1.6.0): create one with its public key, find one by `principal_id`, and reassign it with a reason. Creating a workload moved off the Principal form, which identity-control now refuses for workloads, because a workload's Keycloak user is its client's service account. Search and security state wait for TDD-identity-control-005. **Next:** connecting the laptop BFF to identity-control so
 these screens read real data.
 
 - Identity administration and investigation surfaces

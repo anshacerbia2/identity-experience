@@ -194,28 +194,20 @@ export const en = {
   'principals.eyebrow': 'Identities',
   'principals.title': 'Principals',
   'principals.lead':
-    'Create a Principal, and give one whose Keycloak user is gone a user again. There is no list of every Principal: search arrives with the investigation API, and a directory export is not administration.',
+    'Create a person, and give a Principal whose Keycloak user is gone a user again. A workload is created on the Workloads page. There is no list of every Principal: search arrives with the investigation API, and a directory export is not administration.',
 
   'principals.create.open': 'Create a Principal',
   'principals.create.title': 'New Principal',
   'principals.create.body':
     'identity-control issues the principal_id and creates the Keycloak user. It never holds the credential: a person sets their own password at first sign-in.',
-  'principals.create.kind': 'Kind',
-  'principals.subject.human': 'Person',
-  'principals.subject.workload': 'Workload',
   'principals.create.username': 'Username',
   'principals.create.username.required': 'A username is required.',
   'principals.create.email': 'Email',
   'principals.create.email.hint': 'Optional. Where Keycloak sends the account messages.',
-  'principals.create.owner': 'Accountable owner',
-  'principals.create.owner.hint': 'The principal_id of the person accountable for this workload.',
-  'principals.create.owner.invalid':
-    'Enter a principal_id: a UUID such as 01a0da74-44e7-7000-b600-b464c5cb8cec.',
   'principals.create.submit': 'Create Principal',
   'principals.created.title': 'Principal created',
   'principals.created.id': 'principal_id',
   'principals.created.human': 'Keycloak asks this person to set a password at first sign-in.',
-  'principals.created.workload': 'A workload signs in with a client credential, not a password.',
   'principals.create.another': 'Create another',
 
   'principals.dangling.title': 'Mappings whose Keycloak user is gone',
@@ -235,6 +227,82 @@ export const en = {
     'Relinked. The Principal is pending; the scheduled recovery gives it a Keycloak user.',
   'principals.sweep': 'Run the Principal sweep now',
   'principals.sweep.done': 'Sweep finished: {recovered, number} recovered, {dangling, number} dangling.',
+
+  'shell.nav.workloads': 'Workloads',
+
+  'workloads.eyebrow': 'Identities',
+  'workloads.title': 'Workloads',
+  'workloads.lead':
+    'A service, job or connector that signs in as its own client with its own key, and the person accountable for it. Its team generates the key pair and pastes the public key here: this console never holds a private key. There is no list of every workload; one is found by its principal_id.',
+  'workloads.create.open': 'Create a workload',
+  'workloads.create.title': 'New workload',
+  'workloads.create.body':
+    "identity-control issues the principal_id, creates the workload's client holding its public key, and writes the workload's identity on the client's service account, the user its token is issued for.",
+  'workloads.create.displayName': 'Name',
+  'workloads.create.displayName.required': 'A name is required.',
+  'workloads.create.purpose': 'Purpose',
+  'workloads.create.purpose.hint':
+    'Why it exists. A workload whose purpose nobody wrote down is one nobody can decide to retire.',
+  'workloads.create.purpose.required': 'A purpose is required.',
+  'workloads.create.type': 'Type',
+  'workloads.type.service': 'Service',
+  'workloads.type.job': 'Job',
+  'workloads.type.connector': 'Connector',
+  'workloads.create.owner': 'Accountable owner',
+  'workloads.create.owner.hint':
+    'The principal_id of the person accountable for it: an active person, not a workload.',
+  'workloads.create.owner.invalid':
+    'Enter a principal_id: a UUID such as 01a0da74-44e7-7000-b600-b464c5cb8cec.',
+  'workloads.create.team': 'Team',
+  'workloads.create.team.hint': 'Optional. The team answerable when the owner is not.',
+  'workloads.create.clientKey': 'client_key',
+  'workloads.create.clientKey.hint': 'The clientId the workload authenticates as.',
+  'workloads.create.clientKey.invalid':
+    'Use 1 to 128 lowercase letters, digits, ".", "_" or "-", starting with a letter or digit.',
+  'workloads.create.application': 'Application',
+  'workloads.create.application.hint': 'The Application this workload belongs to.',
+  'workloads.create.application.required': 'An Application reference is required.',
+  'workloads.create.audience': 'Audience',
+  'workloads.create.audience.hint':
+    'Optional. The registered resources its token is for, separated by commas.',
+  'workloads.create.publicKey': 'Public key (JWK)',
+  'workloads.create.publicKey.hint':
+    "The public half of the key pair the workload's team generated, as a JWK: RSA, at least 3072 bits.",
+  'workloads.key.empty': 'Paste the public key.',
+  'workloads.key.notJson': 'This is not a JWK: paste one JSON object.',
+  'workloads.key.private':
+    'This is a private key, and it was not sent. Copying it has exposed it: generate a new key pair and paste only its public key.',
+  'workloads.key.notRsa': 'The key must be RSA.',
+  'workloads.key.members':
+    'A public JWK carries kty, n and e, and optionally kid, use and alg, and nothing else.',
+  'workloads.key.algorithm': 'The key must be for signatures with PS256.',
+  'workloads.create.submit': 'Create workload',
+  'workloads.created.title': 'Workload created',
+  'workloads.created.body':
+    'It authenticates as {clientKey} with the private key its team holds. Its token carries its principal_id, subject_type=workload and workload_owner.',
+  'workloads.created.id': 'principal_id',
+  'workloads.create.another': 'Create another',
+  'workloads.lookup.title': 'Find a workload',
+  'workloads.lookup.body': 'By its principal_id. There is no list of every workload.',
+  'workloads.lookup.field': 'principal_id',
+  'workloads.lookup.submit': 'Find',
+  'workloads.detail.state': 'State',
+  'workloads.detail.principal': 'principal_id',
+  'workloads.detail.none': 'None',
+  'workloads.detail.ownerSince': 'Owner since',
+  'workloads.detail.created': 'Created',
+  'workloads.state.pending': 'Pending',
+  'workloads.state.active': 'Active',
+  'workloads.state.orphaned': 'Orphaned',
+  'workloads.state.suspended': 'Suspended',
+  'workloads.state.retired': 'Retired',
+  'workloads.reassign': 'Reassign',
+  'workloads.reassign.title': 'Reassign this workload',
+  'workloads.reassign.body':
+    "The new owner must be an active person. The change is recorded with your reason, and the workload's token names the new owner from its next sign-in.",
+  'workloads.reassign.owner': 'New owner',
+  'workloads.reassign.same': 'This person already owns the workload.',
+  'workloads.reassign.done': 'Reassigned.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -432,28 +500,20 @@ export const id: Messages = {
   'principals.eyebrow': 'Identitas',
   'principals.title': 'Principal',
   'principals.lead':
-    'Buat Principal, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Tidak ada daftar semua Principal: pencarian datang bersama API investigasi, dan mengekspor direktori bukan administrasi.',
+    'Buat Principal untuk orang, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Workload dibuat di halaman Workload. Tidak ada daftar semua Principal: pencarian datang bersama API investigasi, dan mengekspor direktori bukan administrasi.',
 
   'principals.create.open': 'Buat Principal',
   'principals.create.title': 'Principal baru',
   'principals.create.body':
     'identity-control menerbitkan principal_id dan membuat user Keycloak-nya. Ia tidak pernah memegang kredensialnya: orang itu mengatur password-nya sendiri saat pertama masuk.',
-  'principals.create.kind': 'Jenis',
-  'principals.subject.human': 'Orang',
-  'principals.subject.workload': 'Workload',
   'principals.create.username': 'Username',
   'principals.create.username.required': 'Username wajib diisi.',
   'principals.create.email': 'Email',
   'principals.create.email.hint': 'Opsional. Ke sini Keycloak mengirim pesan akun.',
-  'principals.create.owner': 'Penanggung jawab',
-  'principals.create.owner.hint': 'principal_id orang yang bertanggung jawab atas workload ini.',
-  'principals.create.owner.invalid':
-    'Isi dengan principal_id: UUID seperti 01a0da74-44e7-7000-b600-b464c5cb8cec.',
   'principals.create.submit': 'Buat Principal',
   'principals.created.title': 'Principal dibuat',
   'principals.created.id': 'principal_id',
   'principals.created.human': 'Keycloak meminta orang ini mengatur password saat pertama masuk.',
-  'principals.created.workload': 'Workload masuk dengan kredensial client, bukan password.',
   'principals.create.another': 'Buat lagi',
 
   'principals.dangling.title': 'Mapping yang user Keycloak-nya hilang',
@@ -474,6 +534,80 @@ export const id: Messages = {
   'principals.sweep': 'Jalankan pembanding Principal sekarang',
   'principals.sweep.done':
     'Pembanding selesai: {recovered, number} dipulihkan, {dangling, number} kehilangan user.',
+
+  'shell.nav.workloads': 'Workload',
+
+  'workloads.eyebrow': 'Identitas',
+  'workloads.title': 'Workload',
+  'workloads.lead':
+    'Service, job, atau connector yang masuk sebagai client-nya sendiri dengan key-nya sendiri, beserta orang yang bertanggung jawab atasnya. Timnya yang membuat pasangan key dan menempelkan public key di sini: konsol ini tidak pernah memegang private key. Tidak ada daftar semua workload; workload dicari lewat principal_id-nya.',
+  'workloads.create.open': 'Buat workload',
+  'workloads.create.title': 'Workload baru',
+  'workloads.create.body':
+    'identity-control menerbitkan principal_id, membuat client workload dengan public key-nya, lalu menulis identitas workload di service account client itu, yaitu user yang menerima token-nya.',
+  'workloads.create.displayName': 'Nama',
+  'workloads.create.displayName.required': 'Nama wajib diisi.',
+  'workloads.create.purpose': 'Tujuan',
+  'workloads.create.purpose.hint':
+    'Kenapa workload ini ada. Workload yang tujuannya tidak pernah ditulis tidak akan pernah bisa diputuskan untuk dipensiunkan.',
+  'workloads.create.purpose.required': 'Tujuan wajib diisi.',
+  'workloads.create.type': 'Jenis',
+  'workloads.type.service': 'Service',
+  'workloads.type.job': 'Job',
+  'workloads.type.connector': 'Connector',
+  'workloads.create.owner': 'Penanggung jawab',
+  'workloads.create.owner.hint':
+    'principal_id orang yang bertanggung jawab atasnya: orang yang aktif, bukan workload.',
+  'workloads.create.owner.invalid':
+    'Isi dengan principal_id: UUID seperti 01a0da74-44e7-7000-b600-b464c5cb8cec.',
+  'workloads.create.team': 'Tim',
+  'workloads.create.team.hint': 'Opsional. Tim yang bertanggung jawab saat owner-nya tidak ada.',
+  'workloads.create.clientKey': 'client_key',
+  'workloads.create.clientKey.hint': 'clientId yang dipakai workload untuk autentikasi.',
+  'workloads.create.clientKey.invalid':
+    'Pakai 1 sampai 128 huruf kecil, angka, ".", "_" atau "-", diawali huruf atau angka.',
+  'workloads.create.application': 'Application',
+  'workloads.create.application.hint': 'Application tempat workload ini berada.',
+  'workloads.create.application.required': 'Referensi Application wajib diisi.',
+  'workloads.create.audience': 'Audience',
+  'workloads.create.audience.hint': 'Opsional. Resource terdaftar yang dituju token-nya, dipisah koma.',
+  'workloads.create.publicKey': 'Public key (JWK)',
+  'workloads.create.publicKey.hint':
+    'Bagian public dari pasangan key yang dibuat tim workload, dalam format JWK: RSA, minimal 3072 bit.',
+  'workloads.key.empty': 'Tempel public key-nya.',
+  'workloads.key.notJson': 'Ini bukan JWK: tempel satu objek JSON.',
+  'workloads.key.private':
+    'Ini private key, dan tidak dikirim. Karena sudah disalin, key ini dianggap bocor: buat pasangan key baru dan tempel public key-nya saja.',
+  'workloads.key.notRsa': 'Key harus RSA.',
+  'workloads.key.members': 'JWK public hanya berisi kty, n, dan e, plus kid, use, dan alg kalau ada.',
+  'workloads.key.algorithm': 'Key harus untuk tanda tangan dengan PS256.',
+  'workloads.create.submit': 'Buat workload',
+  'workloads.created.title': 'Workload dibuat',
+  'workloads.created.body':
+    'Workload ini autentikasi sebagai {clientKey} dengan private key yang dipegang timnya. Token-nya membawa principal_id, subject_type=workload, dan workload_owner.',
+  'workloads.created.id': 'principal_id',
+  'workloads.create.another': 'Buat lagi',
+  'workloads.lookup.title': 'Cari workload',
+  'workloads.lookup.body': 'Lewat principal_id-nya. Tidak ada daftar semua workload.',
+  'workloads.lookup.field': 'principal_id',
+  'workloads.lookup.submit': 'Cari',
+  'workloads.detail.state': 'Status',
+  'workloads.detail.principal': 'principal_id',
+  'workloads.detail.none': 'Tidak ada',
+  'workloads.detail.ownerSince': 'Owner sejak',
+  'workloads.detail.created': 'Dibuat',
+  'workloads.state.pending': 'Menunggu',
+  'workloads.state.active': 'Aktif',
+  'workloads.state.orphaned': 'Yatim',
+  'workloads.state.suspended': 'Ditangguhkan',
+  'workloads.state.retired': 'Pensiun',
+  'workloads.reassign': 'Ganti owner',
+  'workloads.reassign.title': 'Ganti owner workload ini',
+  'workloads.reassign.body':
+    'Owner baru harus orang yang aktif. Perubahan ini dicatat bersama alasanmu, dan token workload menyebut owner baru sejak login berikutnya.',
+  'workloads.reassign.owner': 'Owner baru',
+  'workloads.reassign.same': 'Orang ini sudah jadi owner workload ini.',
+  'workloads.reassign.done': 'Owner sudah diganti.',
 };
 
 export type Locale = 'en' | 'id';

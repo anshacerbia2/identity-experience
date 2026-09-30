@@ -76,6 +76,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
                 <Message id="shell.nav.principals" />
               </Link>
             </li>
+            <li>
+              <Link to="/workloads" className={styles['navItem']} activeProps={{ 'aria-current': 'page' }}>
+                <Icon name="grid" />
+                <Message id="shell.nav.workloads" />
+              </Link>
+            </li>
           </ul>
         </nav>
       </aside>
