@@ -33,11 +33,13 @@ export interface RegistrationPage {
   readonly next: string | null;
 }
 
-export type FindingClass = 'repaired' | 'blocked' | 'sanctioned' | 'unattributed' | 'missing' | 'recreated';
+export type FindingClass =
+  'repaired' | 'blocked' | 'sanctioned' | 'unattributed' | 'missing' | 'recreated' | 'unmanaged';
 
 export interface Finding {
   readonly finding_id: string;
-  readonly registration_id: string;
+  // Null for an unmanaged finding: a Keycloak client no registration describes.
+  readonly registration_id: string | null;
   readonly client_key: string;
   readonly field_class?: string;
   readonly finding_class: FindingClass;
@@ -76,6 +78,7 @@ export const findingAttention: Readonly<Record<FindingClass, Attention>> = {
   blocked: 'warning',
   unattributed: 'warning',
   missing: 'danger',
+  unmanaged: 'danger',
 };
 
 // Only these an operator may settle by applying desired state (TDD-identity-control-003): the
@@ -108,15 +111,46 @@ export interface DriftException {
 export const exceptionInForce = (exception: DriftException, now: number): boolean =>
   Date.parse(exception.expires_at) > now;
 
-// openFindingsByRegistration counts every finding that has not converged, per registration.
+// openFindingsByRegistration counts every finding that has not converged, per registration. An
+// unmanaged finding names no registration, so it is counted beside none.
 export function openFindingsByRegistration(findings: readonly Finding[] | null): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();
   for (const finding of findings ?? []) {
-    if (finding.converged_at === null) {
+    if (finding.converged_at === null && finding.registration_id !== null) {
       counts.set(finding.registration_id, (counts.get(finding.registration_id) ?? 0) + 1);
     }
   }
   return counts;
+}
+
+// unmanagedClients counts the open findings for Keycloak clients no registration describes, which an
+// operator adopts or deletes.
+export const unmanagedClients = (findings: readonly Finding[] | null): number =>
+  (findings ?? []).filter((finding) => finding.converged_at === null && finding.finding_class === 'unmanaged')
+    .length;
+
+// The lifecycle (ADR-IAM-001 §5.13, TDD-identity-control-003 §Suspension, Restoration, and
+// Retirement). A registration is suspended, then restored or retired; a resource, which holds no
+// credential, is retired without a suspension; a workload's client is stopped through its workload.
+export type LifecycleAction = 'suspend' | 'restore' | 'retire';
+
+// lifecycleActions are the actions the API accepts for the registration as it stands, and so the
+// only ones the console offers.
+export function lifecycleActions(registration: Registration): readonly LifecycleAction[] {
+  if (registration.profile === 'workload') {
+    return [];
+  }
+  if (registration.profile === 'resource') {
+    return registration.state === 'active' ? ['retire'] : [];
+  }
+  switch (registration.state) {
+    case 'active':
+      return ['suspend'];
+    case 'suspended':
+      return ['restore', 'retire'];
+    default:
+      return [];
+  }
 }
 
 // convergenceSeconds is how long a console change lasted before the client matched desired state

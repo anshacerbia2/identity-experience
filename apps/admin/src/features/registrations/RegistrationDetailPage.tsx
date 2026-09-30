@@ -13,12 +13,14 @@ import {
   convergenceSeconds,
   findingAttention,
   needsOperator,
+  type Finding,
   type Registration,
 } from '@/domain/registration';
 
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
 import { DriftExceptions } from './DriftExceptions';
 import { attentionTone, fieldLabel, findingClassLabel, profileLabel, stateLabel, stateTone } from './labels';
+import { LifecycleActions } from './LifecycleActions';
 import { useFindings, useRegistration } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
 
@@ -126,7 +128,15 @@ function Details({ registration }: { readonly registration: Registration }): Rea
 const compact = (value: unknown): string =>
   value === null || value === undefined ? '' : JSON.stringify(value);
 
-function Findings({ registrationId }: { readonly registrationId: string }): ReactElement {
+// Findings are one registration's divergences. operable is whether the registration is active: the
+// API refuses to apply desired state to a suspended one, whose restore is what writes it back.
+function Findings({
+  registrationId,
+  operable,
+}: {
+  readonly registrationId: string;
+  readonly operable: boolean;
+}): ReactElement {
   const findings = useFindings(registrationId);
   // The finding whose registered state is being applied, and whether the last one was.
   const [applying, setApplying] = useState<string | null>(null);
@@ -146,8 +156,9 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
   }
   // The action column exists only when some finding offers an action: the API refuses an apply
   // for any finding that is not open and operator-settled, so no button is offered for one.
-  const actionable = findings.data.some(needsOperator);
-  const selected = findings.data.find((finding) => finding.finding_id === applying && needsOperator(finding));
+  const applicable = (finding: Finding): boolean => operable && needsOperator(finding);
+  const actionable = findings.data.some(applicable);
+  const selected = findings.data.find((finding) => finding.finding_id === applying && applicable(finding));
   return (
     <section className={styles['section']} aria-labelledby="findings-title">
       <h2 id="findings-title" className={styles['sectionTitle']}>
@@ -232,7 +243,7 @@ function Findings({ registrationId }: { readonly registrationId: string }): Reac
                   </Table.Cell>
                   {actionable ? (
                     <Table.Cell>
-                      {needsOperator(finding) ? (
+                      {applicable(finding) ? (
                         <Button
                           variant="secondary"
                           size="sm"
@@ -295,7 +306,8 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
         </StatusPill>
       </header>
       <Details registration={found} />
-      <Findings registrationId={registrationId} />
+      <LifecycleActions registration={found} />
+      <Findings registrationId={registrationId} operable={found.state === 'active'} />
       <DriftExceptions registrationId={registrationId} grantable={found.state === 'active'} />
     </>
   );

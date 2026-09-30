@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.6.0
+  version: 1.7.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -180,6 +180,9 @@ GET   /api/v1/registrations:drift
 POST  /api/v1/registrations:reconcile            a sweep; with findings and a reason, apply
 POST  /api/v1/registrations/{registration_id}/drift-exceptions
 GET   /api/v1/registrations/{registration_id}/drift-exceptions
+POST  /api/v1/registrations/{registration_id}:suspend
+POST  /api/v1/registrations/{registration_id}:restore
+POST  /api/v1/registrations/{registration_id}:retire
 ```
 
 **The list.** The list is paged by the API's cursor. "Load more" appends the next page
@@ -192,8 +195,10 @@ request, rather than sent.
 **Drift beside each client.** Each client carries its count of open findings. The page
 opens with the last run's outcome and time, the number of open findings, and how many of
 those wait for an operator: `blocked`, `unattributed` or `missing`, the ones a scheduled
-sweep will not settle on its own. Every outcome is a word and a glyph, never a colour
-alone.
+sweep will not settle on its own. It also counts the Keycloak clients no registration
+describes (`unmanaged`), which an operator adopts or deletes; such a finding names no
+registration, so it is counted beside no client. Every outcome is a word and a glyph,
+never a colour alone.
 
 **One registration.** A registration's page shows it as desired state records it,
 and every finding for it, newest first. Findings that have converged are included,
@@ -209,14 +214,27 @@ exception is in force, judged against the moment the list was read so every row 
 same clock. The list is read again after an exception is granted. It is shown for any
 registration, and the grant form below it only for an `active` one.
 
-**Actions.** Three commands, each carrying the session's CSRF token. None is retried
+**Actions.** Six commands, each carrying the session's CSRF token. None is retried
 behind the operator's back. The page never offers an action the API would refuse.
 
 | Action | Offered for | Collected before submission |
 | :-- | :-- | :-- |
 | Run a sweep now | always | nothing: it applies only what a scheduled sweep would |
-| Apply the registered state | one open `blocked`, `unattributed` or `missing` finding | a reason, sent as `X-Administrative-Reason` and recorded on the finding |
+| Apply the registered state | one open `blocked`, `unattributed` or `missing` finding of an `active` registration | a reason, sent as `X-Administrative-Reason` and recorded on the finding |
 | Grant a drift exception | an `active` registration | the field class (`redirect_uris` or `token_lifespan`), the Keycloak user ID who will make the change, a duration of 1, 4, 8 or 24 hours, and a reason |
+| Suspend | an `active` registration that is neither a resource nor a workload's | a reason, and the effect stated: the client stops getting tokens, its sessions end, and a restore makes its users sign in again |
+| Restore | a `suspended` registration that is not a workload's | a reason, and the effect stated: the registered redirect URIs and keys are written back before the client is enabled |
+| Retire | a `suspended` registration that is not a workload's, or an `active` resource | a reason, the `client_key` typed to confirm it, and the effect stated: the kernel client is deleted and cannot be restored |
+
+**The lifecycle is the registration's, and follows `ADR-IAM-001 §5.13`.** A suspension is
+reversible and a retirement is not, so a retirement is offered only after a suspension,
+except for a resource, which holds no credential and is never suspended. It asks for the
+`client_key` typed out, as retiring a Principal asks for its identifier: a click cannot
+delete a client. A workload's client is stopped through its workload, and the page offers
+it nothing. A resource that other registrations name in their audience is refused by the
+API, and the refusal names them, which the page shows as the API's sentence. Apply is not
+offered on a suspended registration, because the API refuses it there: the restore is what
+writes its registered state back.
 
 A reason is at least ten characters and at most 500. It travels in an HTTP header, which
 holds one line of Latin-1, so line breaks typed in the form become spaces, and a
@@ -355,6 +373,16 @@ again and shows the user signed out rather than a page of errors.
   expired. The list is read again after a grant, and is still shown for a registration that
   is not active.
 - A refusal is shown with the API's sentence, attributed to it, and with its reference.
+- Suspend is offered for an active confidential or public client, restore and retire for a
+  suspended one, retire for an active resource, and nothing for a workload's client or a
+  retired registration.
+- Each lifecycle action requires a reason and sends it as `X-Administrative-Reason` with the
+  CSRF token; a retirement also requires the `client_key` typed exactly.
+- Apply is not offered for a finding of a suspended registration.
+- The drift summary counts unmanaged clients, and an unmanaged finding is counted beside no
+  registration.
+- The `client_keys` and `suspension` field classes and the `unmanaged` finding class are shown
+  as words.
 
 ### Principals
 
@@ -410,5 +438,6 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | `TDD-identity-experience-001` — BFF session, step-up, containment |
 | Conforms to | EAD-006 §5.3 — privileged access is scoped, attributable, time-bounded, and evidenced |
 | Depends on | `TDD-identity-control-005` - every refusal, guard, privileged-read event, and containment operation originates there |
-| Depends on | `TDD-identity-control-003` - registrations, their findings, and the reconciler's runs |
+| Depends on | `TDD-identity-control-003` - registrations, their findings, the reconciler's runs, and their suspension, restoration, and retirement |
+| Governed by | ADR-IAM-001 §5.13 — a registration stops by a suspension, and is removed only by a retirement after one |
 | Depends on | `TDD-identity-control-001` - Principal creation, dangling mappings, and relink |

@@ -8,6 +8,7 @@ import {
   type DriftStatus,
   type ExceptionField,
   type Finding,
+  type LifecycleAction,
   type ReconcileRun,
   type Registration,
   type RegistrationPage,
@@ -162,6 +163,22 @@ export function useGrantException(registrationId: string) {
           duration_seconds: request.hours * 3600,
         },
         { csrfToken: requireToken(token) },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useLifecycle suspends, restores or retires one registration (ADR-IAM-001 §5.13), with the
+// operator's reason, which the API records with the change.
+export function useLifecycle(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ action, reason }: { readonly action: LifecycleAction; readonly reason: string }) =>
+      apiPost<Registration>(
+        `/v1/registrations/${encodeURIComponent(registrationId)}:${action}`,
+        {},
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
