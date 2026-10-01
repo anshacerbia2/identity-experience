@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.4.0
+  version: 1.5.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -187,13 +187,26 @@ there, and a sign-in started there would fail at the callback. `/healthz` and
 `/auth/back-channel-logout` are exempt, because their callers are an orchestrator and the
 identity kernel, which reach the BFF on internal addresses.
 
+### Sign-In Scopes
+
+A sign-in asks for `openid scnehaux-provider scnehaux-profile`. `scnehaux-provider` is the
+privileged provider-scope profile the Identity Control API accepts (STD-IAM-002 §3.1.1).
+`scnehaux-profile` writes `name` and `preferred_username` into the ID token and never into the
+access token, which carries no personal data (STD-IAM-002 §3.2). The session's display name is read
+from the ID token alone, `name` first and `preferred_username` second.
+
+The kernel refuses a sign-in that asks for a scope the client does not hold. identity-control
+registers a confidential client with `scnehaux-profile` as an optional scope
+(TDD-identity-control-003 §Profiles); a BFF client adopted before that holds it once an operator
+applies its registered state. So this change is deployed after the BFF's client holds the scope.
+
 ### Server-Side Session
 
 ```text
 id_hash              SHA-256 of the cookie value; the store never holds the value
 subject              Keycloak subject, for back-channel logout by subject
 principal_id         enterprise reference from the ID token
-display_name         name shown in the application
+display_name         name shown in the application, from the ID token's name or preferred_username
 keycloak_session_id  Keycloak `sid`, for back-channel logout correlation
 tokens               access and refresh token, sealed; never serialized to the browser
 access_expires_at    when the access token lapses, for refresh

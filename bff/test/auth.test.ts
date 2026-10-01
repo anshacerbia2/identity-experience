@@ -77,7 +77,7 @@ describe('sign-in', () => {
     expect(location.searchParams.get('code_challenge')).toMatch(/^[\w-]{43}$/);
     expect(location.searchParams.get('state')).toBeTruthy();
     expect(location.searchParams.get('nonce')).toBeTruthy();
-    expect(location.searchParams.get('scope')).toBe('openid scnehaux-provider');
+    expect(location.searchParams.get('scope')).toBe('openid scnehaux-provider scnehaux-profile');
     expect(location.searchParams.get('redirect_uri')).toBe(`${publicOrigin}/auth/callback`);
     expect(response.headers['cache-control']).toBe('no-store');
   });

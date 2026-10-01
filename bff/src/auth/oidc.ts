@@ -8,8 +8,9 @@ import type { TokenSet } from '../session/store.js';
 
 // The scopes a sign-in asks for. `scnehaux-provider` is the identity kernel's privileged
 // provider-scope profile (STD-IAM-002 §3.1): principal_id, provider_scope, acr and auth_time, and
-// never tenant_id. It is what the Identity Control API accepts.
-export const signInScope = 'openid scnehaux-provider';
+// never tenant_id. It is what the Identity Control API accepts. `scnehaux-profile` gives the ID token
+// the name shown in the application, and never writes it into the access token (STD-IAM-002 §3.2).
+export const signInScope = 'openid scnehaux-provider scnehaux-profile';
 
 // The one signing algorithm accepted, for ID tokens and logout tokens alike (STD-IAM-002: PS256
 // is required, and nothing else is accepted without a registered exception).
@@ -341,10 +342,9 @@ export class Oidc {
           : {
               subject: claims.sub,
               principalId: stringClaim(claims, 'principal_id'),
-              displayName:
-                stringClaim(claims, 'name') ??
-                stringClaim(claims, 'preferred_username') ??
-                stringClaim(claims, 'email'),
+              // From the ID token alone: scnehaux-profile gives it name and preferred_username,
+              // and no scope the BFF asks for releases an email.
+              displayName: stringClaim(claims, 'name') ?? stringClaim(claims, 'preferred_username'),
               keycloakSessionId: stringClaim(claims, 'sid'),
               acr: stringClaim(claims, 'acr'),
               authTime: typeof authTime === 'number' ? new Date(authTime * 1_000) : null,
