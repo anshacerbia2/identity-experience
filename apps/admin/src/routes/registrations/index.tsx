@@ -1,7 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 
-import { isRegistrationState, type RegistrationState } from '@/domain/registration';
+import {
+  isRegistrationState,
+  type RegistrationState,
+} from '@identity-experience/app-core/domain/registration';
+
 import { RegistrationsPage } from '@/features/registrations/RegistrationsPage';
 
 interface Search {

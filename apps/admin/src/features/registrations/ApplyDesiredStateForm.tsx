@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { MutationError } from '@identity-experience/app-core/api';
+import type { Finding } from '@identity-experience/app-core/domain/registration';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel } from '@identity-experience/ui';
 
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
-import type { Finding } from '@/domain/registration';
 
 import { fieldLabel } from './labels';
 import { useApplyDesiredState } from './registrations-api';

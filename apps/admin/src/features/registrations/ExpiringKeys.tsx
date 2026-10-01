@@ -2,16 +2,16 @@ import { Link } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { Panel, StatusPill, Table } from '@identity-experience/ui';
-
-import { Message } from '@/core/i18n/Message';
-import type { MessageKey } from '@/core/i18n/messages';
 import {
   daysLeft,
   keyExpiryAttention,
   type ExpiringKey,
   type KeyExpirySeverity,
-} from '@/domain/registration';
+} from '@identity-experience/app-core/domain/registration';
+import { Panel, StatusPill, Table } from '@identity-experience/ui';
+
+import { Message } from '@/core/i18n/Message';
+import type { MessageKey } from '@/core/i18n/messages';
 
 import { attentionTone } from './labels';
 import { useExpiringKeys } from './registrations-api';

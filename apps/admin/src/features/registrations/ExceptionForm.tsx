@@ -2,12 +2,16 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { useIntl } from 'react-intl';
 
+import { MutationError } from '@identity-experience/app-core/api';
+import {
+  exceptionFields,
+  exceptionHours,
+  type ExceptionField,
+} from '@identity-experience/app-core/domain/registration';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel, SelectField, TextField } from '@identity-experience/ui';
 
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
-import { exceptionFields, exceptionHours, type ExceptionField } from '@/domain/registration';
 
 import { fieldLabel } from './labels';
 import { useGrantException } from './registrations-api';

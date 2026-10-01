@@ -9,10 +9,11 @@
   },
   "scripts": {
     "dev:admin": "pnpm --filter @identity-experience/admin dev",
+    "dev:developer": "pnpm --filter @identity-experience/developer dev",
     "dev:bff": "pnpm --filter @identity-experience/bff dev",
-    "build": "pnpm --filter @identity-experience/admin build && pnpm --filter @identity-experience/bff build",
+    "build": "pnpm --filter @identity-experience/admin build && pnpm --filter @identity-experience/developer build && pnpm --filter @identity-experience/bff build",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint . && pnpm -r --if-present lint:styles && pnpm --filter @identity-experience/admin lint:boundaries",
+    "lint": "eslint . && pnpm -r --if-present lint:styles && pnpm -r --if-present lint:boundaries",
     "test": "pnpm -r test",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

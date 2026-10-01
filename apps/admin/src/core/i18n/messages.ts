@@ -1,27 +1,21 @@
 // Every user-visible string, in ICU MessageFormat (STD-GLB-FE-009 §3.6). English is the source;
 // every other locale is typed against its keys, so a missing translation is a compile error and
-// the build fails on it.
+// the build fails on it. The shared pieces' strings come first, from @identity-experience/app-core,
+// so this catalogue holds every key the page can render.
+
+import { coreEn, coreId } from '@identity-experience/app-core/i18n';
+import type { Locale } from '@identity-experience/app-core/preferences';
+
+export type { Locale };
 
 export const en = {
+  ...coreEn,
   'app.name': 'Scnehaux Identity',
   'app.environment.development': 'Development',
-  'app.skipToContent': 'Skip to content',
 
   'shell.nav.label': 'Primary',
   'shell.nav.overview': 'Overview',
   'shell.nav.section.control': 'Control plane',
-  'shell.session.checking': 'Checking session',
-  'shell.session.unavailable': 'Session unavailable',
-  'shell.session.signIn': 'Sign in',
-  'shell.session.signOut': 'Sign out',
-  'shell.session.signedIn': 'Signed in',
-  'shell.session.signInFailed':
-    'Sign-in did not complete. Try again; if it keeps failing, the reason is in the service log.',
-  'shell.session.signInUnavailable':
-    'Keycloak could not be reached, so sign-in did not complete. Nothing was refused: try again in a moment.',
-  'shell.theme.toDark': 'Switch to dark theme',
-  'shell.theme.toLight': 'Switch to light theme',
-  'shell.locale.label': 'Language',
 
   'overview.eyebrow': 'Identity control plane',
   'overview.title': 'Every identity, accounted for.',
@@ -45,18 +39,6 @@ export const en = {
 
   'shell.nav.registrations': 'Registrations',
 
-  'session.required.title': 'Sign in to continue',
-  'session.required.body':
-    'This page reads the Identity Control API on your behalf, so it needs a signed-in session.',
-
-  'api.error.title': 'The request did not complete',
-  'api.error.forbidden': 'Your session is not allowed to read this.',
-  'api.error.notFound': 'Nothing exists at this address.',
-  'api.error.unavailable': 'The Identity Control API did not answer. Try again in a moment.',
-  'api.error.other': 'The request failed with status {status}.',
-  'api.error.correlation': 'Reference: {id}',
-  'api.retry': 'Try again',
-
   'registrations.eyebrow': 'Protocol clients',
   'registrations.title': 'Registrations',
   'registrations.lead':
@@ -78,14 +60,6 @@ export const en = {
   'registrations.empty': 'No registration matches this filter.',
   'registrations.loadMore': 'Load more',
   'registrations.loading': 'Loading registrations',
-  'registrations.state.pending': 'Pending',
-  'registrations.state.active': 'Active',
-  'registrations.state.suspended': 'Suspended',
-  'registrations.state.retired': 'Retired',
-  'registrations.profile.confidential': 'Confidential',
-  'registrations.profile.public': 'Public',
-  'registrations.profile.workload': 'Workload',
-  'registrations.profile.resource': 'Resource',
 
   'drift.title': 'Drift',
   'drift.description': 'The reconciler compares Keycloak with the registered state on a schedule.',
@@ -225,16 +199,7 @@ export const en = {
   'lifecycle.done.restore': 'The client is restored.',
   'lifecycle.done.retire': 'The client is retired.',
 
-  'api.refused': 'The Identity Control API refused this.',
-  'api.said': 'The API said: {detail}',
-
   'form.cancel': 'Cancel',
-  'form.reason.label': 'Reason',
-  'form.reason.hint': 'Recorded with the action. At least {min, number} characters.',
-  'form.reason.short': 'Write at least {min, number} characters: the reason is the record of why.',
-  'form.reason.long': 'Keep it to {max, number} characters.',
-  'form.reason.characters':
-    'Use letters, digits and common punctuation only. The reason travels in a request header, which cannot carry other characters.',
 
   'drift.runNow': 'Run a sweep now',
   'drift.deferred': 'Another sweep is already running. Its result shows here when it finishes.',
@@ -407,25 +372,13 @@ export type MessageKey = keyof typeof en;
 export type Messages = Readonly<Record<MessageKey, string>>;
 
 export const id: Messages = {
+  ...coreId,
   'app.name': 'Scnehaux Identity',
   'app.environment.development': 'Development',
-  'app.skipToContent': 'Langsung ke konten',
 
   'shell.nav.label': 'Utama',
   'shell.nav.overview': 'Ringkasan',
   'shell.nav.section.control': 'Control plane',
-  'shell.session.checking': 'Memeriksa sesi',
-  'shell.session.unavailable': 'Sesi tidak tersedia',
-  'shell.session.signIn': 'Masuk',
-  'shell.session.signOut': 'Keluar',
-  'shell.session.signedIn': 'Sudah masuk',
-  'shell.session.signInFailed':
-    'Proses masuk tidak selesai. Coba lagi; kalau terus gagal, alasannya ada di log layanan.',
-  'shell.session.signInUnavailable':
-    'Keycloak tidak bisa dihubungi, jadi proses masuk tidak selesai. Tidak ada yang ditolak: coba lagi sebentar lagi.',
-  'shell.theme.toDark': 'Ganti ke tema gelap',
-  'shell.theme.toLight': 'Ganti ke tema terang',
-  'shell.locale.label': 'Bahasa',
 
   'overview.eyebrow': 'Control plane identitas',
   'overview.title': 'Setiap identitas, tercatat.',
@@ -449,18 +402,6 @@ export const id: Messages = {
 
   'shell.nav.registrations': 'Registrasi',
 
-  'session.required.title': 'Masuk untuk melanjutkan',
-  'session.required.body':
-    'Halaman ini membaca Identity Control API atas namamu, jadi perlu sesi yang sudah masuk.',
-
-  'api.error.title': 'Permintaan tidak selesai',
-  'api.error.forbidden': 'Sesimu tidak diizinkan membaca ini.',
-  'api.error.notFound': 'Tidak ada data di alamat ini.',
-  'api.error.unavailable': 'Identity Control API tidak menjawab. Coba lagi sebentar lagi.',
-  'api.error.other': 'Permintaan gagal dengan status {status}.',
-  'api.error.correlation': 'Referensi: {id}',
-  'api.retry': 'Coba lagi',
-
   'registrations.eyebrow': 'Client protokol',
   'registrations.title': 'Registrasi',
   'registrations.lead':
@@ -482,14 +423,6 @@ export const id: Messages = {
   'registrations.empty': 'Tidak ada registrasi yang cocok dengan saringan ini.',
   'registrations.loadMore': 'Muat lagi',
   'registrations.loading': 'Memuat registrasi',
-  'registrations.state.pending': 'Menunggu',
-  'registrations.state.active': 'Aktif',
-  'registrations.state.suspended': 'Ditangguhkan',
-  'registrations.state.retired': 'Pensiun',
-  'registrations.profile.confidential': 'Rahasia',
-  'registrations.profile.public': 'Publik',
-  'registrations.profile.workload': 'Workload',
-  'registrations.profile.resource': 'Resource',
 
   'drift.title': 'Drift',
   'drift.description': 'Pembanding memeriksa Keycloak terhadap status terdaftar secara berkala.',
@@ -627,16 +560,7 @@ export const id: Messages = {
   'lifecycle.done.restore': 'Client sudah dipulihkan.',
   'lifecycle.done.retire': 'Client sudah dipensiunkan.',
 
-  'api.refused': 'Identity Control API menolak ini.',
-  'api.said': 'Kata API: {detail}',
-
   'form.cancel': 'Batal',
-  'form.reason.label': 'Alasan',
-  'form.reason.hint': 'Dicatat bersama tindakan ini. Minimal {min, number} karakter.',
-  'form.reason.short': 'Tulis minimal {min, number} karakter: alasan adalah catatan kenapa ini dilakukan.',
-  'form.reason.long': 'Maksimal {max, number} karakter.',
-  'form.reason.characters':
-    'Gunakan huruf, angka, dan tanda baca umum saja. Alasan dikirim lewat header permintaan, yang tidak bisa membawa karakter lain.',
 
   'drift.runNow': 'Jalankan pembanding sekarang',
   'drift.deferred': 'Pembanding lain sedang berjalan. Hasilnya muncul di sini setelah selesai.',
@@ -804,8 +728,4 @@ export const id: Messages = {
   'workloads.lifecycle.done.retire': 'Workload sudah dipensiunkan.',
 };
 
-export type Locale = 'en' | 'id';
-
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };
-
-export const locales: readonly Locale[] = ['en', 'id'];

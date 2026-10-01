@@ -87,19 +87,23 @@ Source code
 
 ## Layout
 
-| Path              | Contents                                                                                             |
-| :---------------- | :--------------------------------------------------------------------------------------------------- |
-| `apps/admin/`     | Identity admin portal: Vite, React 19, TanStack Router and Query, rendered in the browser            |
-| `apps/account/`   | Account security experience (not started)                                                            |
-| `apps/developer/` | Developer identity console (not started)                                                             |
-| `packages/ui/`    | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)    |
-| `bff/`            | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications |
-| `docs/designs/`   | Technical Design Documents                                                                           |
+| Path                 | Contents                                                                                                                                             |
+| :------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/admin/`        | Identity admin portal: Vite, React 19, TanStack Router and Query, rendered in the browser                                                            |
+| `apps/account/`      | Account security experience (not started)                                                                                                            |
+| `apps/developer/`    | Developer identity console, served under `/developer/`: the registrations a person owns                                                              |
+| `packages/app-core/` | `@identity-experience/app-core`: API access, session, query client, preferences, the shared frame and the registration domain every application uses |
+| `packages/ui/`       | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)                                                    |
+| `bff/`               | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications                                                 |
+| `docs/designs/`      | Technical Design Documents                                                                                                                           |
 
 Inside an application, `src/` follows the four layers of STD-GLB-FE-001 §3, and
-`.dependency-cruiser.cjs` enforces them. `domain/` is pure TypeScript. `core/` holds API access,
-query client, i18n and preferences. `features/` has one folder per surface, and a feature never
-imports another. `routes/` are thin files that hand a path to a feature.
+`.dependency-cruiser.cjs` enforces them. `domain/` is pure TypeScript. `core/` holds the
+application's message catalogue. `features/` has one folder per surface, and a feature never
+imports another. `routes/` are thin files that hand a path to a feature. What every application
+shares, API access, the session, the query client, preferences, the frame and the shared domain,
+is in `packages/app-core`, whose own `domain/` is pure too; each application spreads its strings
+into its catalogue.
 
 ## Running it
 
@@ -108,11 +112,14 @@ Node 24 and pnpm 10:
 ```sh
 pnpm install
 pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :8090
+pnpm dev:developer    # Vite on :5174, at /developer/, forwarding the same
 pnpm test && pnpm lint && pnpm build
 ```
 
-The BFF serves `apps/admin/dist` in every environment that matters, so the browser always talks to
-one origin. `IDENTITY_EXPERIENCE_WEB_ROOT` names the directory and
+The BFF serves `apps/admin/dist` at `/` and `apps/developer/dist` at `/developer/` in every
+environment that matters, so the browser always talks to one origin.
+`IDENTITY_EXPERIENCE_WEB_ROOT` and `IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT` name the directories
+(the second is optional), and
 `IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` the exact origin. The rest of its configuration is the table in
 TDD-001 §Configuration.
 

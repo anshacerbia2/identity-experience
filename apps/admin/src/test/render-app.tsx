@@ -4,8 +4,9 @@ import { render, type RenderResult } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { vi } from 'vitest';
 
+import { createQueryClient } from '@identity-experience/app-core/query';
+
 import { messages, type Locale } from '@/core/i18n/messages';
-import { createQueryClient } from '@/core/query/query-client';
 import { routeTree } from '@/routeTree.gen';
 
 // renderApp renders the whole application, shell and routes included, at a path: what a user sees

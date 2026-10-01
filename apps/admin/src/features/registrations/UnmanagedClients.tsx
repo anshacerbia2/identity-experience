@@ -1,10 +1,14 @@
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
+import {
+  unmanagedEnabled,
+  unmanagedFindings,
+  type Finding,
+} from '@identity-experience/app-core/domain/registration';
 import { Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
-import { unmanagedEnabled, unmanagedFindings, type Finding } from '@/domain/registration';
 
 import { useDriftStatus } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';

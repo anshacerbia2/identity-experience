@@ -3,13 +3,14 @@ import path from 'node:path';
 
 import fastifyCookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyReply } from 'fastify';
 import pg from 'pg';
 
 import { apiProxy } from './api/proxy.js';
 import { Oidc } from './auth/oidc.js';
 import { authRoutes } from './auth/routes.js';
 import type { Config } from './config.js';
+import { developerPrefix, isDeveloperPath } from './http/applications.js';
 import { registerCanonicalHost } from './http/canonical-host.js';
 import { sendProblem } from './http/problem.js';
 import { registerSecurityHeaders } from './http/security-headers.js';
@@ -86,32 +87,63 @@ export async function buildServer(
     reply.header('cache-control', 'no-store').type('text/plain; charset=utf-8').send('ok\n'),
   );
 
-  // The built application. Hashed assets never change under their name, so they are cached for
+  // The built applications. Hashed assets never change under their name, so they are cached for
   // a year; index.html names the current assets, so it is never cached, and a deploy reaches
   // every browser on its next navigation.
+  const setHeaders = (reply: FastifyReply, filePath: string): void => {
+    const cache = filePath.includes(`${path.sep}assets${path.sep}`)
+      ? 'public, max-age=31536000, immutable'
+      : 'no-store';
+    reply.header('cache-control', cache);
+  };
   await app.register(fastifyStatic, {
     root: path.resolve(config.webRoot),
     prefix: '/',
     index: false,
     wildcard: true,
-    setHeaders: (reply, filePath) => {
-      const cache = filePath.includes(`${path.sep}assets${path.sep}`)
-        ? 'public, max-age=31536000, immutable'
-        : 'no-store';
-      reply.header('cache-control', cache);
-    },
+    setHeaders,
   });
 
-  // The root is the one page the static handler cannot answer: to it, "/" is a directory, and a
-  // directory with no index is refused. So the shell is served for it explicitly.
-  app.get('/', async (_request, reply) => reply.header('cache-control', 'no-store').sendFile('index.html'));
+  // The Developer Console, when this deployment serves it, under its own prefix and from its own
+  // build. The router prefers the longer prefix, so nothing under /developer/ is looked up in the
+  // Admin Portal's files.
+  const developerRoot = config.developerWebRoot === null ? null : path.resolve(config.developerWebRoot);
+  if (developerRoot !== null) {
+    await app.register(fastifyStatic, {
+      root: developerRoot,
+      prefix: developerPrefix,
+      index: false,
+      wildcard: true,
+      decorateReply: false,
+      setHeaders,
+    });
+  }
 
-  // Client-side routes: any other GET that asks for a page gets the application shell, and the
-  // router decides. Anything else is a 404 problem document.
+  // sendShell answers with the shell of the application a page path belongs to.
+  const sendShell = (url: string, reply: FastifyReply): FastifyReply => {
+    reply.header('cache-control', 'no-store');
+    return developerRoot !== null && isDeveloperPath(url)
+      ? reply.sendFile('index.html', developerRoot)
+      : reply.sendFile('index.html');
+  };
+
+  // An application's root is the one page the static handler cannot answer: to it, "/" is a
+  // directory, and a directory with no index is refused. So the shell is served for it explicitly.
+  app.get('/', async (request, reply) => sendShell(request.url, reply));
+  if (developerRoot !== null) {
+    app.get(developerPrefix, async (request, reply) => sendShell(request.url, reply));
+    // One address for the console's root: its shell is at /developer/.
+    app.get(developerPrefix.slice(0, -1), async (_request, reply) =>
+      reply.header('cache-control', 'no-store').redirect(developerPrefix, 308),
+    );
+  }
+
+  // Client-side routes: any other GET that asks for a page gets the shell of the application it
+  // belongs to, and that application's router decides. Anything else is a 404 problem document.
   app.setNotFoundHandler(async (request, reply) => {
     const acceptsPage = (request.headers.accept ?? '').includes('text/html');
     if (request.method === 'GET' && acceptsPage && !isReserved(request.url)) {
-      return reply.header('cache-control', 'no-store').sendFile('index.html');
+      return sendShell(request.url, reply);
     }
     return sendProblem(request, reply, 'notFound');
   });

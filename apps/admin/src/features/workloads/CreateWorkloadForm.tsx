@@ -1,9 +1,9 @@
 import { useRef, useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { MutationError } from '@identity-experience/app-core/api';
 import { Button, Icon, Panel, SelectField, TextAreaField, TextField } from '@identity-experience/ui';
 
-import { MutationError } from '@/core/api/MutationError';
 import { Message, useMessage } from '@/core/i18n/Message';
 import { isPrincipalId } from '@/domain/principal';
 import {

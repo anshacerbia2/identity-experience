@@ -2,6 +2,18 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormattedDate } from 'react-intl';
 
+import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
+import { readPublicKey } from '@identity-experience/app-core/domain/public-key';
+import {
+  hoursLeft,
+  keyed,
+  lastAccepted,
+  rotationOffered,
+  type ClientKey,
+  type KeyState,
+  type Registration,
+} from '@identity-experience/app-core/domain/registration';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import {
   Button,
   Icon,
@@ -12,20 +24,7 @@ import {
   type StatusTone,
 } from '@identity-experience/ui';
 
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
-import { readPublicKey } from '@/domain/public-key';
-import {
-  hoursLeft,
-  keyed,
-  lastAccepted,
-  rotationOffered,
-  type ClientKey,
-  type KeyState,
-  type Registration,
-} from '@/domain/registration';
 
 import { useKeys, useRevokeKey, useRotateKey } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';

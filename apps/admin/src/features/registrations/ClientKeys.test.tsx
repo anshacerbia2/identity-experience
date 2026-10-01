@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import type { ClientKey, Registration } from '@/domain/registration';
+import type { ClientKey, Registration } from '@identity-experience/app-core/domain/registration';
+
 import { json, renderApp, stubFetch, type Sent } from '@/test/render-app';
 
 // The client key panel (TDD-identity-experience-003 §Registration Drift Oversight, behaving as

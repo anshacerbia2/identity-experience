@@ -136,8 +136,12 @@ describe('sign-in', () => {
   });
 
   describe('refuses', () => {
-    async function callbackWith(mutateQuery: (query: URLSearchParams) => void, loginCookie?: string) {
-      const login = await harness.app.inject({ method: 'GET', url: '/auth/login' });
+    async function callbackWith(
+      mutateQuery: (query: URLSearchParams) => void,
+      loginCookie?: string,
+      loginUrl = '/auth/login',
+    ) {
+      const login = await harness.app.inject({ method: 'GET', url: loginUrl });
       const query = new URLSearchParams(harness.provider.authorize(String(login.headers.location)));
       mutateQuery(query);
       const binding = loginCookie ?? cookieValue(login, '__Host-ident_login') ?? '';
@@ -162,6 +166,29 @@ describe('sign-in', () => {
       expect(response.statusCode).toBe(302);
       expect(response.headers.location).toBe('/?sign-in=unavailable');
       expect(cookieValue(response, '__Host-ident_session')).toBeUndefined();
+    });
+
+    // The notice is shown where the person was: a sign-in started from the Developer Console that
+    // does not complete lands on the console, not on the Admin Portal.
+    it('and lands where the sign-in started, once this browser has a record of it', async () => {
+      const fromConsole = `/auth/login?return_to=${encodeURIComponent('/developer/?tab=keys')}`;
+      const forged = await callbackWith(
+        (query) => {
+          query.set('state', 'forged');
+        },
+        undefined,
+        fromConsole,
+      );
+      expect(forged.headers.location).toBe('/developer/?sign-in=failed');
+
+      harness.provider.codeExchangeUnavailable = true;
+      const unavailable = await callbackWith(() => undefined, undefined, fromConsole);
+      expect(unavailable.headers.location).toBe('/developer/?sign-in=unavailable');
+      harness.provider.codeExchangeUnavailable = false;
+
+      // No record of it in this browser: nothing says where it started.
+      const unbound = await callbackWith(() => undefined, 'not-a-binding', fromConsole);
+      expect(unbound.headers.location).toBe('/?sign-in=failed');
     });
 
     it('a mismatched state', async () => {

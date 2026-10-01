@@ -1,10 +1,14 @@
 // Module boundaries of the Identity Admin Portal, enforced (STD-GLB-FE-001 §3, §5). The layers:
 //
 //   domain/      pure TypeScript: no React, no styles, no IO
-//   core/        state and infrastructure: API access, query client, i18n, preferences
+//   core/        this application's message catalogue
 //   features/    one folder per surface; a feature never imports another
 //   routes/      thin files that hand a path to a feature
 //   app/         the composition root
+//
+// API access, the session, the query client, preferences, the frame every page renders in, and the
+// domain the applications share come from @identity-experience/app-core. Its domain modules are
+// domain here too.
 //
 // Components come from @identity-experience/ui and nowhere else. That package is the stand-in for
 // @scnx/system, and its exports field exposes only its entry point, so no file here can reach
@@ -21,10 +25,10 @@ module.exports = {
     },
     {
       name: 'domain-is-pure',
-      comment: 'domain/ depends on nothing but other domain modules.',
+      comment: 'domain/ depends on nothing but other domain modules, its own or the shared core’s.',
       severity: 'error',
       from: { path: '^src/domain/' },
-      to: { pathNot: '^src/domain/' },
+      to: { pathNot: '^src/domain/|app-core/(src/)?domain/' },
     },
     {
       name: 'core-does-not-reach-up',

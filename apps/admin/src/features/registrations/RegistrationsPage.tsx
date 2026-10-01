@@ -2,18 +2,17 @@ import { Link } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { Button, StatusPill, Table } from '@identity-experience/ui';
-
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
-import { Message } from '@/core/i18n/Message';
-import { useSession } from '@/core/session/session';
-import { SignInRequired } from '@/core/session/SignInRequired';
+import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import {
   openFindingsByRegistration,
   registrationStates,
   type Registration,
   type RegistrationState,
-} from '@/domain/registration';
+} from '@identity-experience/app-core/domain/registration';
+import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Button, StatusPill, Table } from '@identity-experience/ui';
+
+import { Message } from '@/core/i18n/Message';
 
 import { DriftSummary } from './DriftSummary';
 import { ExpiringKeys } from './ExpiringKeys';

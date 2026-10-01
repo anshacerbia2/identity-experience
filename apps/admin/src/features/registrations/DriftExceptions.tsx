@@ -1,11 +1,11 @@
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
+import { ApiErrorPanel } from '@identity-experience/app-core/api';
+import { exceptionInForce } from '@identity-experience/app-core/domain/registration';
 import { Panel, StatusPill, Table } from '@identity-experience/ui';
 
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
 import { Message } from '@/core/i18n/Message';
-import { exceptionInForce } from '@/domain/registration';
 
 import { ExceptionForm } from './ExceptionForm';
 import { fieldLabel } from './labels';
