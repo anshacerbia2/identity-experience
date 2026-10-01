@@ -89,4 +89,29 @@
     font-family: var(--ds-font-family-mono);
     font-size: var(--ds-font-size-xs);
   }
+
+  .diffRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+    overflow-wrap: anywhere;
+  }
+
+  .meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+  }
+
+  .rules {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-3xs);
+    padding-inline-start: var(--ds-spacing-lg);
+    font-size: var(--ds-font-size-sm);
+    list-style: disc;
+    color: var(--ds-color-neutral-text-subtle-default);
+  }
 }

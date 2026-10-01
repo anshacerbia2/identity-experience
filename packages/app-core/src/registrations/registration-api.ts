@@ -3,7 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '../api/api-client';
 import type { PublicJwk } from '../domain/public-key';
 import { normalizeReason } from '../domain/reason';
-import type { ClientKey, LifecycleAction, Owner, Registration } from '../domain/registration';
+import type {
+  ChangeDecision,
+  ClientKey,
+  LifecycleAction,
+  Owner,
+  Registration,
+  RegistrationChange,
+} from '../domain/registration';
 import { requireToken, useCsrfToken } from '../session/session';
 
 // One registration, its keys, its lifecycle and its owners (TDD-identity-control-003 §API /
@@ -18,6 +25,8 @@ export const registrationKeys = {
   one: (registrationId: string) => ['registrations', 'one', registrationId] as const,
   keys: (registrationId: string) => ['registrations', 'keys', registrationId] as const,
   owners: (registrationId: string) => ['registrations', 'owners', registrationId] as const,
+  changes: (registrationId: string) => ['registrations', 'changes', registrationId] as const,
+  changeQueue: ['registrations', 'change-queue'] as const,
 };
 
 const registrationPath = (registrationId: string): `/v1/${string}` =>
@@ -99,5 +108,80 @@ export function useOwners(registrationId: string) {
           signal,
         )
       ).owners ?? [],
+  });
+}
+
+// useChanges reads one registration's changes, newest first.
+export function useChanges(registrationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: registrationKeys.changes(registrationId),
+    enabled,
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly changes: readonly RegistrationChange[] | null }>(
+          `${registrationPath(registrationId)}/changes`,
+          signal,
+        )
+      ).changes ?? [],
+  });
+}
+
+// useChangeQueue reads every change waiting for approval, oldest first. It is a provider's read.
+export function useChangeQueue() {
+  return useQuery({
+    queryKey: registrationKeys.changeQueue,
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly changes: readonly RegistrationChange[] | null }>(
+          '/v1/registrations:changes',
+          signal,
+        )
+      ).changes ?? [],
+  });
+}
+
+// useProposeChange proposes the next set of redirect URIs, against the version the caller read.
+export function useProposeChange(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      redirectUris,
+      expectedVersion,
+      reason,
+    }: {
+      readonly redirectUris: readonly string[];
+      readonly expectedVersion: number;
+      readonly reason: string;
+    }) =>
+      apiPost<RegistrationChange>(
+        `${registrationPath(registrationId)}/changes`,
+        { redirect_uris: redirectUris, expected_version: expectedVersion },
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useDecideChange approves, rejects or withdraws one change, with a reason.
+export function useDecideChange(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      changeId,
+      decision,
+      reason,
+    }: {
+      readonly changeId: string;
+      readonly decision: ChangeDecision;
+      readonly reason: string;
+    }) =>
+      apiPost<RegistrationChange>(
+        `${registrationPath(registrationId)}/changes/${encodeURIComponent(changeId)}:${decision}`,
+        {},
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
 }

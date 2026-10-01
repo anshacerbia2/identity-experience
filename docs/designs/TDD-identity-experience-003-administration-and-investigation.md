@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.12.0
+  version: 1.13.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -63,6 +63,7 @@ that, and reproducing it would replace one enumeration surface with a friendlier
 | `SecurityStateView` | Sessions, authenticators, federation links, findings for one subject |
 | `ContainmentActions` | Quarantine, terminate sessions, revoke authenticators |
 | `EvidencePanel` | Renders privileged-administration events for the subject |
+| `ChangeQueue` | Every registration change waiting for approval, oldest first, approved or rejected with a reason |
 
 ## Data Model
 
@@ -303,6 +304,28 @@ a refusal needs the rule. Any other failure is described in the application's ow
 After any command settles, every registration read is repeated: a sweep or a resolution
 changes the summary, the counts, and the findings.
 
+### Change Approval
+
+A production registration's redirect URI change waits until a provider other than its proposer
+approves it (`ADR-IAM-003 §5.2`, `TDD-identity-control-003` §Registration Changes). The portal is
+where a provider does that.
+
+```text
+approval queue (GET /v1/registrations:changes), oldest first:
+    each change: its client, linked to its registration; the redirect URIs before and after;
+        who proposed it, why, and how long it has waited
+    approve or reject, each with a reason, for a change the signed-in provider did not propose
+    a change the provider proposed shows that another provider decides it, and offers nothing
+    a superseded change is reported as such: the registration moved since, and it is proposed again
+
+registration page:
+    the same changes panel the Developer Console shows, with approve and reject added
+```
+
+The before and after are the sets the API recorded when the change was proposed, not the
+registration as it is now, so the approver decides what the proposer saw. Hiding approve on one's
+own proposal is a courtesy: the API refuses it, and so does the database.
+
 ### Principal Provisioning and Portability
 
 Principal search and a Principal's security state (§API / Interface above) depend on
@@ -473,6 +496,13 @@ again and shows the user signed out rather than a page of errors.
 - Each client the key expiry warning reports is listed with its severity, `kid` and end, most urgent
   first as the API orders them, linked to its registration; the section is absent while none is
   reported, and it sends nothing.
+
+### Change Approval
+
+- The queue lists the open changes oldest first, each with its before and after and its age.
+- Approve and reject send the reason; on one's own proposal neither is offered.
+- An approval answered as superseded says the registration moved since, and nothing was applied.
+- A registration's page shows its changes and decides them as the queue does.
 
 ### Principals
 

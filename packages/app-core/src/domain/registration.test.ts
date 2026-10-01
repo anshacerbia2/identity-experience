@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  changeable,
   convergenceSeconds,
   daysLeft,
   lifecycleActions,
   needsOperator,
   openFindingsByRegistration,
+  redirectDiff,
+  redirectLines,
   unmanagedClients,
   unmanagedEnabled,
   type Finding,
@@ -111,5 +114,31 @@ describe('key expiry', () => {
     expect(daysLeft('2026-10-03T06:00:00Z', now)).toBe(2);
     expect(daysLeft('2026-10-01T06:00:00Z', now)).toBe(0);
     expect(daysLeft('2026-09-30T00:00:00Z', now)).toBe(0);
+  });
+});
+
+describe('redirect URI changes', () => {
+  it('reads one URI per line, ignoring blank lines and surrounding spaces', () => {
+    expect(redirectLines('  https://a.example.com/cb \n\n\r\nhttps://b.example.com/cb\n')).toEqual([
+      'https://a.example.com/cb',
+      'https://b.example.com/cb',
+    ]);
+    expect(redirectLines('   \n')).toEqual([]);
+  });
+
+  it('states what a change adds, removes and keeps', () => {
+    expect(redirectDiff(['https://a/cb', 'https://b/cb'], ['https://b/cb', 'https://c/cb'])).toEqual({
+      added: ['https://c/cb'],
+      removed: ['https://a/cb'],
+      kept: ['https://b/cb'],
+    });
+  });
+
+  it('offers a change only on an active client that has redirect URIs', () => {
+    expect(changeable({ profile: 'public', state: 'active' })).toBe(true);
+    expect(changeable({ profile: 'confidential', state: 'active' })).toBe(true);
+    expect(changeable({ profile: 'confidential', state: 'suspended' })).toBe(false);
+    expect(changeable({ profile: 'workload', state: 'active' })).toBe(false);
+    expect(changeable({ profile: 'resource', state: 'active' })).toBe(false);
   });
 });

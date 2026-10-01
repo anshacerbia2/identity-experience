@@ -268,3 +268,59 @@ export interface Owner {
 
 export const activeOwners = (owners: readonly Owner[]): readonly Owner[] =>
   owners.filter((owner) => owner.active);
+
+// A change to a registration's redirect URIs (ADR-IAM-003 §5.2, TDD-identity-control-003
+// §Registration Changes). The API records the set it replaces and the version it was read at, so
+// what an approver sees is what the proposer saw.
+export type ChangeState = 'proposed' | 'applied' | 'rejected' | 'withdrawn' | 'superseded';
+
+export interface RegistrationChange {
+  readonly change_id: string;
+  readonly registration_id: string;
+  readonly client_key: string;
+  readonly base_version: number;
+  readonly previous_redirect_uris: readonly string[];
+  readonly redirect_uris: readonly string[];
+  readonly approval_required: boolean;
+  readonly proposed_by: string;
+  readonly proposal_reason: string;
+  readonly proposed_at: string;
+  readonly state: ChangeState;
+  readonly decided_by: string | null;
+  readonly decision_reason?: string;
+  readonly decided_at: string | null;
+}
+
+export type ChangeDecision = 'approve' | 'reject' | 'withdraw';
+
+// changeable is whether a registration's redirect URIs can be changed now: only an active public or
+// confidential client has them. The API refuses the rest; this keeps the form from being offered.
+export const changeable = (registration: Pick<Registration, 'profile' | 'state'>): boolean =>
+  registration.state === 'active' &&
+  (registration.profile === 'public' || registration.profile === 'confidential');
+
+// redirectLines reads a set typed one URI per line. Blank lines and surrounding spaces are not URIs;
+// everything else is the API's to judge.
+export const redirectLines = (text: string): string[] =>
+  text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+
+export interface RedirectDiff {
+  readonly added: readonly string[];
+  readonly removed: readonly string[];
+  readonly kept: readonly string[];
+}
+
+// redirectDiff is a change's before and after, as an approver reads it.
+export function redirectDiff(before: readonly string[], after: readonly string[]): RedirectDiff {
+  return {
+    added: after.filter((uri) => !before.includes(uri)),
+    removed: before.filter((uri) => !after.includes(uri)),
+    kept: after.filter((uri) => before.includes(uri)),
+  };
+}
+
+export const openChange = (changes: readonly RegistrationChange[]): RegistrationChange | undefined =>
+  changes.find((change) => change.state === 'proposed');
