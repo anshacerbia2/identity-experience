@@ -343,6 +343,20 @@ export const en = {
   'workloads.reassign.owner': 'New owner',
   'workloads.reassign.same': 'This person already owns the workload.',
   'workloads.reassign.done': 'Reassigned.',
+  'workloads.lifecycle.description':
+    'A workload stops through its own page: its client and its Principal stop together. A retirement comes only after a suspension.',
+  'workloads.lifecycle.suspend.title': 'Suspend this workload',
+  'workloads.lifecycle.suspend.body':
+    'Its client is disabled, so its next token exchange fails, and a token already issued expires within nine minutes. It can be restored.',
+  'workloads.lifecycle.restore.title': 'Restore this workload',
+  'workloads.lifecycle.restore.body':
+    'Its registered keys are written back and its client enabled. Its owner must still be an active person; if they have left, reassign it first.',
+  'workloads.lifecycle.retire.title': 'Retire this workload',
+  'workloads.lifecycle.retire.body':
+    'Its client is deleted and its Principal retired. This cannot be undone.',
+  'workloads.lifecycle.done.suspend': 'The workload is suspended.',
+  'workloads.lifecycle.done.restore': 'The workload is restored.',
+  'workloads.lifecycle.done.retire': 'The workload is retired.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -687,6 +701,20 @@ export const id: Messages = {
   'workloads.reassign.owner': 'Owner baru',
   'workloads.reassign.same': 'Orang ini sudah jadi owner workload ini.',
   'workloads.reassign.done': 'Owner sudah diganti.',
+  'workloads.lifecycle.description':
+    'Workload dihentikan dari halamannya sendiri: client dan Principal-nya berhenti bersamaan. Pensiun hanya setelah ditangguhkan.',
+  'workloads.lifecycle.suspend.title': 'Tangguhkan workload ini',
+  'workloads.lifecycle.suspend.body':
+    'Client-nya dinonaktifkan, jadi pertukaran token berikutnya gagal, dan token yang sudah terbit kedaluwarsa dalam sembilan menit. Masih bisa dipulihkan.',
+  'workloads.lifecycle.restore.title': 'Pulihkan workload ini',
+  'workloads.lifecycle.restore.body':
+    'Kunci yang terdaftar ditulis kembali dan client-nya diaktifkan. Owner-nya harus masih orang yang aktif; kalau sudah keluar, ganti owner dulu.',
+  'workloads.lifecycle.retire.title': 'Pensiunkan workload ini',
+  'workloads.lifecycle.retire.body':
+    'Client-nya dihapus dan Principal-nya dipensiunkan. Ini tidak bisa dibatalkan.',
+  'workloads.lifecycle.done.suspend': 'Workload sudah ditangguhkan.',
+  'workloads.lifecycle.done.restore': 'Workload sudah dipulihkan.',
+  'workloads.lifecycle.done.retire': 'Workload sudah dipensiunkan.',
 };
 
 export type Locale = 'en' | 'id';

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/core/api/api-client';
 import { useSession } from '@/core/session/session';
 import { normalizeReason } from '@/domain/reason';
-import type { CreateWorkloadRequest, ReassignRequest, Workload } from '@/domain/workload';
+import type { CreateWorkloadRequest, ReassignRequest, Workload, WorkloadAction } from '@/domain/workload';
 
 // The workload reads and commands (TDD-identity-control-004), through the BFF.
 
@@ -67,5 +67,21 @@ export function useReassign() {
     onSuccess: (moved) => {
       queryClient.setQueryData(workloadKeys.one(moved.principal_id), moved);
     },
+  });
+}
+
+// useWorkloadAction suspends, restores or retires a workload with a reason. The workload is read
+// again afterwards, whatever the answer: a refusal can mean another operator changed it meanwhile.
+export function useWorkloadAction(principalId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ action, reason }: { readonly action: WorkloadAction; readonly reason: string }) =>
+      apiPost<Workload>(
+        `/v1/workloads/${encodeURIComponent(principalId)}:${action}`,
+        {},
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: workloadKeys.one(principalId) }),
   });
 }

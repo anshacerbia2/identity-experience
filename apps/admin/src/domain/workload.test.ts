@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { audienceList, createWorkloadRequest, isClientKey, readPublicKey } from './workload';
+import { audienceList, createWorkloadRequest, isClientKey, readPublicKey, workloadActions } from './workload';
 
 const publicKey = { kty: 'RSA', n: 'sXch-Mo_B7E', e: 'AQAB' };
 
@@ -77,5 +77,15 @@ describe('client_key and audience', () => {
     expect(isClientKey('Nightly Job')).toBe(false);
     expect(isClientKey('-job')).toBe(false);
     expect(audienceList(' a, b  c,,')).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('workload lifecycle', () => {
+  it('offers the actions the API accepts for the workload as it stands', () => {
+    expect(workloadActions({ state: 'active' })).toEqual(['suspend']);
+    expect(workloadActions({ state: 'orphaned' })).toEqual(['suspend']);
+    expect(workloadActions({ state: 'suspended' })).toEqual(['restore', 'retire']);
+    expect(workloadActions({ state: 'pending' })).toEqual([]);
+    expect(workloadActions({ state: 'retired' })).toEqual([]);
   });
 });
