@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import { renderWithIntl } from '@/test/render';
+import { SessionControl } from '@identity-experience/app-core/session';
 
-import { SessionControl } from './SessionControl';
+import { renderWithIntl } from '@/test/render';
 
 const signedIn = {
   authenticated: true,

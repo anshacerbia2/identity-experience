@@ -1,8 +1,8 @@
 import type { ReactElement } from 'react';
 
+import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+
 import { Message } from '@/core/i18n/Message';
-import { useSession } from '@/core/session/session';
-import { SignInRequired } from '@/core/session/SignInRequired';
 
 import { CreatePrincipalForm } from './CreatePrincipalForm';
 import { DanglingSection } from './DanglingSection';

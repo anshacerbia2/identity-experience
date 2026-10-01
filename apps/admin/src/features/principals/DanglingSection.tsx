@@ -2,11 +2,10 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormattedDate } from 'react-intl';
 
+import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel, Table } from '@identity-experience/ui';
 
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message } from '@/core/i18n/Message';
 import type { RelinkResult } from '@/domain/principal';
 

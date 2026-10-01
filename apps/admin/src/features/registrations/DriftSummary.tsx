@@ -1,13 +1,16 @@
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
+import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
+import {
+  needsOperator,
+  unmanagedClients,
+  type DriftStatus,
+} from '@identity-experience/app-core/domain/registration';
 import { Button, Icon, Panel, StatusPill, type StatusTone } from '@identity-experience/ui';
 
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
-import { MutationError } from '@/core/api/MutationError';
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
-import { needsOperator, unmanagedClients, type DriftStatus } from '@/domain/registration';
 
 import { useDriftStatus, useRunSweep } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';

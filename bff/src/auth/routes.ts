@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as client from 'openid-client';
 
 import { IdentityProviderUnavailable, OidcError, type Oidc } from './oidc.js';
+import { applicationRoot } from '../http/applications.js';
 import { authenticate } from '../http/authenticate.js';
 import {
   clearLoginCookie,
@@ -26,13 +27,13 @@ export interface AuthRoutesOptions {
   readonly now: () => Date;
 }
 
-// Where a failed sign-in lands. The application reads the marker and offers to try again; the
-// reason stays in the log, because it may describe what an attacker presented.
-const signInFailed = '/?sign-in=failed';
-
-// Where a sign-in lands when the identity kernel did not answer. Trying again can work, so the
-// application says so, unlike a refusal.
-const signInUnavailable = '/?sign-in=unavailable';
+// Where a sign-in that did not complete lands: the root of the application it started from, with
+// a marker. `failed` is a refusal; the application offers to try again, and the reason stays in
+// the log, because it may describe what an attacker presented. `unavailable` is an identity kernel
+// that did not answer, where trying again can work, so the application says so. Before the
+// browser's own sign-in record is found, nothing says where it started, and it lands at the root.
+export const signInLanding = (returnTo: string, outcome: 'failed' | 'unavailable'): string =>
+  `${applicationRoot(returnTo)}?sign-in=${outcome}`;
 
 const logoutTokenLimit = 16 * 1024;
 
@@ -99,9 +100,11 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
   app.get('/auth/callback', async (request, reply) => {
     clearLoginCookie(reply);
     noStore(reply);
+    // Where the sign-in started, once the browser's own record of it is found.
+    let returnTo = '/';
     const fail = (reason: string, error?: unknown): FastifyReply => {
       request.log.warn({ reason, err: error }, 'sign-in refused');
-      return reply.redirect(signInFailed, 302);
+      return reply.redirect(signInLanding(returnTo, 'failed'), 302);
     };
 
     // The login cookie binds this callback to the browser that started the sign-in. Without it, a
@@ -112,6 +115,9 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
       return fail('no sign-in in flight in this browser');
     }
     const login = await store.takeLoginState(digest(binding));
+    if (login !== null) {
+      returnTo = login.returnTo;
+    }
     if (login === null || now() >= login.expiresAt) {
       return fail('the sign-in expired or was already completed');
     }
@@ -128,7 +134,7 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
         // The code is spent or will lapse unused either way; the user starts again, which is what
         // the landing page offers.
         request.log.error({ err: error }, 'sign-in could not reach the identity kernel');
-        return reply.redirect(signInUnavailable, 302);
+        return reply.redirect(signInLanding(returnTo, 'unavailable'), 302);
       }
       if (error instanceof OidcError) {
         return fail('the authorization response or its tokens were refused', error);

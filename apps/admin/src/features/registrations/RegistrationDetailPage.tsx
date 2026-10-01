@@ -2,20 +2,19 @@ import { Link } from '@tanstack/react-router';
 import { useState, type ReactElement, type ReactNode } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
-
-import { ApiErrorPanel } from '@/core/api/ApiErrorPanel';
-import { Message } from '@/core/i18n/Message';
-import type { MessageKey } from '@/core/i18n/messages';
-import { useSession } from '@/core/session/session';
-import { SignInRequired } from '@/core/session/SignInRequired';
+import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import {
   convergenceSeconds,
   findingAttention,
   needsOperator,
   type Finding,
   type Registration,
-} from '@/domain/registration';
+} from '@identity-experience/app-core/domain/registration';
+import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
+
+import { Message } from '@/core/i18n/Message';
+import type { MessageKey } from '@/core/i18n/messages';
 
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
 import { ClientKeys } from './ClientKeys';

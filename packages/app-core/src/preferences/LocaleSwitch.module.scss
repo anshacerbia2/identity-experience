@@ -1,0 +1,16 @@
+@layer components {
+  .locale {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-spacing-3xs);
+    padding-inline-start: var(--ds-spacing-xs);
+    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-subtle-default);
+    border-radius: var(--ds-radius-md);
+  }
+
+  .localeIcon {
+    display: inline-flex;
+    font-size: var(--ds-size-icon-sm);
+    color: var(--ds-color-neutral-icon-default-default);
+  }
+}

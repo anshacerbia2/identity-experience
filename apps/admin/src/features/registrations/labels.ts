@@ -1,15 +1,14 @@
+import type { Attention, FindingClass } from '@identity-experience/app-core/domain/registration';
 import type { StatusTone } from '@identity-experience/ui';
 
 import type { MessageKey } from '@/core/i18n/messages';
-import type { Attention, FindingClass, Registration, RegistrationState } from '@/domain/registration';
 
 // Every value the API returns as a code is shown as a word from the catalogue. The template types
 // make a code with no entry a compile error, not a blank cell.
 
-export const stateLabel = (state: RegistrationState): MessageKey => `registrations.state.${state}`;
-
-export const profileLabel = (profile: Registration['profile']): MessageKey =>
-  `registrations.profile.${profile}`;
+// A registration's state and profile read the same in every application, so they are the shared
+// core's.
+export { profileLabel, stateLabel, stateTone } from '@identity-experience/app-core/registrations';
 
 export const findingClassLabel = (findingClass: FindingClass): MessageKey => `findings.class.${findingClass}`;
 
@@ -26,13 +25,6 @@ const fieldLabels: Readonly<Record<string, MessageKey>> = {
 // A finding with no field class is about the whole client: it is missing, or was recreated.
 export const fieldLabel = (fieldClass: string | undefined): MessageKey =>
   (fieldClass === undefined ? undefined : fieldLabels[fieldClass]) ?? 'findings.field.client';
-
-export const stateTone: Readonly<Record<RegistrationState, StatusTone>> = {
-  active: 'success',
-  pending: 'info',
-  suspended: 'warning',
-  retired: 'neutral',
-};
 
 export const attentionTone: Readonly<Record<Attention, StatusTone>> = {
   info: 'info',

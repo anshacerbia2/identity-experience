@@ -11,7 +11,7 @@ import { ConfigError, loadConfig } from '../src/config.js';
 import { contentSecurityPolicy, securityHeaders } from '../src/http/security-headers.js';
 import { buildServer } from '../src/server.js';
 import { testClientKey } from './support/client-key.js';
-import { publicOrigin, testConfig } from './support/harness.js';
+import { publicOrigin, testConfig, webRoot } from './support/harness.js';
 
 let app: FastifyInstance;
 
@@ -188,6 +188,78 @@ describe('the application shell', () => {
   });
 });
 
+describe('the Developer Console', () => {
+  let both: FastifyInstance;
+  let adminOnly: FastifyInstance;
+
+  const config = (developerWebRoot: string | null) =>
+    testConfig({
+      oidc: {
+        issuer: 'http://127.0.0.1:9/realms/test',
+        internalBaseUrl: 'http://127.0.0.1:9/realms/test',
+        clientId: 'identity-experience',
+        clientKey: testClientKey().key,
+        redirectUri: `${publicOrigin}/auth/callback`,
+      },
+      databaseUrl: 'postgres://unused@127.0.0.1:9/unused',
+      developerWebRoot,
+    });
+
+  beforeAll(async () => {
+    both = await buildServer(config(webRoot('console')));
+    adminOnly = await buildServer(config(null));
+  });
+
+  afterAll(async () => {
+    await Promise.all([both.close(), adminOnly.close()]);
+  });
+
+  it('serves its own shell under /developer/, for its root and its client-side routes, never cached', async () => {
+    for (const url of ['/developer/', '/developer/registrations/abc', '/developer/?sign-in=failed']) {
+      const response = await both.inject({ method: 'GET', url, headers: page });
+      expect(response.statusCode, url).toBe(200);
+      expect(response.body, url).toContain('<title>console</title>');
+      expect(response.headers['cache-control'], url).toBe('no-store');
+    }
+  });
+
+  it('leaves every other page to the Admin Portal', async () => {
+    for (const url of ['/', '/registrations', '/developers', '/developerx/abc']) {
+      const response = await both.inject({ method: 'GET', url, headers: page });
+      expect(response.statusCode, url).toBe(200);
+      expect(response.body, url).toContain('<title>shell</title>');
+    }
+  });
+
+  it('serves its assets from its own build, cached for a year', async () => {
+    const response = await both.inject({ method: 'GET', url: '/developer/assets/app-3f9a.js' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+    const missing = await both.inject({ method: 'GET', url: '/developer/assets/absent.js' });
+    expect(missing.statusCode).toBe(404);
+    expect(missing.headers['content-type']).toContain('application/problem+json');
+  });
+
+  it('redirects /developer to /developer/, so its relative URLs resolve under it', async () => {
+    const response = await both.inject({ method: 'GET', url: '/developer', headers: page });
+    expect(response.statusCode).toBe(308);
+    expect(response.headers.location).toBe('/developer/');
+  });
+
+  it('carries the same security headers as every other page', async () => {
+    const response = await both.inject({ method: 'GET', url: '/developer/', headers: page });
+    for (const [name, value] of Object.entries(securityHeaders)) {
+      expect(response.headers[name], name).toBe(value);
+    }
+  });
+
+  it('is not served when the deployment names no build for it', async () => {
+    const response = await adminOnly.inject({ method: 'GET', url: '/developer/', headers: page });
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toContain('<title>shell</title>');
+  });
+});
+
 describe('configuration', () => {
   it('reports every problem at once', () => {
     let caught: unknown;
@@ -226,6 +298,13 @@ describe('configuration', () => {
     ).toThrow(/exact origin/);
   });
 
+  it('serves the Developer Console only when its build is named', () => {
+    expect(
+      loadConfig({ ...complete, IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT: './developer/dist' })
+        .developerWebRoot,
+    ).toBe('./developer/dist');
+  });
+
   it('applies the defaults', () => {
     const config = loadConfig(complete);
     expect(config).toMatchObject({
@@ -235,6 +314,7 @@ describe('configuration', () => {
       session: { idleMs: 30 * 60_000, absoluteMs: 8 * 3_600_000, refreshSkewMs: 30_000 },
       identityControlBaseUrl: 'http://identity-control:8080',
       upstreamTimeoutMs: 10_000,
+      developerWebRoot: null,
     });
     // The internal address defaults to the issuer: one address for both, the simple deployment.
     expect(config.oidc.internalBaseUrl).toBe(complete.IDENTITY_EXPERIENCE_ISSUER);

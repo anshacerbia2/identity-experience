@@ -1,13 +1,17 @@
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { MutationError } from '@identity-experience/app-core/api';
+import {
+  lifecycleActions,
+  type LifecycleAction,
+  type Registration,
+} from '@identity-experience/app-core/domain/registration';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
-import { lifecycleActions, type LifecycleAction, type Registration } from '@/domain/registration';
 
 import { useLifecycle } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';

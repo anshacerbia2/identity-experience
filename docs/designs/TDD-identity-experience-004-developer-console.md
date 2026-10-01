@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.2.1
+  version: 1.3.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-30
+  last_reviewed: 2026-10-01
   parent_sad: SAD-002
 ---
 
@@ -30,6 +30,9 @@ form fields.
 
 **In scope**
 
+- Where the console is served, and what it shares with the Admin Portal.
+- The owner's surface: the registrations a person owns, their keys, and their suspension and
+  restoration (`ADR-IAM-003`).
 - The registration request flow and where approval is required.
 - Redirect URI and audience configuration, validated before submission.
 - Lifetime class selection, and how its consequence is shown.
@@ -63,11 +66,34 @@ a stated interval rather than as a label.
 
 | Component | Responsibility |
 | :-- | :-- |
+| `MyRegistrationsPage` | The registrations the signed-in person owns, from the owner route |
 | `RegistrationWizard` | Guided flow with per-step validation against the API |
 | `RedirectUriEditor` | Live validation, exact-match preview, wildcard refusal with explanation |
 | `LifetimeClassSelector` | Class choice presented as an enforcement interval |
 | `ClientKeyPanel` | Public-key submission, the key list with states, rotation, overlap countdown, revocation |
 | `IntegrationGuide` | Endpoint and claim guidance rendered from the actual registration |
+
+### Delivery
+
+The console is its own application, `apps/developer`, built with Vite under the base path
+`/developer/` and served by the Identity Experience BFF beside the Admin Portal
+(`TDD-identity-experience-001` §Runtime). It uses the same session, the same CSRF token and
+the same `/api` proxy, so a person signed in to one is signed in to the other, and the BFF
+holds one session for them.
+
+It is a separate application rather than a section of the Admin Portal because SAD-002 §4.1
+names the two as separate containers, and SAD-002 §9.4 lets them release independently within
+their compatibility contracts. A section of the Portal would ship every console change with
+the Portal and put the console's pages in the Portal's bundle for every operator.
+
+The two share what must not differ between them in `packages/app-core`: API access and its
+error handling, the session, the query client, preferences, the registration read model, the
+reason field, and the frame every page renders in. A rule changed for one is changed for both.
+Their pages, their navigation and their message catalogues are their own, and each catalogue
+spreads the shared strings into itself.
+
+A sign-in started from the console returns to it, and one that does not complete lands on
+`/developer/` with its marker (`TDD-identity-experience-001` §Sign-in).
 
 ## Data Model
 
@@ -80,21 +106,47 @@ its key pair and keeps the private key (`TDD-identity-control-003` §Client Key 
 ## API / Interface
 
 ```text
-GET   /api/v1/registrations
-POST  /api/v1/registrations
-GET   /api/v1/registrations/{id}
-POST  /api/v1/registrations/{id}:validate
-POST  /api/v1/registrations/{id}/keys
-GET   /api/v1/registrations/{id}/keys
-POST  /api/v1/registrations/{id}/keys/{key_id}:revoke
-POST  /api/v1/registrations/{id}:retire
+GET   /api/v1/registrations:mine                        owner
+GET   /api/v1/registrations/{id}                        owner of {id}
+POST  /api/v1/registrations/{id}:suspend                owner of {id}, with a reason
+POST  /api/v1/registrations/{id}:restore                owner of {id}, with a reason
+GET   /api/v1/registrations/{id}/keys                   owner of {id}
+POST  /api/v1/registrations/{id}/keys                   owner of {id}
+POST  /api/v1/registrations/{id}/keys/{key_id}:revoke   owner of {id}, with a reason
+GET   /api/v1/registrations/{id}/owners                 owner of {id}
+POST  /api/v1/registrations                             not yet: application developer standing
+POST  /api/v1/registrations/{id}:validate               not yet
 ```
+
+The right-hand column is what the Identity Control API checks for a caller with no provider
+scope (`TDD-identity-control-003` §Registration Ownership). Retirement, drift exceptions and
+owner changes are a provider's, so the console offers none of them. It never reads
+`GET /api/v1/registrations`, which lists every registration and is a provider's.
 
 `:validate` returns the same refusals as `POST` without creating anything, so the wizard
 validates each step against the authority rather than against a client-side copy of the
 rules that will drift.
 
 ## Algorithms / Logic
+
+### Ownership
+
+```text
+the session's token carries provider_scope only when its holder is a provider
+the console reads GET /v1/registrations:mine for the registrations the person owns
+a registration the person does not own answers 404, and the console shows it as not found
+an action the API refuses an owner is not offered
+an empty list says that a provider grants ownership, and how to ask
+```
+
+The console holds no authority of its own. Which registrations a person owns is the
+Identity Control API's record, checked on every request (`ADR-IAM-003`), and the console
+shows what the API answers for the owner. It asks only the owner routes, so a provider
+using it sees what they own, as any owner does, and not every registration.
+
+The registration request flow below is built once Identity Control has the application
+developer standing and an update path for a registration (`ADR-IAM-003`). Until then a
+provider registers clients in the Admin Portal.
 
 ### Where Approval Is Required
 
@@ -176,10 +228,9 @@ rotate:
     revoke: remove one key now, with a reason, for a key that has leaked
 ```
 
-Until this console has an authority model of its own, the same panel serves operators in the Admin
-Portal (`TDD-identity-experience-003` §Registration Drift Oversight): every Identity Control route
-requires provider scope, so an application team cannot yet be authorized to rotate its own client's
-key, and which team may manage which registration is the decision this console waits on.
+An owner rotates and revokes its own client's keys here (`ADR-IAM-003`). The same panel serves
+providers in the Admin Portal (`TDD-identity-experience-003` §Registration Drift Oversight),
+for a registration whose owners cannot act.
 
 Showing the overlap is what makes rotation something teams do. A rotation presented as
 an immediate cutover reads as an outage, and a rotation that reads as an outage gets
@@ -206,8 +257,17 @@ hand-maintained documentation always does.
 | Variable | Default | Purpose |
 | :-- | :-- | :-- |
 | `IDENTITY_DEVCONSOLE_APPROVAL_ENVIRONMENTS` | `production` | Environments requiring approval |
+| `IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT` | none | The BFF's: the console's build, served under `/developer/` (`TDD-identity-experience-001` §Configuration) |
 
 ## Testing Strategy
+
+### Ownership
+
+- The console lists the registrations the owner route returns, and an empty answer, `null`
+  included, says how ownership is granted.
+- The console never reads the provider's list, `GET /api/v1/registrations`.
+- A signed-out visitor is asked to sign in, and the sign-in returns under `/developer/`.
+- A failed read states the failure and its reference, and offers to try again.
 
 ### Validation Parity
 
@@ -288,6 +348,8 @@ and registration approval backlog.
 | Realizes capability | PAD-PLT-001 — client and protected-resource security registration |
 | Conforms to | `TDD-identity-control-003` — every rule shown here originates there |
 | Governed by | ADR-IAM-001 §5.12 — confidential and workload clients authenticate with registered keys |
+| Governed by | ADR-IAM-003 — a registration's owners act on it; a production change is approved by another provider |
+| Conforms to | SAD-002 §4.1 — the Developer Identity Console is its own container behind the same BFF |
 | Conforms to | STD-IAM-001 §3.2 — PKCE, exact redirect URIs, no secret in a public client, `private_key_jwt` for confidential and workload clients |
 | Conforms to | STD-IAM-002 §3.3 — every protected resource carries exactly one lifetime class |
 | Conforms to | `TDD-identity-experience-001` — BFF session and containment |

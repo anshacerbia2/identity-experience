@@ -39,10 +39,11 @@ export interface Harness {
 
 export const minutes = (count: number): number => count * 60_000;
 
-export function webRoot(): string {
+// webRoot builds a stand-in application: an index.html titled `title`, and one hashed asset.
+export function webRoot(title = 'shell'): string {
   const root = mkdtempSync(path.join(tmpdir(), 'bff-web-'));
   mkdirSync(path.join(root, 'assets'));
-  writeFileSync(path.join(root, 'index.html'), '<!doctype html><title>shell</title>');
+  writeFileSync(path.join(root, 'index.html'), `<!doctype html><title>${title}</title>`);
   writeFileSync(path.join(root, 'assets', 'app-3f9a.js'), 'export {};');
   return root;
 }
@@ -52,6 +53,7 @@ export function testConfig(overrides: Partial<Config> & Pick<Config, 'oidc' | 'd
     listenHost: '127.0.0.1',
     listenPort: 8080,
     webRoot: webRoot(),
+    developerWebRoot: null,
     publicOrigin,
     logLevel: 'fatal',
     session: { idleMs: minutes(30), absoluteMs: minutes(8 * 60), refreshSkewMs: 30_000, key: sessionKey },

@@ -6,9 +6,13 @@
 // creates the client and writes the workload's identity there. This console never holds the
 // workload's private key. The workload's team generates the key pair and pastes the public half.
 
-import type { PublicJwk } from './public-key';
+import type { PublicJwk } from '@identity-experience/app-core/domain/public-key';
 
-export { readPublicKey, type PublicJwk, type PublicKeyProblem } from './public-key';
+export {
+  readPublicKey,
+  type PublicJwk,
+  type PublicKeyProblem,
+} from '@identity-experience/app-core/domain/public-key';
 
 export type WorkloadType = 'service' | 'job' | 'connector';
 

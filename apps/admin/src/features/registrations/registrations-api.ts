@@ -1,9 +1,8 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@/core/api/api-client';
-import { useSession } from '@/core/session/session';
-import type { PublicJwk } from '@/domain/public-key';
-import { normalizeReason } from '@/domain/reason';
+import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import type { PublicJwk } from '@identity-experience/app-core/domain/public-key';
+import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import {
   type ClientKey,
   type DriftException,
@@ -16,7 +15,8 @@ import {
   type Registration,
   type RegistrationPage,
   type RegistrationState,
-} from '@/domain/registration';
+} from '@identity-experience/app-core/domain/registration';
+import { useSession } from '@identity-experience/app-core/session';
 
 // The registration and drift reads (TDD-identity-control-003 §API / Interface), through the BFF.
 

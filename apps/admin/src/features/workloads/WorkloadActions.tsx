@@ -1,10 +1,10 @@
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { MutationError } from '@identity-experience/app-core/api';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
-import { MutationError } from '@/core/api/MutationError';
-import { ReasonField, reasonRules } from '@/core/forms/ReasonField';
 import { Message, useMessage } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 import { workloadActions, type Workload, type WorkloadAction } from '@/domain/workload';

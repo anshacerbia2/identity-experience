@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@/core/api/api-client';
-import { useSession } from '@/core/session/session';
-import { normalizeReason } from '@/domain/reason';
+import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { normalizeReason } from '@identity-experience/app-core/domain/reason';
+import { useSession } from '@identity-experience/app-core/session';
+
 import type { CreateWorkloadRequest, ReassignRequest, Workload, WorkloadAction } from '@/domain/workload';
 
 // The workload reads and commands (TDD-identity-control-004), through the BFF.

@@ -15,6 +15,11 @@ export interface Config {
   // apply to the same pages (TDD-identity-experience-001 §Runtime).
   readonly webRoot: string;
 
+  // developerWebRoot is the built Developer Console, served under /developer/ beside the Admin
+  // Portal with the same session and the same proxy (TDD-identity-experience-004 §Delivery). Null
+  // when this deployment does not serve it.
+  readonly developerWebRoot: string | null;
+
   // publicOrigin is the exact origin the browser uses. It is what the Origin check compares a
   // state-changing request against, so a value with a trailing slash would refuse every one.
   readonly publicOrigin: string;
@@ -147,6 +152,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   origin('IDENTITY_EXPERIENCE_PUBLIC_ORIGIN', publicOrigin);
 
   const webRoot = required('IDENTITY_EXPERIENCE_WEB_ROOT');
+  const developerWebRoot = optional('IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT') || null;
 
   const rawPort = optional('IDENTITY_EXPERIENCE_LISTEN_PORT') || '8080';
   const listenPort = Number.parseInt(rawPort, 10);
@@ -213,6 +219,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     listenHost: optional('IDENTITY_EXPERIENCE_LISTEN_HOST') || '0.0.0.0',
     listenPort,
     webRoot,
+    developerWebRoot,
     publicOrigin,
     logLevel: logLevel as Config['logLevel'],
     // clientKey is set whenever problems is empty: clientKeyFrom reports every other outcome.

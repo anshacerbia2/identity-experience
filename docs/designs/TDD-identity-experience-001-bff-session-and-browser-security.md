@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.5.0
+  version: 1.6.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-30
+  last_reviewed: 2026-10-01
   parent_sad: SAD-002
 ---
 
@@ -131,11 +131,15 @@ it, a code and state captured in one browser and delivered to another would sign
 second in as the first: login cross-site request forgery. The pre-session is consumed by
 the callback, so a replayed callback finds nothing, and it lapses after ten minutes.
 `return_to` is accepted only as a path on this origin, outside `/auth`, so the flow is
-not an open redirect. A refused callback lands on `/?sign-in=failed`. The reason is
+not an open redirect. A refused callback lands on `?sign-in=failed` at the root of the
+application the sign-in started from: `/developer/` when its `return_to` is the Developer
+Console's, `/` otherwise, so the notice is shown where the person was. Until the browser's own
+pre-session is found, nothing says where the sign-in started, and it lands on `/`. The reason is
 logged, not shown, because it may describe what an attacker presented.
 
 A callback that could not reach Keycloak is not a refusal. That means no connection, a
-timeout, or a 5xx from the token or key endpoint. It lands on `/?sign-in=unavailable`,
+timeout, or a 5xx from the token or key endpoint. It lands on `?sign-in=unavailable`, at the
+same root,
 is logged as an outage, and the application says Keycloak could not be reached and that
 trying again may work. The first failed sign-in against the development kernel was
 exactly this: the dev tunnel dropped the connection while the BFF fetched the realm's
@@ -250,10 +254,19 @@ past their expiry are refused when presented and purged every five minutes.
 ## Runtime
 
 The BFF is TypeScript on Node.js, as SAD-002 §3 fixes for every container in this
-repository, on Fastify. It also serves the built browser application, so the browser
+repository, on Fastify. It also serves the built browser applications, so the browser
 reaches one origin: the session cookie, the content security policy and the API proxy
-all apply to it. The browser application is rendered client-side, per STD-GLB-FE-001 §3
-for authenticated administrative portals, and is built with Vite.
+all apply to each. The Identity Admin Portal is served at `/`. The Developer Identity
+Console is served under `/developer/` from its own build, when the deployment names one
+(`TDD-identity-experience-004` §Delivery). Its hashed assets, its shell and its
+client-side routes are answered from that build, `/developer` redirects to `/developer/`,
+and every other page path is the Admin Portal's. Each application is rendered client-side,
+per STD-GLB-FE-001 §3 for authenticated administrative portals, and is built with Vite.
+
+One BFF serves both because SAD-002 §4.1 gives both the same BFF, and one origin is what
+keeps one session: a second origin would need a second session cookie, a second sign-in
+and a second CSRF token for the same person. The two applications differ in what the
+Identity Control API authorizes for the session's token, not in how the session is held.
 
 ## API / Interface
 
@@ -416,7 +429,8 @@ user-experience control only.
 | Variable | Default | Purpose |
 | :-- | :-- | :-- |
 | `IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` | none, required | Exact origin the browser uses; what the `Origin` check compares against |
-| `IDENTITY_EXPERIENCE_WEB_ROOT` | none, required | The built browser application this process serves |
+| `IDENTITY_EXPERIENCE_WEB_ROOT` | none, required | The built Identity Admin Portal, served at `/` |
+| `IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT` | none | The built Developer Identity Console, served under `/developer/`. Unset, the console is not served and its paths are the Admin Portal's |
 | `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
 | `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
 | `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
@@ -499,6 +513,8 @@ the build emits styles and fonts as files served from this origin, never inline.
 - The authorization request uses PKCE with `S256`.
 - Sign-in issues a new session identifier and ends one the browser held before.
 - `return_to` off this origin returns to the root.
+- A sign-in started from the Developer Console that does not complete lands on
+  `/developer/` with its marker; one with no pre-session in this browser lands on `/`.
 - A redirect URI not exactly registered is refused by Keycloak.
 
 ### Cross-Site Request Forgery
@@ -524,6 +540,13 @@ the build emits styles and fonts as files served from this origin, never inline.
 - Idle beyond `SESSION_IDLE` invalidates the session.
 - A continuously active session ends at `SESSION_ABSOLUTE` regardless of activity.
 - A session survives a BFF replica restart and a load-balancer change.
+
+### Serving the Applications
+
+- `/developer/` and the console's client-side routes answer with the console's shell, never
+  cached, and its assets come from its own build; `/developer` redirects to `/developer/`.
+- Every other page path answers with the Admin Portal's shell, `/developers` included.
+- With no console build named, nothing is served from a console build.
 
 ### Negative
 
