@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.10.0
+  version: 1.11.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -184,6 +184,9 @@ GET   /api/v1/registrations/{registration_id}/drift-exceptions
 POST  /api/v1/registrations/{registration_id}:suspend
 POST  /api/v1/registrations/{registration_id}:restore
 POST  /api/v1/registrations/{registration_id}:retire
+GET   /api/v1/registrations/{registration_id}/keys
+POST  /api/v1/registrations/{registration_id}/keys
+POST  /api/v1/registrations/{registration_id}/keys/{key_id}:revoke
 ```
 
 **The list.** The list is paged by the API's cursor. "Load more" appends the next page
@@ -235,6 +238,26 @@ and every finding for it, newest first. Findings that have converged are include
 because a repaired console change is the evidence it happened. A converged finding
 shows how long the change lasted, from the admin event's time to convergence, which is
 the measure the drift proof reports.
+
+**Client keys.** A confidential or workload registration's page lists its keys, newest first: the
+`kid`, the state as a word, the thumbprint the team compares with the key it holds, when it was
+registered and when it expires, a retiring key's remaining overlap until its automatic removal, and
+a revoked key's reason. It offers the two key commands of `TDD-identity-experience-004` §Rotation,
+behaving as that design's `ClientKeyPanel` does, on behalf of the team that holds the private key:
+
+- **Rotate**, while the registration is active and no key is retiring, since the API allows one
+  overlap at a time. The next public key is pasted as a JWK, refused before sending when it carries
+  a private member, is not RSA or is not for PS256 signatures, and its thumbprint is shown once
+  registered. The console never generates a key pair. The API answers 200 for a key that already is
+  the active one, which the page reports as already rotated, so a retry after a lost answer is not
+  an error.
+- **Revoke**, for an active or retiring key, with a reason sent as `X-Administrative-Reason`. When the
+  key is the client's last accepted one, the form says the client stops authenticating until a new
+  key is registered: a leaked key is contained that way, on purpose.
+
+This is the operator's path while the Developer Console has no authority model of its own: every
+Identity Control route requires provider scope, so only a provider can rotate a client's key. The
+team sends its public key, and the operator registers it.
 
 **Drift exceptions.** The same page lists the registration's drift exceptions, newest
 first. Each row shows the field class, the Keycloak user it names, the reason, the
@@ -441,6 +464,10 @@ again and shows the user signed out rather than a page of errors.
   Admin Console, and sends nothing.
 - The `client_keys` and `suspension` field classes and the `unmanaged` finding class are shown
   as words.
+- A keyed registration lists its keys with state, thumbprint and dates, and a retiring key's time
+  left. Rotation is offered only while the registration is active and no key is retiring; a pasted
+  private key is refused before anything is sent; a 200 is reported as already rotated. Revocation
+  requires a reason, and warns when the key is the last accepted one.
 - Each client the key expiry warning reports is listed with its severity, `kid` and end, most urgent
   first as the API orders them, linked to its registration; the section is absent while none is
   reported, and it sends nothing.

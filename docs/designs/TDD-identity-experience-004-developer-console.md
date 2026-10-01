@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.2.0
+  version: 1.2.1
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -175,6 +175,11 @@ rotate:
     countdown to the retiring key's automatic removal
     revoke: remove one key now, with a reason, for a key that has leaked
 ```
+
+Until this console has an authority model of its own, the same panel serves operators in the Admin
+Portal (`TDD-identity-experience-003` §Registration Drift Oversight): every Identity Control route
+requires provider scope, so an application team cannot yet be authorized to rotate its own client's
+key, and which team may manage which registration is the decision this console waits on.
 
 Showing the overlap is what makes rotation something teams do. A rotation presented as
 an immediate cutover reads as an outage, and a rotation that reads as an outage gets
