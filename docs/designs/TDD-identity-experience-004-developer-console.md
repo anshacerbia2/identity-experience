@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.4.0
+  version: 1.5.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -67,7 +67,8 @@ a stated interval rather than as a label.
 | Component | Responsibility |
 | :-- | :-- |
 | `MyRegistrationsPage` | The registrations the signed-in person owns, from the owner route |
-| `RegistrationPage` | One owned registration: its record, `ClientKeyPanel`, suspend and restore, and its owners |
+| `RegistrationPage` | One owned registration: its record, `ClientKeyPanel`, suspend and restore, its redirect URI changes, and its owners |
+| `RedirectUriChanges` | The registered redirect URIs, a proposal of the next set, the open change with its before and after, and the changes decided |
 | `RegistrationWizard` | Guided flow with per-step validation against the API |
 | `RedirectUriEditor` | Live validation, exact-match preview, wildcard refusal with explanation |
 | `LifetimeClassSelector` | Class choice presented as an enforcement interval |
@@ -115,6 +116,9 @@ GET   /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys/{key_id}:revoke   owner of {id}, with a reason
 GET   /api/v1/registrations/{id}/owners                 owner of {id}
+POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason
+GET   /api/v1/registrations/{id}/changes                owner of {id}
+POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
 POST  /api/v1/registrations                             not yet: application developer standing
 POST  /api/v1/registrations/{id}:validate               not yet
 ```
@@ -191,6 +195,33 @@ on each entry:
 The refusal explains rather than states. "Wildcards are not permitted" produces a
 support ticket; "a wildcard would let anyone controlling a matching host receive your
 authorization codes" produces a corrected entry.
+
+### Redirect URI Changes
+
+A registration's redirect URIs change by a change the Identity Control API records
+(`TDD-identity-control-003` §Registration Changes), not by editing the registration.
+
+```text
+on an active public or confidential registration:
+    show the registered redirect URIs
+    propose the whole next set, one URI per line, with a reason, against the version shown
+    the API validates; a refusal is shown in its own words, beside why each rule exists
+    outside production the change applies at once; in production it waits for a provider
+        other than the proposer, and the page says so
+    the open change is shown as its before and after; its proposer withdraws it with a reason
+    a version conflict says the registration changed since it was read, and reads it again
+    decided changes are listed with their outcome, who decided, and why
+```
+
+The console sends the whole set rather than an edit, because the API pins a change to the set it
+replaces, and the approver sees both. Nothing is validated in the browser beyond splitting the
+lines: §Validation Parity holds, and the API's sentence names the rule. The page lists why each
+rule exists next to the form, which is the explanation §Redirect URI Editing asks for, written once
+rather than per refusal.
+
+A provider sees the same changes on the Admin Portal's registration page, with approve and reject
+for a change it did not propose, and every open change in the portal's approval queue
+(`TDD-identity-experience-003` §Change Approval).
 
 ### Lifetime Class as an Interval
 
@@ -287,6 +318,10 @@ hand-maintained documentation always does.
 - A registration the API answers 404 for, one the person does not own, is shown as not found.
 - The owners list shows active owners only, marks the signed-in person, and offers no control.
 - Rotation sends the pasted public key and nothing else.
+- A redirect URI proposal sends the whole set, the version read and the reason. An applied change
+  and a waiting one read differently, and a waiting one is withdrawn by its proposer with a reason.
+- A version conflict reads the registration again; a refusal shows the API's sentence.
+- The console offers no approval: approving is a provider's, in the Admin Portal.
 
 ### Validation Parity
 

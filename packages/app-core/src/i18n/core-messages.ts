@@ -136,6 +136,63 @@ export const coreEn = {
   'owners.column.reason': 'Reason',
   'owners.you': 'You',
   'owners.empty': 'No one owns this registration.',
+
+  'changes.title': 'Redirect URIs',
+  'changes.description':
+    'Where an authorization code may be delivered. A change names the whole next set. Outside production it applies at once; in production a provider other than its proposer approves it.',
+  'changes.current': 'Registered now',
+  'changes.you': 'you',
+  'changes.propose.open': 'Propose a change',
+  'changes.propose.title': 'Propose the next redirect URIs',
+  'changes.propose.body':
+    'Write the whole set, one URI per line. The Identity Control API checks each one, and the change is recorded against the version you read.',
+  'changes.propose.field': 'Redirect URIs, one per line',
+  'changes.propose.empty': 'Write at least one redirect URI.',
+  'changes.propose.submit': 'Propose',
+  'changes.rules.title': 'Why a redirect URI is refused',
+  'changes.rules.wildcard':
+    'No wildcard: it would let anyone who controls a matching host receive your authorization codes.',
+  'changes.rules.https':
+    'https only, except http on localhost for local development: a code sent in the clear can be read on the way.',
+  'changes.rules.exact':
+    'No fragment and no ../ in the path: the URI is matched exactly, and only this one is accepted.',
+  'changes.versionConflict':
+    'The registration changed since you read it. It has been read again: check it, and propose once more.',
+  'changes.card.proposed': 'Proposed by',
+  'changes.card.reason': 'Reason: {reason}',
+  'changes.diff.added': 'Added',
+  'changes.diff.removed': 'Removed',
+  'changes.diff.kept': 'Kept',
+  'changes.state.proposed': 'Waiting for approval',
+  'changes.state.applied': 'Applied',
+  'changes.state.rejected': 'Rejected',
+  'changes.state.withdrawn': 'Withdrawn',
+  'changes.state.superseded': 'Superseded',
+  'changes.waiting': 'A provider other than its proposer approves it before anything changes.',
+  'changes.ownProposal': 'You proposed this, so another provider decides it.',
+  'changes.approve': 'Approve',
+  'changes.reject': 'Reject',
+  'changes.withdraw': 'Withdraw',
+  'changes.decide.approve.title': 'Approve this change',
+  'changes.decide.approve.body':
+    'The redirect URIs are written to the registration and to the client at once, as the proposal shows them.',
+  'changes.decide.reject.title': 'Reject this change',
+  'changes.decide.reject.body': 'Nothing changes. Your reason is recorded with the decision.',
+  'changes.decide.withdraw.title': 'Withdraw this change',
+  'changes.decide.withdraw.body': 'Nothing changes, and another change can be proposed.',
+  'changes.done.applied': 'The redirect URIs are changed.',
+  'changes.done.proposed': 'The change is proposed. It waits for a provider other than you.',
+  'changes.done.approved': 'The change is approved and applied.',
+  'changes.done.rejected': 'The change is rejected.',
+  'changes.done.withdrawn': 'The change is withdrawn.',
+  'changes.done.superseded':
+    'The registration changed since this was proposed, so nothing was applied. It can be proposed again.',
+  'changes.history.caption': 'Decided changes',
+  'changes.column.outcome': 'Outcome',
+  'changes.column.uris': 'Redirect URIs',
+  'changes.column.decidedBy': 'Decided by',
+  'changes.column.reason': 'Reason',
+  'changes.column.decided': 'Decided',
 } as const;
 
 export type CoreMessageKey = keyof typeof coreEn;
@@ -271,6 +328,63 @@ export const coreId: CoreMessages = {
   'owners.column.reason': 'Alasan',
   'owners.you': 'Kamu',
   'owners.empty': 'Belum ada yang memiliki registrasi ini.',
+
+  'changes.title': 'Redirect URI',
+  'changes.description':
+    'Tempat authorization code boleh dikirim. Perubahan menyebut seluruh set berikutnya. Di luar production langsung berlaku; di production harus disetujui provider lain, bukan pengusulnya.',
+  'changes.current': 'Terdaftar sekarang',
+  'changes.you': 'kamu',
+  'changes.propose.open': 'Usulkan perubahan',
+  'changes.propose.title': 'Usulkan redirect URI berikutnya',
+  'changes.propose.body':
+    'Tulis seluruh set, satu URI per baris. Identity Control API memeriksa tiap URI, dan perubahan dicatat terhadap versi yang kamu baca.',
+  'changes.propose.field': 'Redirect URI, satu per baris',
+  'changes.propose.empty': 'Tulis minimal satu redirect URI.',
+  'changes.propose.submit': 'Usulkan',
+  'changes.rules.title': 'Kenapa redirect URI ditolak',
+  'changes.rules.wildcard':
+    'Tanpa wildcard: wildcard membuat siapa pun yang menguasai host yang cocok bisa menerima authorization code-mu.',
+  'changes.rules.https':
+    'Hanya https, kecuali http di localhost untuk pengembangan lokal: code yang dikirim tanpa enkripsi bisa dibaca di jalan.',
+  'changes.rules.exact':
+    'Tanpa fragment dan tanpa ../ di path: URI dicocokkan persis, dan hanya URI ini yang diterima.',
+  'changes.versionConflict':
+    'Registrasi berubah sejak kamu membacanya. Sudah dibaca ulang: periksa, lalu usulkan sekali lagi.',
+  'changes.card.proposed': 'Diusulkan oleh',
+  'changes.card.reason': 'Alasan: {reason}',
+  'changes.diff.added': 'Ditambah',
+  'changes.diff.removed': 'Dihapus',
+  'changes.diff.kept': 'Tetap',
+  'changes.state.proposed': 'Menunggu persetujuan',
+  'changes.state.applied': 'Diterapkan',
+  'changes.state.rejected': 'Ditolak',
+  'changes.state.withdrawn': 'Ditarik',
+  'changes.state.superseded': 'Kedaluwarsa',
+  'changes.waiting': 'Provider lain, bukan pengusulnya, menyetujuinya sebelum ada yang berubah.',
+  'changes.ownProposal': 'Kamu yang mengusulkan ini, jadi provider lain yang memutuskan.',
+  'changes.approve': 'Setujui',
+  'changes.reject': 'Tolak',
+  'changes.withdraw': 'Tarik',
+  'changes.decide.approve.title': 'Setujui perubahan ini',
+  'changes.decide.approve.body':
+    'Redirect URI langsung ditulis ke registrasi dan ke client, persis seperti yang ditunjukkan usulan.',
+  'changes.decide.reject.title': 'Tolak perubahan ini',
+  'changes.decide.reject.body': 'Tidak ada yang berubah. Alasanmu dicatat bersama keputusan.',
+  'changes.decide.withdraw.title': 'Tarik perubahan ini',
+  'changes.decide.withdraw.body': 'Tidak ada yang berubah, dan perubahan lain bisa diusulkan.',
+  'changes.done.applied': 'Redirect URI sudah diubah.',
+  'changes.done.proposed': 'Perubahan sudah diusulkan. Menunggu provider selain kamu.',
+  'changes.done.approved': 'Perubahan disetujui dan diterapkan.',
+  'changes.done.rejected': 'Perubahan ditolak.',
+  'changes.done.withdrawn': 'Perubahan ditarik.',
+  'changes.done.superseded':
+    'Registrasi berubah sejak ini diusulkan, jadi tidak ada yang diterapkan. Bisa diusulkan lagi.',
+  'changes.history.caption': 'Perubahan yang sudah diputuskan',
+  'changes.column.outcome': 'Hasil',
+  'changes.column.uris': 'Redirect URI',
+  'changes.column.decidedBy': 'Diputuskan oleh',
+  'changes.column.reason': 'Alasan',
+  'changes.column.decided': 'Diputuskan',
 };
 
 export const coreMessages: Readonly<Record<Locale, CoreMessages>> = { en: coreEn, id: coreId };

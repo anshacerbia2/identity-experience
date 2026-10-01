@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import type { ClientKey, Owner, Registration } from '@identity-experience/app-core/domain/registration';
+import type {
+  ClientKey,
+  Owner,
+  Registration,
+  RegistrationChange,
+} from '@identity-experience/app-core/domain/registration';
 
 import { json, renderApp, stubFetch, type Sent } from '@/test/render-app';
 
@@ -73,7 +78,30 @@ const owner = (principal: string, active = true): Owner => ({
 const colleague = '55555555-5555-4555-8555-555555555555';
 const departed = '66666666-6666-4666-8666-666666666666';
 
-function api(registration: Registration, command?: (sent: Sent) => Response) {
+const moved = ['https://billing.example.com/callback', 'https://pay.example.com/callback'];
+
+const change = (overrides: Partial<RegistrationChange> = {}): RegistrationChange => ({
+  change_id: 'c-1',
+  registration_id: id,
+  client_key: 'billing-web',
+  base_version: 3,
+  previous_redirect_uris: ['https://billing.example.com/callback'],
+  redirect_uris: moved,
+  approval_required: true,
+  proposed_by: me,
+  proposal_reason: 'Payments move to their own host',
+  proposed_at: '2026-10-01T09:00:00Z',
+  state: 'proposed',
+  decided_by: null,
+  decided_at: null,
+  ...overrides,
+});
+
+function api(
+  registration: Registration,
+  command?: (sent: Sent) => Response,
+  changes: readonly RegistrationChange[] = [],
+) {
   return stubFetch((url, sent) => {
     if (url.pathname === '/auth/session') {
       return json(signedIn);
@@ -86,6 +114,9 @@ function api(registration: Registration, command?: (sent: Sent) => Response) {
     }
     if (url.pathname === `/api/v1/registrations/${id}/keys`) {
       return json({ keys: [activeKey] });
+    }
+    if (url.pathname === `/api/v1/registrations/${id}/changes`) {
+      return json({ changes });
     }
     if (url.pathname === `/api/v1/registrations/${id}/owners`) {
       return json({ owners: [owner(me), owner(colleague), owner(departed, false)] });
@@ -110,7 +141,8 @@ describe('the owner’s registration page', () => {
     const { container } = renderApp(`/developer/registrations/${id}`);
 
     expect(await screen.findByRole('heading', { level: 1, name: 'billing-web' })).toBeInTheDocument();
-    expect(screen.getByText('https://billing.example.com/callback')).toBeInTheDocument();
+    // In the record, and as the registered set the changes start from.
+    expect(screen.getAllByText('https://billing.example.com/callback')).toHaveLength(2);
 
     const keys = await section('Client keys');
     expect(await within(keys).findByText('thumb-billing')).toBeInTheDocument();
@@ -217,5 +249,88 @@ describe('the owner’s registration page', () => {
       'href',
       `/developer/registrations/${id}`,
     );
+  });
+
+  it('proposes the whole next set of redirect URIs, against the version read, with a reason', async () => {
+    const { sent } = api(billing, () => json(change({ state: 'applied', approval_required: false }), 201));
+    renderApp(`/developer/registrations/${id}`);
+
+    const changes = await section('Redirect URIs');
+    const user = userEvent.setup();
+    await user.click(await within(changes).findByRole('button', { name: 'Propose a change' }));
+    const field = within(changes).getByLabelText(/Redirect URIs, one per line/);
+    await user.type(field, '\n\n  https://pay.example.com/callback  ');
+    await user.type(within(changes).getByLabelText(/Reason/), 'Payments move to their own host');
+    await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+    expect(await within(changes).findByRole('status')).toHaveTextContent('The redirect URIs are changed.');
+    const [command] = posts(sent);
+    expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes`);
+    expect(command?.body).toEqual({ redirect_uris: moved, expected_version: 3 });
+    expect(command?.headers['x-administrative-reason']).toBe('Payments move to their own host');
+  });
+
+  it('says the registration changed when the version read is stale', async () => {
+    api(
+      billing,
+      () =>
+        new Response(JSON.stringify({ type: 'https://problems.scnehaux.com/version-conflict', title: 'x' }), {
+          status: 409,
+          headers: { 'content-type': 'application/problem+json' },
+        }),
+    );
+    renderApp(`/developer/registrations/${id}`);
+
+    const changes = await section('Redirect URIs');
+    const user = userEvent.setup();
+    await user.click(await within(changes).findByRole('button', { name: 'Propose a change' }));
+    await user.type(
+      within(changes).getByLabelText(/Redirect URIs, one per line/),
+      '\nhttps://pay.example.com/callback',
+    );
+    await user.type(within(changes).getByLabelText(/Reason/), 'Payments move to their own host');
+    await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+    expect(await within(changes).findByRole('alert')).toHaveTextContent(
+      'The registration changed since you read it.',
+    );
+  });
+
+  it('shows a waiting change as its before and after; its proposer withdraws it and approves nothing', async () => {
+    const { sent } = api(billing, () => json(change({ state: 'withdrawn' })), [
+      change(),
+      change({
+        change_id: 'c-0',
+        state: 'rejected',
+        decided_by: '44444444-4444-4444-8444-444444444444',
+        decision_reason: 'Use the existing host',
+        decided_at: '2026-09-20T10:00:00Z',
+        redirect_uris: ['https://x.example.com/cb'],
+      }),
+    ]);
+    renderApp(`/developer/registrations/${id}`);
+
+    const changes = await section('Redirect URIs');
+    expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
+    expect(within(changes).getByText('Added')).toBeInTheDocument();
+    expect(within(changes).getByText('Kept')).toBeInTheDocument();
+    expect(within(changes).getByText(/A provider other than its proposer approves it/)).toBeInTheDocument();
+    expect(within(changes).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+    expect(within(changes).queryByRole('button', { name: 'Propose a change' })).not.toBeInTheDocument();
+    const history = within(changes).getByRole('table', { name: 'Decided changes' });
+    expect(history).toHaveTextContent('Rejected');
+    expect(history).toHaveTextContent('Use the existing host');
+
+    const user = userEvent.setup();
+    await user.click(within(changes).getByRole('button', { name: 'Withdraw' }));
+    await user.type(within(changes).getByLabelText(/Reason/), 'Payments stay where they are');
+    const submit = within(changes)
+      .getAllByRole('button', { name: 'Withdraw' })
+      .find((button) => button.getAttribute('type') === 'submit');
+    await user.click(submit as HTMLElement);
+
+    expect(await within(changes).findByRole('status')).toHaveTextContent('The change is withdrawn.');
+    const [command] = posts(sent);
+    expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes/c-1:withdraw`);
   });
 });

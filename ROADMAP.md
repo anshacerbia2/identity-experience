@@ -145,9 +145,13 @@ registration domain from `packages/app-core`. A sign-in that does not complete n
 application it started from. Each owned registration then has its page (TDD-004 1.4.0): its
 record, its keys rotated and revoked by an owner, suspend and restore with a reason, and its
 active owners. The record, the key panel and the lifecycle controls are the Admin Portal's,
-moved into `packages/app-core`; an owner is offered no retirement. **Next:** registration
-requests, which wait on identity-control's application developer standing and an update path for
-a registration (ADR-IAM-003).
+moved into `packages/app-core`; an owner is offered no retirement. Redirect URIs then change by a
+change identity-control#36 records (TDD-004 1.5.0 §Redirect URI Changes, TDD-003 1.13.0 §Change
+Approval): an owner proposes the whole next set with a reason, and withdraws it. Outside production
+it applies at once. In production a provider other than the proposer approves or rejects it, on the
+registration's page or in the portal's approval queue, where each change shows its before and
+after as proposed. **Next:** audience and lifetime-class changes, and registration requests, which
+wait on identity-control's application developer standing (ADR-IAM-003 §5.3).
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration

@@ -288,6 +288,20 @@ export const en = {
   'workloads.lifecycle.done.suspend': 'The workload is suspended.',
   'workloads.lifecycle.done.restore': 'The workload is restored.',
   'workloads.lifecycle.done.retire': 'The workload is retired.',
+
+  'shell.nav.changes': 'Approvals',
+  'changeQueue.eyebrow': 'Separation of duties',
+  'changeQueue.title': 'Changes waiting for approval',
+  'changeQueue.lead':
+    'Every production registration change waiting for a provider other than its proposer, oldest first. Each shows the redirect URIs before and after, as they stood when it was proposed.',
+  'changeQueue.loading': 'Loading the changes waiting for approval',
+  'changeQueue.empty': 'No change is waiting for approval.',
+  'changeQueue.waited': '{days, plural, =0 {Proposed today} one {Waiting # day} other {Waiting # days}}',
+  'changeQueue.done.approve': 'The change to {clientKey} is approved and applied.',
+  'changeQueue.done.reject': 'The change to {clientKey} is rejected.',
+  'changeQueue.done.withdraw': 'The change to {clientKey} is withdrawn.',
+  'changeQueue.done.superseded':
+    '{clientKey} changed since this was proposed, so nothing was applied. Its owner proposes it again.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -572,6 +586,20 @@ export const id: Messages = {
   'workloads.lifecycle.done.suspend': 'Workload sudah ditangguhkan.',
   'workloads.lifecycle.done.restore': 'Workload sudah dipulihkan.',
   'workloads.lifecycle.done.retire': 'Workload sudah dipensiunkan.',
+
+  'shell.nav.changes': 'Persetujuan',
+  'changeQueue.eyebrow': 'Pemisahan tugas',
+  'changeQueue.title': 'Perubahan yang menunggu persetujuan',
+  'changeQueue.lead':
+    'Semua perubahan registrasi production yang menunggu provider selain pengusulnya, dari yang paling lama. Masing-masing menunjukkan redirect URI sebelum dan sesudah, seperti saat diusulkan.',
+  'changeQueue.loading': 'Memuat perubahan yang menunggu persetujuan',
+  'changeQueue.empty': 'Tidak ada perubahan yang menunggu persetujuan.',
+  'changeQueue.waited': '{days, plural, =0 {Diusulkan hari ini} other {Menunggu # hari}}',
+  'changeQueue.done.approve': 'Perubahan pada {clientKey} disetujui dan diterapkan.',
+  'changeQueue.done.reject': 'Perubahan pada {clientKey} ditolak.',
+  'changeQueue.done.withdraw': 'Perubahan pada {clientKey} ditarik.',
+  'changeQueue.done.superseded':
+    '{clientKey} berubah sejak ini diusulkan, jadi tidak ada yang diterapkan. Owner-nya mengusulkan lagi.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

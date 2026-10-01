@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ChangesIndexRouteImport } from './routes/changes/index'
 import { Route as PrincipalsIndexRouteImport } from './routes/principals/index'
 import { Route as RegistrationsIndexRouteImport } from './routes/registrations/index'
 import { Route as RegistrationsRegistrationIdRouteImport } from './routes/registrations/$registrationId'
@@ -18,6 +19,11 @@ import { Route as WorkloadsIndexRouteImport } from './routes/workloads/index'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangesIndexRoute = ChangesIndexRouteImport.update({
+  id: '/changes/',
+  path: '/changes/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrincipalsIndexRoute = PrincipalsIndexRouteImport.update({
@@ -45,6 +51,7 @@ const WorkloadsIndexRoute = WorkloadsIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/changes/': typeof ChangesIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
   '/registrations/': typeof RegistrationsIndexRoute
   '/workloads/': typeof WorkloadsIndexRoute
@@ -52,6 +59,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/changes': typeof ChangesIndexRoute
   '/principals': typeof PrincipalsIndexRoute
   '/registrations': typeof RegistrationsIndexRoute
   '/workloads': typeof WorkloadsIndexRoute
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/changes/': typeof ChangesIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
   '/registrations/': typeof RegistrationsIndexRoute
   '/workloads/': typeof WorkloadsIndexRoute
@@ -69,6 +78,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/registrations/$registrationId'
+    | '/changes/'
     | '/principals/'
     | '/registrations/'
     | '/workloads/'
@@ -76,6 +86,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/registrations/$registrationId'
+    | '/changes'
     | '/principals'
     | '/registrations'
     | '/workloads'
@@ -83,6 +94,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/registrations/$registrationId'
+    | '/changes/'
     | '/principals/'
     | '/registrations/'
     | '/workloads/'
@@ -91,6 +103,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
+  ChangesIndexRoute: typeof ChangesIndexRoute
   PrincipalsIndexRoute: typeof PrincipalsIndexRoute
   RegistrationsIndexRoute: typeof RegistrationsIndexRoute
   WorkloadsIndexRoute: typeof WorkloadsIndexRoute
@@ -103,6 +116,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/changes/': {
+      id: '/changes/'
+      path: '/changes'
+      fullPath: '/changes/'
+      preLoaderRoute: typeof ChangesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/principals/': {
@@ -139,6 +159,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
+  ChangesIndexRoute: ChangesIndexRoute,
   PrincipalsIndexRoute: PrincipalsIndexRoute,
   RegistrationsIndexRoute: RegistrationsIndexRoute,
   WorkloadsIndexRoute: WorkloadsIndexRoute,

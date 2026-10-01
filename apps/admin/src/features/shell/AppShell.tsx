@@ -37,6 +37,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
               </Link>
             </li>
             <li>
+              <Link to="/changes" className={navClasses.item} activeProps={{ 'aria-current': 'page' }}>
+                <Icon name="check" />
+                <Message id="shell.nav.changes" />
+              </Link>
+            </li>
+            <li>
               <Link to="/principals" className={navClasses.item} activeProps={{ 'aria-current': 'page' }}>
                 <Icon name="users" />
                 <Message id="shell.nav.principals" />
