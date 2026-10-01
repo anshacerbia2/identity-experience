@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.14.0
+  version: 1.15.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -320,7 +320,18 @@ approval queue (GET /v1/registrations:changes), oldest first:
 
 registration page:
     the same changes panel the Developer Console shows, with approve and reject added
+
+registration requests (GET /v1/registration-requests), on the same page, oldest first:
+    each request: its client_key, profile, audience class, lifetime class, redirect URIs and
+        audience as the proposer submitted them; the owners it names; who proposed it, why, and
+        how long it has waited
+    approve or reject, each with a reason, for a request the signed-in provider did not propose;
+        an approval links to the registration it created
 ```
+
+A production registration is created only by approval (`ADR-IAM-003 §5.3`,
+`TDD-identity-control-003` §Registration Requests), and the approver reads the document the API
+stored, which is what it registers.
 
 The before and after are the sets the API recorded when the change was proposed, not the
 registration as it is now, so the approver decides what the proposer saw. Hiding approve on one's
@@ -512,6 +523,8 @@ again and shows the user signed out rather than a page of errors.
 - Approve and reject send the reason; on one's own proposal neither is offered.
 - An approval answered as superseded says the registration moved since, and nothing was applied.
 - A registration's page shows its changes and decides them as the queue does.
+- Registration requests are listed with their document and owners; approving one links to the
+  registration it created, and neither decision is offered on one's own request.
 
 ### Principals
 

@@ -56,6 +56,25 @@ const created: Registration = {
 
 const publicJwk = { kty: 'RSA', n: 'sXch-Mo_B7E', e: 'AQAB' };
 
+const waiting = {
+  request_id: 'q-1',
+  client_key: 'orders-web',
+  request: {
+    client_key: 'orders-web',
+    profile: 'public',
+    audience_class: 'internal',
+    application_ref: 'orders',
+  },
+  owners: [me, '44444444-4444-4444-8444-444444444444'],
+  proposed_by: me,
+  proposal_reason: 'Orders goes live in October',
+  proposed_at: '2026-10-01T09:00:00Z',
+  state: 'proposed',
+  decided_by: null,
+  decided_at: null,
+  registration_id: null,
+};
+
 function api(standing: Standing | null, command?: (sent: Sent) => Response) {
   return stubFetch((url, sent) => {
     if (url.pathname === '/auth/session') {
@@ -69,6 +88,9 @@ function api(standing: Standing | null, command?: (sent: Sent) => Response) {
     }
     if (url.pathname === '/api/v1/registrations:mine') {
       return json({ registrations: [ordersApi] });
+    }
+    if (url.pathname === '/api/v1/registration-requests:mine') {
+      return json({ requests: [waiting] });
     }
     if (url.pathname === `/api/v1/registrations/${created.registration_id}`) {
       return json(created);
@@ -93,13 +115,46 @@ describe('registering a client', () => {
     expect(await screen.findByRole('button', { name: 'Register a client' })).toBeInTheDocument();
   });
 
-  it('is not offered in production, and says who registers there', async () => {
+  it('in production, offers a request instead, and lists the person’s requests', async () => {
     api({ ...developer, environment: 'production' });
     renderApp('/developer/');
-    expect(
-      await screen.findByText(/This is production: a provider registers production clients/),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Register a client' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Request a production client' })).toBeInTheDocument();
+    const requests = await screen.findByRole('table', { name: 'Production registrations you requested' });
+    expect(within(requests).getByText('Waiting for approval')).toBeInTheDocument();
+    expect(within(requests).getByRole('button', { name: 'Withdraw orders-web' })).toBeInTheDocument();
+  });
+
+  it('in production, requests the client naming at least two owners, with a reason', async () => {
+    const colleague = '44444444-4444-4444-8444-444444444444';
+    const { sent } = api({ ...developer, environment: 'production' }, () => json(waiting, 201));
+    renderApp('/developer/registrations/new');
+
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole('textbox', { name: /Client key/ }), 'orders-web');
+    await user.type(screen.getByRole('textbox', { name: /Application reference/ }), 'orders');
+    await user.selectOptions(screen.getByRole('combobox', { name: /Profile/ }), 'public');
+    await user.type(
+      screen.getByRole('textbox', { name: /Redirect URIs/ }),
+      'https://orders.example.com/callback',
+    );
+    const owners = screen.getByRole('textbox', { name: /Owners, one principal_id per line/ });
+    expect(owners).toHaveValue(`${me}\n`);
+    await user.type(screen.getByLabelText(/Reason/), 'Orders goes live in October');
+    await user.click(screen.getByRole('button', { name: 'Request' }));
+    expect(await screen.findByText('Name at least 2 different owners.')).toBeInTheDocument();
+    expect(posts(sent)).toHaveLength(0);
+
+    await user.type(owners, colleague);
+    await user.click(screen.getByRole('button', { name: 'Request' }));
+    expect(await screen.findByText('orders-web is requested')).toBeInTheDocument();
+    const [command] = posts(sent);
+    expect(command?.url.pathname).toBe('/api/v1/registration-requests');
+    expect(command?.headers['x-administrative-reason']).toBe('Orders goes live in October');
+    expect(command?.body).toMatchObject({
+      client_key: 'orders-web',
+      profile: 'public',
+      owners: [me, colleague],
+    });
   });
 
   it('is not offered without the standing, and its page says how to get it', async () => {

@@ -39,8 +39,6 @@ export const en = {
   'register.unavailable.title': 'Registration is not available to you here',
   'register.unavailable.standing':
     'Registering a client takes application developer standing, which a provider grants. Ask the platform team.',
-  'register.unavailable.production':
-    'This is production: a provider registers production clients, until they can be created by approval.',
   'register.form.title': 'The registration',
   'register.form.body':
     'The Identity Control API checks every field when you register, and a refusal names the rule. Nothing secret is entered here: a confidential client authenticates with a key pair your team keeps.',
@@ -83,6 +81,32 @@ export const en = {
     'You own no protected resource, so this client’s tokens are for no API yet. A provider registers a client for another team’s resource.',
   'register.publicKey': 'First public key (JWK)',
   'register.submit': 'Register',
+
+  'request.open': 'Request a production client',
+  'request.form.title': 'The production client you request',
+  'request.form.body':
+    'This is production: the registration is requested, and a provider other than you approves it before it exists. Name at least two owners, so it is never left with none. Nothing secret is entered here.',
+  'request.owners': 'Owners, one principal_id per line',
+  'request.owners.hint':
+    'At least {min, number} people, each an active person. You are listed first; add a colleague who shares the responsibility.',
+  'request.owners.tooFew': 'Name at least {min, number} different owners.',
+  'request.submit': 'Request',
+  'request.done.title': '{clientKey} is requested',
+  'request.done.body':
+    'It waits for a provider other than you. You find it under My registrations, with its decision once it is made.',
+  'requests.title': 'My production requests',
+  'requests.caption': 'Production registrations you requested',
+  'requests.column.proposed': 'Requested',
+  'requests.column.decision': 'Decision',
+  'requests.column.action': 'Action',
+  'requests.state.proposed': 'Waiting for approval',
+  'requests.state.approved': 'Approved',
+  'requests.state.rejected': 'Rejected',
+  'requests.state.withdrawn': 'Withdrawn',
+  'requests.withdraw.open': 'Withdraw {clientKey}',
+  'requests.withdraw.title': 'Withdraw the request for {clientKey}',
+  'requests.withdraw': 'Withdraw',
+  'requests.note': 'A provider other than you approves or rejects each request, in the Admin Portal.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -119,8 +143,6 @@ export const id: Messages = {
   'register.unavailable.title': 'Pendaftaran tidak tersedia untukmu di sini',
   'register.unavailable.standing':
     'Mendaftarkan client butuh standing application developer, yang diberikan provider. Minta ke tim platform.',
-  'register.unavailable.production':
-    'Ini production: client production didaftarkan provider, sampai bisa dibuat lewat persetujuan.',
   'register.form.title': 'Registrasinya',
   'register.form.body':
     'Identity Control API memeriksa setiap field saat kamu mendaftar, dan penolakan menyebut aturannya. Tidak ada yang rahasia diisi di sini: client confidential autentikasi dengan pasangan kunci yang disimpan timmu.',
@@ -162,6 +184,32 @@ export const id: Messages = {
     'Kamu belum memiliki protected resource, jadi token client ini belum untuk API mana pun. Client untuk resource tim lain didaftarkan provider.',
   'register.publicKey': 'Public key pertama (JWK)',
   'register.submit': 'Daftarkan',
+
+  'request.open': 'Minta client production',
+  'request.form.title': 'Client production yang kamu minta',
+  'request.form.body':
+    'Ini production: registrasinya diminta, dan provider selain kamu menyetujuinya sebelum registrasi itu ada. Sebutkan minimal dua owner, supaya tidak pernah tanpa owner. Tidak ada yang rahasia diisi di sini.',
+  'request.owners': 'Owner, satu principal_id per baris',
+  'request.owners.hint':
+    'Minimal {min, number} orang, masing-masing orang yang aktif. Kamu sudah tercantum pertama; tambahkan rekan yang ikut bertanggung jawab.',
+  'request.owners.tooFew': 'Sebutkan minimal {min, number} owner yang berbeda.',
+  'request.submit': 'Minta',
+  'request.done.title': '{clientKey} sudah diminta',
+  'request.done.body':
+    'Menunggu provider selain kamu. Kamu bisa melihatnya di Registrasi saya, beserta keputusannya setelah diputuskan.',
+  'requests.title': 'Permintaan production saya',
+  'requests.caption': 'Registrasi production yang kamu minta',
+  'requests.column.proposed': 'Diminta',
+  'requests.column.decision': 'Keputusan',
+  'requests.column.action': 'Tindakan',
+  'requests.state.proposed': 'Menunggu persetujuan',
+  'requests.state.approved': 'Disetujui',
+  'requests.state.rejected': 'Ditolak',
+  'requests.state.withdrawn': 'Ditarik',
+  'requests.withdraw.open': 'Tarik {clientKey}',
+  'requests.withdraw.title': 'Tarik permintaan untuk {clientKey}',
+  'requests.withdraw': 'Tarik',
+  'requests.note': 'Provider selain kamu menyetujui atau menolak setiap permintaan, di Admin Portal.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

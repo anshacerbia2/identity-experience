@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
-import { mayRegister } from '@identity-experience/app-core/domain/registration';
+import { mayRegister, mayRequest } from '@identity-experience/app-core/domain/registration';
 import {
   profileLabel,
   stateLabel,
@@ -16,34 +16,36 @@ import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui'
 import { Message } from '@/core/i18n/Message';
 
 import styles from './MyRegistrationsPage.module.scss';
+import { MyRequests } from './MyRequests';
 import { useMyRegistrations } from './registrations-api';
 
-// RegisterOffer offers registration only where the API accepts one: to an application developer,
-// outside production (TDD-identity-experience-004 §Registering a Client).
+// RegisterOffer offers registration only where the API accepts one, to an application developer:
+// registered outside production, requested in production (TDD-identity-experience-004 §Registering a
+// Client). The person's requests are listed below it.
 function RegisterOffer(): ReactElement | null {
   const standing = useStanding();
   const navigate = useNavigate();
   if (standing.data === undefined || !standing.data.application_developer) {
     return null;
   }
-  if (!mayRegister(standing.data)) {
-    return (
-      <p className={styles['quiet']}>
-        <Message id="register.unavailable.production" />
-      </p>
-    );
+  const requesting = mayRequest(standing.data);
+  if (!requesting && !mayRegister(standing.data)) {
+    return null;
   }
   return (
-    <div className={styles['formActions']}>
-      <Button
-        icon={<Icon name="shield" />}
-        onClick={() => {
-          void navigate({ to: '/registrations/new' });
-        }}
-      >
-        <Message id="register.open" />
-      </Button>
-    </div>
+    <>
+      <div className={styles['formActions']}>
+        <Button
+          icon={<Icon name="shield" />}
+          onClick={() => {
+            void navigate({ to: '/registrations/new' });
+          }}
+        >
+          <Message id={requesting ? 'request.open' : 'register.open'} />
+        </Button>
+      </div>
+      {requesting ? <MyRequests /> : null}
+    </>
   );
 }
 

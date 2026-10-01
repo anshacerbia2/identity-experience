@@ -368,3 +368,33 @@ export interface RegisterRequest {
   readonly redirect_uris?: readonly string[];
   readonly public_key?: unknown;
 }
+
+// A request for a production registration (ADR-IAM-003 §5.3, TDD-identity-control-003
+// §Registration Requests): the document as POST /v1/registrations takes it, the owners it names,
+// and its decision. An approval names the registration it created.
+export type RequestState = 'proposed' | 'approved' | 'rejected' | 'withdrawn';
+
+export interface RegistrationRequestRecord {
+  readonly request_id: string;
+  readonly client_key: string;
+  readonly request: RegisterRequest;
+  readonly owners: readonly string[];
+  readonly proposed_by: string;
+  readonly proposal_reason: string;
+  readonly proposed_at: string;
+  readonly state: RequestState;
+  readonly decided_by: string | null;
+  readonly decision_reason?: string;
+  readonly decided_at: string | null;
+  readonly registration_id: string | null;
+}
+
+// mayRequest is whether a console offers a production request: an application developer, in
+// production, where it does not register directly.
+export const mayRequest = (standing: Standing): boolean =>
+  standing.application_developer && standing.environment === 'production';
+
+// ownerLines reads owners typed one principal_id per line, each once.
+export const ownerLines = (text: string): string[] => [...new Set(redirectLines(text))];
+
+export const minProductionOwners = 2;
