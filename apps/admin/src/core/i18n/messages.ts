@@ -159,6 +159,20 @@ export const en = {
     'To keep a client, adopt it through the Identity Control API: {route}, sent first with dry_run to read what it would change.',
   'unmanaged.delete':
     'If nothing depends on it, delete it in the Admin Console. The next sweep clears it from this list.',
+  'expiring.title': 'Keys about to expire',
+  'expiring.description':
+    'Clients whose key ends within {warning, number} days with no successor registered, critical within {critical, number}, or that hold no key at all. A client stops authenticating when its last key ends.',
+  'expiring.caption': 'Client keys about to expire',
+  'expiring.column.severity': 'Severity',
+  'expiring.column.kid': 'Key ID',
+  'expiring.column.ends': 'Ends',
+  'expiring.severity.no_key': 'No key: cannot authenticate',
+  'expiring.severity.critical': 'Critical',
+  'expiring.severity.warning': 'Warning',
+  'expiring.noKey': 'No accepted key',
+  'expiring.daysLeft': '{days, plural, =0 {today} one {in # day} other {in # days}}',
+  'expiring.remedy':
+    'The remedy is the client rotating to a new key it generates; this page reads only. Once a successor is registered, the client leaves this list.',
 
   'lifecycle.title': 'Lifecycle',
   'lifecycle.description':
@@ -518,6 +532,20 @@ export const id: Messages = {
     'Untuk mempertahankan client, adopsi lewat Identity Control API: {route}, kirim dulu dengan dry_run untuk membaca apa yang akan diubah.',
   'unmanaged.delete':
     'Jika tidak ada yang bergantung padanya, hapus di Admin Console. Sweep berikutnya menghapusnya dari daftar ini.',
+  'expiring.title': 'Kunci yang akan kedaluwarsa',
+  'expiring.description':
+    'Client yang kuncinya berakhir dalam {warning, number} hari tanpa pengganti terdaftar, kritis dalam {critical, number} hari, atau tidak punya kunci sama sekali. Client berhenti bisa autentikasi saat kunci terakhirnya berakhir.',
+  'expiring.caption': 'Kunci client yang akan kedaluwarsa',
+  'expiring.column.severity': 'Tingkat',
+  'expiring.column.kid': 'ID kunci',
+  'expiring.column.ends': 'Berakhir',
+  'expiring.severity.no_key': 'Tanpa kunci: tidak bisa autentikasi',
+  'expiring.severity.critical': 'Kritis',
+  'expiring.severity.warning': 'Peringatan',
+  'expiring.noKey': 'Tidak ada kunci yang diterima',
+  'expiring.daysLeft': '{days, plural, =0 {hari ini} other {dalam # hari}}',
+  'expiring.remedy':
+    'Solusinya: client merotasi ke kunci baru yang dibuatnya sendiri; halaman ini hanya membaca. Setelah pengganti terdaftar, client hilang dari daftar ini.',
 
   'lifecycle.title': 'Siklus hidup',
   'lifecycle.description':

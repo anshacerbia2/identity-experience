@@ -16,6 +16,7 @@ import {
 } from '@/domain/registration';
 
 import { DriftSummary } from './DriftSummary';
+import { ExpiringKeys } from './ExpiringKeys';
 import { profileLabel, stateLabel, stateTone } from './labels';
 import { useDriftStatus, useRegistrationPages } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
@@ -201,6 +202,7 @@ export function RegistrationsPage({
         <>
           <DriftSummary />
           <UnmanagedClients />
+          <ExpiringKeys />
           <StateFilter current={state} />
           <RegistrationTable state={state} />
         </>

@@ -177,3 +177,35 @@ export function convergenceSeconds(finding: Finding): number | null {
   }
   return Math.max(0, Math.round((Date.parse(finding.converged_at) - Date.parse(finding.changed_at)) / 1000));
 }
+
+// The key expiry warning (TDD-identity-control-003 §Key Expiry Warnings): an active keyed client whose
+// key ends within 14 days with no successor, within 3, or which holds no key the kernel accepts.
+export type KeyExpirySeverity = 'no_key' | 'critical' | 'warning';
+
+export interface ExpiringKey {
+  readonly registration_id: string;
+  readonly client_key: string;
+  readonly profile: Registration['profile'];
+  readonly severity: KeyExpirySeverity;
+  readonly key_id: string | null;
+  readonly kid?: string;
+  readonly expires_at: string | null;
+}
+
+export interface ExpiringKeys {
+  readonly warning_days: number;
+  readonly critical_days: number;
+  readonly registrations: readonly ExpiringKey[];
+}
+
+export const keyExpiryAttention: Readonly<Record<KeyExpirySeverity, Attention>> = {
+  no_key: 'danger',
+  critical: 'danger',
+  warning: 'warning',
+};
+
+// daysLeft is whole days until the key ends, rounded down, and never below zero: a key that ends in
+// six hours has zero days left, which is what an operator needs to read.
+export function daysLeft(expiresAt: string, now: number): number {
+  return Math.max(0, Math.floor((Date.parse(expiresAt) - now) / 86_400_000));
+}

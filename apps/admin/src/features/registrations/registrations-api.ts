@@ -6,6 +6,7 @@ import { normalizeReason } from '@/domain/reason';
 import {
   type DriftException,
   type DriftStatus,
+  type ExpiringKeys,
   type ExceptionField,
   type Finding,
   type LifecycleAction,
@@ -26,6 +27,7 @@ export const registrationKeys = {
   findings: (registrationId: string) => ['registrations', 'findings', registrationId] as const,
   exceptions: (registrationId: string) => ['registrations', 'exceptions', registrationId] as const,
   drift: ['registrations', 'drift'] as const,
+  expiringKeys: ['registrations', 'expiring-keys'] as const,
 };
 
 // useRegistrationPages pages by the API's cursor. Each page is kept, so "load more" appends and a
@@ -52,6 +54,15 @@ export function useDriftStatus() {
   return useQuery({
     queryKey: registrationKeys.drift,
     queryFn: ({ signal }) => apiGet<DriftStatus>('/v1/registrations:drift', signal),
+  });
+}
+
+// useExpiringKeys reads the key expiry warning. It is read-only, and the order is the API's: most
+// urgent first.
+export function useExpiringKeys() {
+  return useQuery({
+    queryKey: registrationKeys.expiringKeys,
+    queryFn: ({ signal }) => apiGet<ExpiringKeys>('/v1/registrations:expiring-keys', signal),
   });
 }
 

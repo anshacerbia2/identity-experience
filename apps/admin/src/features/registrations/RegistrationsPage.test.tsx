@@ -64,11 +64,19 @@ const drift: DriftStatus = {
 };
 
 function api(
-  overrides: { session?: unknown; registrations?: (url: URL) => Response; drift?: Response } = {},
+  overrides: {
+    session?: unknown;
+    registrations?: (url: URL) => Response;
+    drift?: Response;
+    expiring?: Response;
+  } = {},
 ) {
   return stubFetch((url) => {
     if (url.pathname === '/auth/session') {
       return json(overrides.session ?? signedIn);
+    }
+    if (url.pathname === '/api/v1/registrations:expiring-keys') {
+      return overrides.expiring ?? json({ warning_days: 14, critical_days: 3, registrations: [] });
     }
     if (url.pathname === '/api/v1/registrations:drift') {
       return overrides.drift ?? json(drift);
@@ -169,6 +177,71 @@ describe('RegistrationsPage', () => {
     renderApp('/registrations');
     await screen.findByRole('table', { name: 'Registered clients' });
     expect(screen.queryByRole('region', { name: 'Unmanaged clients' })).not.toBeInTheDocument();
+  });
+
+  it('lists the clients whose key is about to expire, most urgent first, and offers nothing', async () => {
+    const inTwoDays = new Date(Date.now() + 2 * 86_400_000 + 3_600_000).toISOString();
+    const inTenDays = new Date(Date.now() + 10 * 86_400_000 + 3_600_000).toISOString();
+    const { requests } = api({
+      expiring: json({
+        warning_days: 14,
+        critical_days: 3,
+        registrations: [
+          {
+            registration_id: 'r-lost',
+            client_key: 'lost-job',
+            profile: 'workload',
+            severity: 'no_key',
+            key_id: null,
+            expires_at: null,
+          },
+          {
+            registration_id: 'r-bff',
+            client_key: 'identity-experience-bff',
+            profile: 'confidential',
+            severity: 'critical',
+            key_id: 'k-1',
+            kid: 'laptop',
+            expires_at: inTwoDays,
+          },
+          {
+            registration_id: 'r-job',
+            client_key: 'nightly-job',
+            profile: 'workload',
+            severity: 'warning',
+            key_id: 'k-2',
+            kid: 'job-2026',
+            expires_at: inTenDays,
+          },
+        ],
+      }),
+    });
+    const { container } = renderApp('/registrations');
+
+    const section = await screen.findByRole('region', { name: 'Keys about to expire' });
+    const rows = within(
+      within(section).getByRole('table', { name: 'Client keys about to expire' }),
+    ).getAllByRole('row');
+    expect(rows).toHaveLength(4);
+    expect(within(rows[1] as HTMLElement).getByText('No key: cannot authenticate')).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText('No accepted key')).toBeInTheDocument();
+    expect(
+      within(rows[2] as HTMLElement).getByRole('link', { name: 'identity-experience-bff' }),
+    ).toHaveAttribute('href', '/registrations/r-bff');
+    expect(within(rows[2] as HTMLElement).getByText('Critical')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText('in 2 days')).toBeInTheDocument();
+    expect(within(rows[3] as HTMLElement).getByText('Warning')).toBeInTheDocument();
+    expect(within(rows[3] as HTMLElement).getByText('job-2026')).toBeInTheDocument();
+    expect(within(section).queryByRole('button')).not.toBeInTheDocument();
+    expect(requests.every((url) => !url.pathname.includes('/keys'))).toBe(true);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('shows no expiring keys section while none is reported', async () => {
+    api();
+    renderApp('/registrations');
+    await screen.findByRole('table', { name: 'Registered clients' });
+    expect(screen.queryByRole('region', { name: 'Keys about to expire' })).not.toBeInTheDocument();
   });
 
   it('asks for sign-in and reads nothing from the API without a session', async () => {
