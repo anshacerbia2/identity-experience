@@ -5,6 +5,7 @@ import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
 import type {
+  ApplicationDeveloper,
   CreatePrincipalRequest,
   DanglingMapping,
   PrincipalCreated,
@@ -17,6 +18,7 @@ import type {
 export const principalKeys = {
   all: ['principals'] as const,
   dangling: ['principals', 'dangling'] as const,
+  developers: ['principals', 'application-developers'] as const,
 };
 
 export function useDangling() {
@@ -77,5 +79,45 @@ export function usePrincipalSweep() {
   return useMutation({
     mutationFn: () => apiPost<PrincipalSweep>('/v1/principals:reconcile', {}, { csrfToken: token }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: principalKeys.all }),
+  });
+}
+
+type Developers = { readonly developers: readonly ApplicationDeveloper[] | null };
+
+// The application developer grants, newest first, revoked ones included.
+export function useApplicationDevelopers() {
+  return useQuery({
+    queryKey: principalKeys.developers,
+    queryFn: async ({ signal }) =>
+      (await apiGet<Developers>('/v1/application-developers', signal)).developers ?? [],
+  });
+}
+
+// useGrantDeveloper grants a person the standing, and useRevokeDeveloper ends it, each with a reason.
+export function useGrantDeveloper() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
+      apiPost<Developers>(
+        '/v1/application-developers',
+        { principal_id: principalId.trim() },
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: principalKeys.developers }),
+  });
+}
+
+export function useRevokeDeveloper() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
+      apiPost<Developers>(
+        `/v1/application-developers/${encodeURIComponent(principalId)}:revoke`,
+        {},
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: principalKeys.developers }),
   });
 }

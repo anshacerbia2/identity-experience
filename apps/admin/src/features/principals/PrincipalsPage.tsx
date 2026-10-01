@@ -4,6 +4,7 @@ import { useSession, SignInRequired } from '@identity-experience/app-core/sessio
 
 import { Message } from '@/core/i18n/Message';
 
+import { ApplicationDevelopers } from './ApplicationDevelopers';
 import { CreatePrincipalForm } from './CreatePrincipalForm';
 import { DanglingSection } from './DanglingSection';
 import styles from './PrincipalsPage.module.scss';
@@ -31,6 +32,7 @@ export function PrincipalsPage(): ReactElement {
         <>
           <CreatePrincipalForm />
           <DanglingSection />
+          <ApplicationDevelopers />
         </>
       ) : session.isPending ? null : (
         <SignInRequired />

@@ -31,6 +31,58 @@ export const en = {
     'A provider names the owners of each registration, with a reason, and a production registration has at least two. Ask the platform team to add you to the registrations you are accountable for.',
 
   'registration.back': 'My registrations',
+
+  'register.open': 'Register a client',
+  'register.title': 'Register a client',
+  'register.lead':
+    'A non-production client or protected resource, registered on your application developer standing. You become its first owner.',
+  'register.unavailable.title': 'Registration is not available to you here',
+  'register.unavailable.standing':
+    'Registering a client takes application developer standing, which a provider grants. Ask the platform team.',
+  'register.unavailable.production':
+    'This is production: a provider registers production clients, until they can be created by approval.',
+  'register.form.title': 'The registration',
+  'register.form.body':
+    'The Identity Control API checks every field when you register, and a refusal names the rule. Nothing secret is entered here: a confidential client authenticates with a key pair your team keeps.',
+  'register.clientKey': 'Client key',
+  'register.clientKey.hint':
+    'Lowercase letters, digits, dots, dashes and underscores, as the client is named in Keycloak.',
+  'register.clientKey.required': 'Name the client.',
+  'register.applicationRef': 'Application reference',
+  'register.applicationRef.hint': 'The application this client belongs to. Every client traces to one.',
+  'register.applicationRef.required': 'Name the application.',
+  'register.profile': 'Profile',
+  'register.profile.confidential.hint':
+    'A server-side application that signs in users and authenticates with its own key. It holds no secret.',
+  'register.profile.public.hint':
+    'A browser or mobile application that cannot keep a key. It signs in users with PKCE and gets no refresh token.',
+  'register.profile.resource.hint': 'An API that verifies the tokens other clients present to it.',
+  'register.audienceClass': 'Audience class',
+  'register.audienceClass.hint':
+    'Internal for Scnehaux users, external for partners. Privileged and workload clients are a provider’s to register.',
+  'register.audienceClass.internal': 'Internal',
+  'register.audienceClass.external': 'External',
+  'register.lifetimeClass': 'Token lifetime',
+  'register.lifetimeClass.hint':
+    'A longer lifetime is a longer window in which a revoked person keeps access to your API.',
+  'register.lifetimeClass.choose': 'Choose a lifetime',
+  'register.lifetimeClass.required': 'Choose how long a token for this resource is valid.',
+  'register.lifetimeClass.L0':
+    'Token valid {token, number} minutes; a revocation takes effect within about {revocation, number} minutes',
+  'register.lifetimeClass.L1':
+    'Token valid {token, number} minutes; a revocation takes effect within about {revocation, number} minutes',
+  'register.lifetimeClass.L2':
+    'Token valid {token, number} minutes; a revocation takes effect within about {revocation, number} minutes. External and partner audiences only',
+  'register.redirectUris': 'Redirect URIs, one per line',
+  'register.redirectUris.hint':
+    'Each is matched exactly: https, or http on localhost for local development, with no wildcard and no fragment.',
+  'register.audience': 'Audience',
+  'register.audience.hint':
+    'The resources this client’s tokens are for. You can choose only resources you own.',
+  'register.audience.none':
+    'You own no protected resource, so this client’s tokens are for no API yet. A provider registers a client for another team’s resource.',
+  'register.publicKey': 'First public key (JWK)',
+  'register.submit': 'Register',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -59,6 +111,57 @@ export const id: Messages = {
     'Provider menetapkan owner tiap registrasi, dengan alasan, dan registrasi production punya minimal dua. Minta tim platform menambahkanmu ke registrasi yang jadi tanggung jawabmu.',
 
   'registration.back': 'Registrasi saya',
+
+  'register.open': 'Daftarkan client',
+  'register.title': 'Daftarkan client',
+  'register.lead':
+    'Client atau protected resource non-production, didaftarkan dengan standing application developer milikmu. Kamu jadi owner pertamanya.',
+  'register.unavailable.title': 'Pendaftaran tidak tersedia untukmu di sini',
+  'register.unavailable.standing':
+    'Mendaftarkan client butuh standing application developer, yang diberikan provider. Minta ke tim platform.',
+  'register.unavailable.production':
+    'Ini production: client production didaftarkan provider, sampai bisa dibuat lewat persetujuan.',
+  'register.form.title': 'Registrasinya',
+  'register.form.body':
+    'Identity Control API memeriksa setiap field saat kamu mendaftar, dan penolakan menyebut aturannya. Tidak ada yang rahasia diisi di sini: client confidential autentikasi dengan pasangan kunci yang disimpan timmu.',
+  'register.clientKey': 'Client key',
+  'register.clientKey.hint':
+    'Huruf kecil, angka, titik, strip dan garis bawah, sesuai nama client di Keycloak.',
+  'register.clientKey.required': 'Beri nama client.',
+  'register.applicationRef': 'Referensi aplikasi',
+  'register.applicationRef.hint': 'Aplikasi pemilik client ini. Setiap client terhubung ke satu aplikasi.',
+  'register.applicationRef.required': 'Sebutkan aplikasinya.',
+  'register.profile': 'Profil',
+  'register.profile.confidential.hint':
+    'Aplikasi server-side yang memasukkan pengguna dan autentikasi dengan kuncinya sendiri. Tidak menyimpan secret.',
+  'register.profile.public.hint':
+    'Aplikasi browser atau mobile yang tidak bisa menyimpan kunci. Memasukkan pengguna dengan PKCE dan tidak mendapat refresh token.',
+  'register.profile.resource.hint': 'API yang memverifikasi token yang dibawa client lain kepadanya.',
+  'register.audienceClass': 'Kelas audiens',
+  'register.audienceClass.hint':
+    'Internal untuk pengguna Scnehaux, external untuk partner. Client privileged dan workload didaftarkan provider.',
+  'register.audienceClass.internal': 'Internal',
+  'register.audienceClass.external': 'External',
+  'register.lifetimeClass': 'Umur token',
+  'register.lifetimeClass.hint':
+    'Umur yang lebih panjang berarti jendela yang lebih panjang bagi orang yang sudah dicabut untuk tetap mengakses API-mu.',
+  'register.lifetimeClass.choose': 'Pilih umur',
+  'register.lifetimeClass.required': 'Pilih berapa lama token untuk resource ini berlaku.',
+  'register.lifetimeClass.L0':
+    'Token berlaku {token, number} menit; pencabutan berlaku dalam sekitar {revocation, number} menit',
+  'register.lifetimeClass.L1':
+    'Token berlaku {token, number} menit; pencabutan berlaku dalam sekitar {revocation, number} menit',
+  'register.lifetimeClass.L2':
+    'Token berlaku {token, number} menit; pencabutan berlaku dalam sekitar {revocation, number} menit. Hanya untuk audiens external dan partner',
+  'register.redirectUris': 'Redirect URI, satu per baris',
+  'register.redirectUris.hint':
+    'Masing-masing dicocokkan persis: https, atau http di localhost untuk pengembangan lokal, tanpa wildcard dan tanpa fragment.',
+  'register.audience': 'Audiens',
+  'register.audience.hint': 'Resource tujuan token client ini. Kamu hanya bisa memilih resource milikmu.',
+  'register.audience.none':
+    'Kamu belum memiliki protected resource, jadi token client ini belum untuk API mana pun. Client untuk resource tim lain didaftarkan provider.',
+  'register.publicKey': 'Public key pertama (JWK)',
+  'register.submit': 'Daftarkan',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

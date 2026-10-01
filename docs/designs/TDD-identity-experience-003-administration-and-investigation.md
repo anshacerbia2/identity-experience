@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.13.0
+  version: 1.14.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -361,6 +361,15 @@ what the sweep found, not by the Principal population, so it is not the listing
 sweep now** runs pending recovery and the dangling-mapping sweep, as the schedule does,
 and reports how many it recovered and how many it found dangling.
 
+### Application Developers
+
+The Principals page lists the application developer grants (`ADR-IAM-003 §5.3`,
+`TDD-identity-control-003` §Application Developers), newest first, each active or revoked, with who
+granted it and why. A provider grants the standing to a person by `principal_id`, with a reason,
+and revokes an active grant with a reason. The API refuses a workload, an inactive Principal and a
+second grant, and the page shows its sentence. A Principal search does not exist yet
+(`TDD-identity-control-005`), so the person is named by identifier.
+
 ### Workloads
 
 What identity-control offers for workloads comes from `TDD-identity-control-004`:
@@ -506,6 +515,8 @@ again and shows the user signed out rather than a page of errors.
 
 ### Principals
 
+- The application developer grants are listed newest first. A grant and a revocation each send
+  their reason, and a refusal shows the API's sentence.
 - Only the dangling mappings are read: no request lists the Principal population.
 - Creating a person or a workload sends an Idempotency-Key and the CSRF token. A workload
   requires its owner as a principal_id.

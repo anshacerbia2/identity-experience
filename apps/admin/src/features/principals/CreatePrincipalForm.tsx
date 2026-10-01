@@ -1,7 +1,7 @@
-import { useRef, useState, type ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { MutationError } from '@identity-experience/app-core/api';
+import { MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -16,21 +16,6 @@ interface Values {
 }
 
 const empty: Values = { username: '', email: '' };
-
-// useIdempotencyKey keeps one key per distinct request. Resubmitting the same values after an
-// outage reuses it, so the API answers with the Principal the first attempt created instead of
-// creating a second; changing a value is a new request and takes a new key, which the API would
-// otherwise refuse as a key reused for something else.
-function useIdempotencyKey(): (request: unknown) => string {
-  const last = useRef<{ digest: string; key: string } | null>(null);
-  return (request) => {
-    const digest = JSON.stringify(request);
-    if (last.current?.digest !== digest) {
-      last.current = { digest, key: crypto.randomUUID() };
-    }
-    return last.current.key;
-  };
-}
 
 function Created({
   created,

@@ -51,3 +51,17 @@ export function createRequest(values: {
 }): CreatePrincipalRequest {
   return { username: values.username.trim(), email: values.email.trim(), subject_type: 'human' };
 }
+
+// One grant of application developer standing (ADR-IAM-003 §5.3, TDD-identity-control-003
+// §Application Developers), active or revoked.
+export interface ApplicationDeveloper {
+  readonly grant_id: string;
+  readonly principal_id: string;
+  readonly granted_by: string;
+  readonly grant_reason: string;
+  readonly granted_at: string;
+  readonly revoked_at: string | null;
+  readonly revoked_by: string | null;
+  readonly revoke_reason?: string;
+  readonly active: boolean;
+}

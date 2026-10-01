@@ -9,7 +9,9 @@ import type {
   LifecycleAction,
   Owner,
   Registration,
+  RegisterRequest,
   RegistrationChange,
+  Standing,
 } from '../domain/registration';
 import { requireToken, useCsrfToken } from '../session/session';
 
@@ -27,6 +29,7 @@ export const registrationKeys = {
   owners: (registrationId: string) => ['registrations', 'owners', registrationId] as const,
   changes: (registrationId: string) => ['registrations', 'changes', registrationId] as const,
   changeQueue: ['registrations', 'change-queue'] as const,
+  standing: ['registrations', 'standing'] as const,
 };
 
 const registrationPath = (registrationId: string): `/v1/${string}` =>
@@ -182,6 +185,36 @@ export function useDecideChange(registrationId: string) {
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useStanding reads what the signed-in person may do beyond what it owns, so a console offers
+// registration only where the API would accept one.
+export function useStanding() {
+  return useQuery({
+    queryKey: registrationKeys.standing,
+    queryFn: ({ signal }) => apiGet<Standing>('/v1/registrations:standing', signal),
+  });
+}
+
+// useRegister creates a registration under an Idempotency-Key the caller holds, so the same request
+// retried after an outage creates nothing new.
+export function useRegister() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      request,
+      idempotencyKey,
+    }: {
+      readonly request: RegisterRequest;
+      readonly idempotencyKey: string;
+    }) =>
+      apiPost<Registration>('/v1/registrations', request, {
+        csrfToken: requireToken(token),
+        headers: { 'idempotency-key': idempotencyKey },
+      }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
 }

@@ -64,4 +64,18 @@
       transform: scaleX(-1);
     }
   }
+
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-md);
+    max-inline-size: 40rem;
+  }
+
+  .formActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-spacing-sm);
+  }
 }

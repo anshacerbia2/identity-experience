@@ -1,16 +1,51 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
-import { profileLabel, stateLabel, stateTone } from '@identity-experience/app-core/registrations';
+import { mayRegister } from '@identity-experience/app-core/domain/registration';
+import {
+  profileLabel,
+  stateLabel,
+  stateTone,
+  useStanding,
+} from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
-import { Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 
 import styles from './MyRegistrationsPage.module.scss';
 import { useMyRegistrations } from './registrations-api';
+
+// RegisterOffer offers registration only where the API accepts one: to an application developer,
+// outside production (TDD-identity-experience-004 §Registering a Client).
+function RegisterOffer(): ReactElement | null {
+  const standing = useStanding();
+  const navigate = useNavigate();
+  if (standing.data === undefined || !standing.data.application_developer) {
+    return null;
+  }
+  if (!mayRegister(standing.data)) {
+    return (
+      <p className={styles['quiet']}>
+        <Message id="register.unavailable.production" />
+      </p>
+    );
+  }
+  return (
+    <div className={styles['formActions']}>
+      <Button
+        icon={<Icon name="shield" />}
+        onClick={() => {
+          void navigate({ to: '/registrations/new' });
+        }}
+      >
+        <Message id="register.open" />
+      </Button>
+    </div>
+  );
+}
 
 function MyRegistrations(): ReactElement {
   const mine = useMyRegistrations();
@@ -113,7 +148,10 @@ export function MyRegistrationsPage(): ReactElement {
         </p>
       </header>
       {session.data?.authenticated === true ? (
-        <MyRegistrations />
+        <>
+          <RegisterOffer />
+          <MyRegistrations />
+        </>
       ) : session.isPending ? null : (
         <SignInRequired />
       )}
