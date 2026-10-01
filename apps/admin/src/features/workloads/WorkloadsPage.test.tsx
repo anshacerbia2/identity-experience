@@ -169,6 +169,103 @@ describe('WorkloadsPage', () => {
     expect(await screen.findByText(successor)).toBeInTheDocument();
   });
 
+  it('suspends an active workload with a reason, then offers restore and retire', async () => {
+    let state = 'active';
+    const { sent } = stubFetch((url, request) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (request.method === 'POST' && url.pathname === `/api/v1/workloads/${workloadId}:suspend`) {
+        state = 'suspended';
+        return json({ ...workload, state });
+      }
+      if (url.pathname === `/api/v1/workloads/${workloadId}`) {
+        return json({ ...workload, state });
+      }
+      return undefined;
+    });
+    const { container } = renderApp('/workloads');
+    await userEvent.type(await screen.findByRole('textbox', { name: 'principal_id' }), workloadId);
+    await userEvent.click(screen.getByRole('button', { name: 'Find' }));
+    await screen.findByRole('heading', { name: 'Nightly payroll export' });
+    expect(screen.queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Retire' })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
+    const panel = (await screen.findByRole('heading', { name: 'Suspend this workload' })).closest(
+      'section',
+    ) as HTMLElement;
+    await userEvent.type(
+      within(panel).getByRole('textbox', { name: 'Reason' }),
+      'The export moves to a new bank.',
+    );
+    await userEvent.click(within(panel).getByRole('button', { name: 'Suspend' }));
+    expect(await screen.findByText('The workload is suspended.')).toBeInTheDocument();
+
+    const [request] = posts(sent);
+    expect(request?.url.pathname).toBe(`/api/v1/workloads/${workloadId}:suspend`);
+    expect(request?.headers['x-administrative-reason']).toBe('The export moves to a new bank.');
+    expect(request?.headers['x-csrf-token']).toBe(csrfToken);
+    expect(await screen.findByRole('button', { name: 'Restore' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retire' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reassign' })).not.toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('retires a suspended workload only once its client_key is typed', async () => {
+    const { sent } = stubFetch((url, request) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (request.method === 'POST') {
+        return json({ ...workload, state: 'retired' });
+      }
+      if (url.pathname === `/api/v1/workloads/${workloadId}`) {
+        return json({ ...workload, state: 'suspended' });
+      }
+      return undefined;
+    });
+    renderApp('/workloads');
+    await userEvent.type(await screen.findByRole('textbox', { name: 'principal_id' }), workloadId);
+    await userEvent.click(screen.getByRole('button', { name: 'Find' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Retire' }));
+    const panel = (await screen.findByRole('heading', { name: 'Retire this workload' })).closest(
+      'section',
+    ) as HTMLElement;
+    await userEvent.type(
+      within(panel).getByRole('textbox', { name: 'Reason' }),
+      'The job is decommissioned.',
+    );
+    const confirm = within(panel).getByRole('textbox', { name: 'Type nightly-job to confirm' });
+    await userEvent.type(confirm, 'nightly');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Retire' }));
+    expect(await within(panel).findByText('Type the client key exactly as shown.')).toBeInTheDocument();
+    expect(posts(sent)).toHaveLength(0);
+
+    await userEvent.type(confirm, '-job');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Retire' }));
+    expect(await screen.findByText('The workload is retired.')).toBeInTheDocument();
+    expect(posts(sent)[0]?.url.pathname).toBe(`/api/v1/workloads/${workloadId}:retire`);
+  });
+
+  it('offers no lifecycle action for a retired workload', async () => {
+    stubFetch((url) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (url.pathname === `/api/v1/workloads/${workloadId}`) {
+        return json({ ...workload, state: 'retired' });
+      }
+      return undefined;
+    });
+    renderApp('/workloads');
+    await userEvent.type(await screen.findByRole('textbox', { name: 'principal_id' }), workloadId);
+    await userEvent.click(screen.getByRole('button', { name: 'Find' }));
+    await screen.findByRole('heading', { name: 'Nightly payroll export' });
+    expect(screen.queryByRole('heading', { name: 'Lifecycle' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Suspend' })).not.toBeInTheDocument();
+  });
+
   it('says why a lookup found nothing', async () => {
     api();
     renderApp('/workloads');

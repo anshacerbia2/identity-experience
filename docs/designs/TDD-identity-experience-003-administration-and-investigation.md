@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.8.0
+  version: 1.9.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -251,8 +251,8 @@ behind the operator's back. The page never offers an action the API would refuse
 reversible and a retirement is not, so a retirement is offered only after a suspension,
 except for a resource, which holds no credential and is never suspended. It asks for the
 `client_key` typed out, as retiring a Principal asks for its identifier: a click cannot
-delete a client. A workload's client is stopped through its workload, and the page offers
-it nothing. A resource that other registrations name in their audience is refused by the
+delete a client. A workload's client is stopped through its workload, from the Workloads
+page (§Workloads), and the registration page offers it nothing. A resource that other registrations name in their audience is refused by the
 API, and the refusal names them, which the page shows as the API's sentence. Apply is not
 offered on a suspended registration, because the API refuses it there: the restore is what
 writes its registered state back.
@@ -312,6 +312,9 @@ What identity-control offers for workloads comes from `TDD-identity-control-004`
 POST  /api/v1/workloads                              Idempotency-Key
 GET   /api/v1/workloads/{principal_id}
 POST  /api/v1/workloads/{principal_id}:reassign      X-Administrative-Reason
+POST  /api/v1/workloads/{principal_id}:suspend       X-Administrative-Reason
+POST  /api/v1/workloads/{principal_id}:restore       X-Administrative-Reason
+POST  /api/v1/workloads/{principal_id}:retire        X-Administrative-Reason
 ```
 
 **Creating a workload.** Creation takes a name, a purpose, the type (service, job or connector),
@@ -333,6 +336,22 @@ owner, team, when its owner was recorded, and when it was created. An active or 
 can be reassigned to a new owner with a reason, sent as `X-Administrative-Reason`. The console
 refuses the current owner before sending; whether the new owner is an active person is
 identity-control's to decide, and its refusal is shown attributed to it.
+
+**Suspending, restoring and retiring a workload.** A workload stops through its own page, never its
+registration's: its client and its Principal stop together (`TDD-identity-control-004`
+§Suspension, Restoration, and Retirement). The page offers exactly what the API accepts for the
+workload's state:
+
+| State | Offered | Collected, and the effect stated |
+| :-- | :-- | :-- |
+| `active`, `orphaned` | Suspend | a reason; the client is disabled, the next token exchange fails, and a token already issued expires within nine minutes |
+| `suspended` | Restore | a reason; the owner must still be an active person, and the registered keys are written back before the client is enabled |
+| `suspended` | Retire | a reason and the `client_key` typed to confirm; the client is deleted and the Principal retired, and neither can be undone |
+| `pending`, `retired` | nothing | — |
+
+A retirement is offered only after a suspension, as for a registration. A restore refused because
+the owner has left is shown with the API's sentence, which says to reassign first; the console does
+not reassign on the operator's behalf. After any action the workload is read again.
 
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the
@@ -400,6 +419,10 @@ again and shows the user signed out rather than a page of errors.
 - Each lifecycle action requires a reason and sends it as `X-Administrative-Reason` with the
   CSRF token; a retirement also requires the `client_key` typed exactly.
 - Apply is not offered for a finding of a suspended registration.
+- A workload offers suspend when active or orphaned, restore and retire when suspended, and nothing
+  when pending or retired. Each action sends the reason as `X-Administrative-Reason` with the CSRF
+  token; a retirement also requires the `client_key` typed exactly. The workload is read again
+  after the action.
 - The drift summary counts unmanaged clients, and an unmanaged finding is counted beside no
   registration.
 - Each open unmanaged finding is listed with its `clientId`, whether it is enabled, the Keycloak

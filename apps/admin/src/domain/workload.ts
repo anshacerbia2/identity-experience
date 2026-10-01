@@ -57,6 +57,24 @@ export interface ReassignRequest {
   readonly owner_principal_id: string;
 }
 
+// The workload lifecycle (TDD-identity-control-004 §Suspension, Restoration, and Retirement): a
+// workload is suspended, then restored or retired. A retirement comes only after a suspension.
+export type WorkloadAction = 'suspend' | 'restore' | 'retire';
+
+// workloadActions are the actions the API accepts for the workload as it stands, and so the only ones
+// the console offers.
+export function workloadActions(workload: Pick<Workload, 'state'>): readonly WorkloadAction[] {
+  switch (workload.state) {
+    case 'active':
+    case 'orphaned':
+      return ['suspend'];
+    case 'suspended':
+      return ['restore', 'retire'];
+    default:
+      return [];
+  }
+}
+
 // The members that carry private material: RSA's private exponent and CRT values, the other-primes
 // list, and a symmetric key's value. identity-control and its database refuse the same list.
 const privateMembers = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth', 'k'] as const;

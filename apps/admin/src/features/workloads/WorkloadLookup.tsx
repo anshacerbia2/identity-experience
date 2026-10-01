@@ -11,6 +11,7 @@ import { Message, useMessage } from '@/core/i18n/Message';
 import { isPrincipalId } from '@/domain/principal';
 import type { Workload, WorkloadState } from '@/domain/workload';
 
+import { WorkloadActions } from './WorkloadActions';
 import { useReassign, useWorkload } from './workloads-api';
 import styles from './WorkloadsPage.module.scss';
 
@@ -163,6 +164,7 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
             </Button>
           </div>
         ) : null}
+        <WorkloadActions workload={workload} />
       </Panel.Body>
       {reassigning ? (
         <ReassignForm
@@ -180,7 +182,8 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
   );
 }
 
-// WorkloadLookup finds one workload by its principal_id and moves it to a new owner. There is no list
+// WorkloadLookup finds one workload by its principal_id, moves it to a new owner, and suspends,
+// restores or retires it. There is no list
 // of every workload: a directory of machine credentials is what an attacker reads first, and the
 // Identity Control API offers none.
 export function WorkloadLookup(): ReactElement {
