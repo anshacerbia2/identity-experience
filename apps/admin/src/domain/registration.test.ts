@@ -6,6 +6,7 @@ import {
   needsOperator,
   openFindingsByRegistration,
   unmanagedClients,
+  unmanagedEnabled,
   type Finding,
   type Registration,
 } from './registration';
@@ -65,6 +66,14 @@ describe('registration read model', () => {
     ).toBe(1);
     expect(unmanagedClients(null)).toBe(0);
     expect(needsOperator(unmanaged)).toBe(false);
+  });
+
+  it('reads whether an unmanaged client was enabled from what its finding observed', () => {
+    const unmanaged = finding({ registration_id: null, finding_class: 'unmanaged' });
+    expect(unmanagedEnabled({ ...unmanaged, observed: { client_id: 'stray', enabled: false } })).toBe(false);
+    expect(unmanagedEnabled({ ...unmanaged, observed: { client_id: 'stray', enabled: true } })).toBe(true);
+    expect(unmanagedEnabled({ ...unmanaged, observed: { client_id: 'stray' } })).toBeNull();
+    expect(unmanagedEnabled({ ...unmanaged, observed: null })).toBeNull();
   });
 
   it('offers the lifecycle actions the API accepts for the registration as it stands', () => {

@@ -145,6 +145,20 @@ export const en = {
   'findings.field.suspension': 'Suspension',
   'drift.unmanaged':
     '{count, plural, one {# Keycloak client no registration describes} other {# Keycloak clients no registration describes}}',
+  'unmanaged.title': 'Unmanaged clients',
+  'unmanaged.description':
+    'Keycloak clients no registration describes. Each is a security finding until it is adopted or deleted.',
+  'unmanaged.caption': 'Keycloak clients no registration describes',
+  'unmanaged.column.enabled': 'Enabled',
+  'unmanaged.column.changed': 'Last changed',
+  'unmanaged.enabled.yes': 'Enabled',
+  'unmanaged.enabled.no': 'Disabled',
+  'unmanaged.enabled.unknown': 'Not recorded',
+  'unmanaged.changed.unknown': 'No admin event',
+  'unmanaged.adopt':
+    'To keep a client, adopt it through the Identity Control API: {route}, sent first with dry_run to read what it would change.',
+  'unmanaged.delete':
+    'If nothing depends on it, delete it in the Admin Console. The next sweep clears it from this list.',
 
   'lifecycle.title': 'Lifecycle',
   'lifecycle.description':
@@ -476,6 +490,20 @@ export const id: Messages = {
   'findings.field.client_keys': 'Kunci client',
   'findings.field.suspension': 'Penangguhan',
   'drift.unmanaged': '{count, plural, other {# client Keycloak tanpa registrasi}}',
+  'unmanaged.title': 'Client tanpa registrasi',
+  'unmanaged.description':
+    'Client Keycloak yang tidak dijelaskan registrasi mana pun. Masing-masing temuan keamanan sampai diadopsi atau dihapus.',
+  'unmanaged.caption': 'Client Keycloak tanpa registrasi',
+  'unmanaged.column.enabled': 'Aktif',
+  'unmanaged.column.changed': 'Terakhir diubah',
+  'unmanaged.enabled.yes': 'Aktif',
+  'unmanaged.enabled.no': 'Nonaktif',
+  'unmanaged.enabled.unknown': 'Tidak tercatat',
+  'unmanaged.changed.unknown': 'Tidak ada admin event',
+  'unmanaged.adopt':
+    'Untuk mempertahankan client, adopsi lewat Identity Control API: {route}, kirim dulu dengan dry_run untuk membaca apa yang akan diubah.',
+  'unmanaged.delete':
+    'Jika tidak ada yang bergantung padanya, hapus di Admin Console. Sweep berikutnya menghapusnya dari daftar ini.',
 
   'lifecycle.title': 'Siklus hidup',
   'lifecycle.description':
