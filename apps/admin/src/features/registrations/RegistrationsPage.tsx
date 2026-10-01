@@ -19,6 +19,7 @@ import { DriftSummary } from './DriftSummary';
 import { profileLabel, stateLabel, stateTone } from './labels';
 import { useDriftStatus, useRegistrationPages } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
+import { UnmanagedClients } from './UnmanagedClients';
 
 function StateFilter({ current }: { readonly current: RegistrationState | undefined }): ReactElement {
   const options: readonly (RegistrationState | undefined)[] = [undefined, ...registrationStates];
@@ -174,9 +175,9 @@ function RegistrationTable({ state }: { readonly state: RegistrationState | unde
   );
 }
 
-// RegistrationsPage lists the realm's protocol clients beside the reconciler's view of them. It
-// reads only; the actions an operator takes on drift arrive with the next change
-// (TDD-identity-experience-003 §Registration Drift Oversight).
+// RegistrationsPage lists the realm's protocol clients beside the reconciler's view of them, and the
+// Keycloak clients no registration describes. An operator acts on one registration from its own
+// page (TDD-identity-experience-003 §Registration Drift Oversight).
 export function RegistrationsPage({
   state,
 }: {
@@ -199,6 +200,7 @@ export function RegistrationsPage({
       {session.data?.authenticated === true ? (
         <>
           <DriftSummary />
+          <UnmanagedClients />
           <StateFilter current={state} />
           <RegistrationTable state={state} />
         </>

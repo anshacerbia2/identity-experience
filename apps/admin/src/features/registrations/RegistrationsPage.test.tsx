@@ -113,6 +113,64 @@ describe('RegistrationsPage', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('lists each open unmanaged client, with whom to ask, and offers no action on it', async () => {
+    const disabled: Finding = {
+      finding_id: 'f-disabled',
+      registration_id: null,
+      client_key: 'old-script',
+      finding_class: 'unmanaged',
+      desired: null,
+      observed: { client_id: 'old-script', enabled: false },
+      changed_at: null,
+      detected_at: '2026-09-29T09:00:30Z',
+      converged_at: null,
+    };
+    const stray: Finding = {
+      ...disabled,
+      finding_id: 'f-stray',
+      client_key: 'console-made',
+      observed: { client_id: 'console-made', enabled: true },
+      actor: 'kc-user-7',
+      changed_at: '2026-09-29T08:59:00Z',
+    };
+    const gone: Finding = {
+      ...stray,
+      finding_id: 'f-gone',
+      client_key: 'adopted',
+      converged_at: '2026-09-29T09:05:00Z',
+    };
+    const { requests } = api({
+      drift: json({ ...drift, findings: [openFinding, stray, disabled, gone] }),
+    });
+    const { container } = renderApp('/registrations');
+
+    const section = await screen.findByRole('region', { name: 'Unmanaged clients' });
+    const table = within(section).getByRole('table', { name: 'Keycloak clients no registration describes' });
+    const rows = within(table).getAllByRole('row');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[1] as HTMLElement).getByText('console-made')).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText('Enabled')).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText('kc-user-7')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText('old-script')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText('Disabled')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText('Unknown')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText('No admin event')).toBeInTheDocument();
+    expect(within(section).queryByText('adopted')).not.toBeInTheDocument();
+
+    expect(within(section).getByText(/POST \/v1\/registrations:adopt/)).toBeInTheDocument();
+    expect(within(section).queryByRole('button')).not.toBeInTheDocument();
+    expect(requests.some((url) => url.pathname.includes(':adopt'))).toBe(false);
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('shows no unmanaged section while none is open', async () => {
+    api();
+    renderApp('/registrations');
+    await screen.findByRole('table', { name: 'Registered clients' });
+    expect(screen.queryByRole('region', { name: 'Unmanaged clients' })).not.toBeInTheDocument();
+  });
+
   it('asks for sign-in and reads nothing from the API without a session', async () => {
     const { requests } = api({ session: { authenticated: false } });
     renderApp('/registrations');

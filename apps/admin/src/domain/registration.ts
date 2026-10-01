@@ -123,11 +123,26 @@ export function openFindingsByRegistration(findings: readonly Finding[] | null):
   return counts;
 }
 
-// unmanagedClients counts the open findings for Keycloak clients no registration describes, which an
+// unmanagedFindings are the open findings for Keycloak clients no registration describes, which an
 // operator adopts or deletes.
+export const unmanagedFindings = (findings: readonly Finding[] | null): readonly Finding[] =>
+  (findings ?? []).filter(
+    (finding) => finding.converged_at === null && finding.finding_class === 'unmanaged',
+  );
+
 export const unmanagedClients = (findings: readonly Finding[] | null): number =>
-  (findings ?? []).filter((finding) => finding.converged_at === null && finding.finding_class === 'unmanaged')
-    .length;
+  unmanagedFindings(findings).length;
+
+// unmanagedEnabled is whether the reconciler last saw an unmanaged client enabled, from what its
+// finding observed; null when the finding does not say.
+export function unmanagedEnabled(finding: Finding): boolean | null {
+  const observed = finding.observed;
+  if (typeof observed === 'object' && observed !== null && 'enabled' in observed) {
+    const enabled = (observed as { readonly enabled: unknown }).enabled;
+    return typeof enabled === 'boolean' ? enabled : null;
+  }
+  return null;
+}
 
 // The lifecycle (ADR-IAM-001 §5.13, TDD-identity-control-003 §Suspension, Restoration, and
 // Retirement). A registration is suspended, then restored or retired; a resource, which holds no

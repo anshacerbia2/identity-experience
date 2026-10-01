@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.7.0
+  version: 1.8.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-09-30
+  last_reviewed: 2026-10-01
   parent_sad: SAD-002
 ---
 
@@ -200,6 +200,27 @@ describes (`unmanaged`), which an operator adopts or deletes; such a finding nam
 registration, so it is counted beside no client. Every outcome is a word and a glyph,
 never a colour alone.
 
+**Unmanaged clients.** Below the summary, the page lists each open `unmanaged` finding: the
+client's `clientId`, whether it is still enabled, the Keycloak user its latest admin event
+names, when that event happened, and when the reconciler first found it. A count tells an
+operator that something is wrong; the list tells them which client, and whom to ask. The
+section is shown only while one is open. It names the two ways out and offers neither:
+
+- **Adopt it**, through `POST /v1/registrations:adopt` on the Identity Control API, sent
+  first with `dry_run` to read what the adoption would converge (`TDD-identity-control-003`).
+- **Delete it** in the Admin Console, when nothing depends on it.
+
+Either one converges the finding on the next sweep, and the list drops it then.
+
+**Adoption has no screen, by decision.** An adoption states the registration's profile,
+audience class, application authority and reference, and which repairable differences it
+converges, and its dry run answers with a diff an operator reads before committing. It is
+rare: the bootstrap clients an estate had before identity-control, once each
+(`ADR-IAM-001 §5.12`). A form for it would collect every field the API already validates and
+add a second path to an operation that runs a handful of times per estate. Deleting is the
+Admin Console's, because a client no registration describes has no registration to retire.
+The list stays read-only.
+
 **One registration.** A registration's page shows it as desired state records it,
 and every finding for it, newest first. Findings that have converged are included,
 because a repaired console change is the evidence it happened. A converged finding
@@ -381,6 +402,11 @@ again and shows the user signed out rather than a page of errors.
 - Apply is not offered for a finding of a suspended registration.
 - The drift summary counts unmanaged clients, and an unmanaged finding is counted beside no
   registration.
+- Each open unmanaged finding is listed with its `clientId`, whether it is enabled, the Keycloak
+  user its admin event names (or "Unknown"), and its times; a converged one is not listed, and
+  the section is absent while none is open.
+- The unmanaged list offers no adoption and no deletion: it names the adoption route and the
+  Admin Console, and sends nothing.
 - The `client_keys` and `suspension` field classes and the `unmanaged` finding class are shown
   as words.
 
