@@ -29,6 +29,8 @@ export const en = {
   'mine.empty.title': 'You own no registration yet',
   'mine.empty.body':
     'A provider names the owners of each registration, with a reason, and a production registration has at least two. Ask the platform team to add you to the registrations you are accountable for.',
+
+  'registration.back': 'My registrations',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -55,6 +57,8 @@ export const id: Messages = {
   'mine.empty.title': 'Kamu belum memiliki registrasi',
   'mine.empty.body':
     'Provider menetapkan owner tiap registrasi, dengan alasan, dan registrasi production punya minimal dua. Minta tim platform menambahkanmu ke registrasi yang jadi tanggung jawabmu.',
+
+  'registration.back': 'Registrasi saya',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

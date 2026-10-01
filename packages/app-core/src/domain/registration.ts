@@ -249,3 +249,22 @@ export const lastAccepted = (keys: readonly ClientKey[], keyId: string): boolean
 export function hoursLeft(until: string, now: number): number {
   return Math.max(0, Math.floor((Date.parse(until) - now) / 3_600_000));
 }
+
+// An ownership of a registration (ADR-IAM-003, TDD-identity-control-003 §Registration Ownership).
+// The API returns revoked ownerships too, as the record of who held it; active is whether this one
+// confers anything now: not revoked, and its Principal still an active person.
+export interface Owner {
+  readonly ownership_id: string;
+  readonly registration_id: string;
+  readonly principal_id: string;
+  readonly granted_by: string;
+  readonly grant_reason: string;
+  readonly granted_at: string;
+  readonly revoked_at: string | null;
+  readonly revoked_by: string | null;
+  readonly revoke_reason?: string;
+  readonly active: boolean;
+}
+
+export const activeOwners = (owners: readonly Owner[]): readonly Owner[] =>
+  owners.filter((owner) => owner.active);

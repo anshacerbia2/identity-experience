@@ -53,8 +53,6 @@ export const en = {
   'registrations.column.lifespan': 'Token lifetime',
   'registrations.column.findings': 'Open findings',
   'registrations.column.created': 'Registered',
-  'registrations.lifespan': '{seconds, number} s',
-  'registrations.lifespan.none': 'Not issued',
   'registrations.findings.none': 'None',
   'registrations.findings.count': '{count, number} open',
   'registrations.empty': 'No registration matches this filter.',
@@ -73,21 +71,6 @@ export const en = {
   'drift.needsOperator': '{count, plural, one {# needs an operator} other {# need an operator}}',
 
   'registration.back': 'All registrations',
-  'registration.details': 'Registration',
-  'registration.field.id': 'Registration ID',
-  'registration.field.realm': 'Realm',
-  'registration.field.profile': 'Profile',
-  'registration.field.audienceClass': 'Audience class',
-  'registration.field.application': 'Application reference',
-  'registration.field.algorithm': 'Signing algorithm',
-  'registration.field.lifetimeClass': 'Lifetime class',
-  'registration.field.audience': 'Audience',
-  'registration.field.redirects': 'Redirect URIs',
-  'registration.field.lifespan': 'Token lifetime',
-  'registration.field.registeredBy': 'Registered by',
-  'registration.field.created': 'Registered',
-  'registration.field.version': 'Version',
-  'registration.none': 'None',
 
   'findings.title': 'Findings',
   'findings.description':
@@ -147,59 +130,6 @@ export const en = {
   'expiring.daysLeft': '{days, plural, =0 {today} one {in # day} other {in # days}}',
   'expiring.remedy':
     'The remedy is the client rotating to a new key it generates; this page reads only. Once a successor is registered, the client leaves this list.',
-  'keys.title': 'Client keys',
-  'keys.description':
-    'The public keys this client authenticates with. The team keeps the private key; this console never sees or generates one.',
-  'keys.caption': 'Registered keys',
-  'keys.empty': 'This client holds no key.',
-  'keys.column.kid': 'Key ID',
-  'keys.column.state': 'State',
-  'keys.column.thumbprint': 'Thumbprint',
-  'keys.column.registered': 'Registered',
-  'keys.column.expires': 'Expires',
-  'keys.state.active': 'Active',
-  'keys.state.retiring': 'Retiring',
-  'keys.state.revoked': 'Revoked',
-  'keys.retiringLeft':
-    '{hours, plural, =0 {removed within the hour} one {removed in # hour} other {removed in # hours}}',
-  'keys.rotate.open': 'Rotate to a new key',
-  'keys.rotate.title': "Rotate this client's key",
-  'keys.rotate.body':
-    'Paste the next public key the team generated. It becomes active, and the current key keeps working until the overlap ends, so the client can switch without an outage.',
-  'keys.rotate.field': 'Next public key (JWK)',
-  'keys.rotate': 'Rotate',
-  'keys.revoke.open': 'Revoke {kid}',
-  'keys.revoke.title': 'Revoke key {kid}',
-  'keys.revoke.body': 'The key is refused from the next request. Use this for a key that has leaked.',
-  'keys.revoke.last':
-    "This is the client's last accepted key: once it is revoked, the client stops authenticating until a new key is registered.",
-  'keys.revoke': 'Revoke',
-  'keys.done.rotated': 'The new key is active; the previous one is retiring.',
-  'keys.done.unchanged': 'That key was already the active one; nothing changed.',
-  'keys.done.revoked': 'The key is revoked.',
-
-  'lifecycle.title': 'Lifecycle',
-  'lifecycle.description':
-    'A suspension stops the client and ends its sessions, and can be restored. A retirement deletes the client and cannot be undone.',
-  'lifecycle.suspend': 'Suspend',
-  'lifecycle.restore': 'Restore',
-  'lifecycle.retire': 'Retire',
-  'lifecycle.suspend.title': 'Suspend this client',
-  'lifecycle.suspend.body':
-    'The client stops getting tokens, and its sessions end. A restore brings it back, and its users sign in again.',
-  'lifecycle.restore.title': 'Restore this client',
-  'lifecycle.restore.body':
-    'The registered redirect URIs and keys are written back first, then the client is enabled. Its users sign in again.',
-  'lifecycle.retire.title': 'Retire this client',
-  'lifecycle.retire.body':
-    'The client is deleted from the identity kernel and cannot be restored. The registration stays as the record, and its client key can be registered again.',
-  'lifecycle.retire.confirm.label': 'Type {clientKey} to confirm',
-  'lifecycle.retire.confirm.mismatch': 'Type the client key exactly as shown.',
-  'lifecycle.done.suspend': 'The client is suspended.',
-  'lifecycle.done.restore': 'The client is restored.',
-  'lifecycle.done.retire': 'The client is retired.',
-
-  'form.cancel': 'Cancel',
 
   'drift.runNow': 'Run a sweep now',
   'drift.deferred': 'Another sweep is already running. Its result shows here when it finishes.',
@@ -317,14 +247,6 @@ export const en = {
   'workloads.create.publicKey': 'Public key (JWK)',
   'workloads.create.publicKey.hint':
     "The public half of the key pair the workload's team generated, as a JWK: RSA, at least 3072 bits.",
-  'workloads.key.empty': 'Paste the public key.',
-  'workloads.key.notJson': 'This is not a JWK: paste one JSON object.',
-  'workloads.key.private':
-    'This is a private key, and it was not sent. Copying it has exposed it: generate a new key pair and paste only its public key.',
-  'workloads.key.notRsa': 'The key must be RSA.',
-  'workloads.key.members':
-    'A public JWK carries kty, n and e, and optionally kid, use and alg, and nothing else.',
-  'workloads.key.algorithm': 'The key must be for signatures with PS256.',
   'workloads.create.submit': 'Create workload',
   'workloads.created.title': 'Workload created',
   'workloads.created.body':
@@ -416,8 +338,6 @@ export const id: Messages = {
   'registrations.column.lifespan': 'Umur token',
   'registrations.column.findings': 'Temuan terbuka',
   'registrations.column.created': 'Didaftarkan',
-  'registrations.lifespan': '{seconds, number} dtk',
-  'registrations.lifespan.none': 'Tidak diterbitkan',
   'registrations.findings.none': 'Tidak ada',
   'registrations.findings.count': '{count, number} terbuka',
   'registrations.empty': 'Tidak ada registrasi yang cocok dengan saringan ini.',
@@ -436,21 +356,6 @@ export const id: Messages = {
   'drift.needsOperator': '{count, plural, other {# perlu tindakan operator}}',
 
   'registration.back': 'Semua registrasi',
-  'registration.details': 'Registrasi',
-  'registration.field.id': 'ID registrasi',
-  'registration.field.realm': 'Realm',
-  'registration.field.profile': 'Profil',
-  'registration.field.audienceClass': 'Kelas audiens',
-  'registration.field.application': 'Referensi aplikasi',
-  'registration.field.algorithm': 'Algoritma tanda tangan',
-  'registration.field.lifetimeClass': 'Kelas umur',
-  'registration.field.audience': 'Audiens',
-  'registration.field.redirects': 'Redirect URI',
-  'registration.field.lifespan': 'Umur token',
-  'registration.field.registeredBy': 'Didaftarkan oleh',
-  'registration.field.created': 'Didaftarkan',
-  'registration.field.version': 'Versi',
-  'registration.none': 'Tidak ada',
 
   'findings.title': 'Temuan',
   'findings.description':
@@ -509,58 +414,6 @@ export const id: Messages = {
   'expiring.daysLeft': '{days, plural, =0 {hari ini} other {dalam # hari}}',
   'expiring.remedy':
     'Solusinya: client merotasi ke kunci baru yang dibuatnya sendiri; halaman ini hanya membaca. Setelah pengganti terdaftar, client hilang dari daftar ini.',
-  'keys.title': 'Kunci client',
-  'keys.description':
-    'Public key yang dipakai client ini untuk autentikasi. Tim menyimpan private key-nya; console ini tidak pernah melihat atau membuatnya.',
-  'keys.caption': 'Kunci terdaftar',
-  'keys.empty': 'Client ini tidak punya kunci.',
-  'keys.column.kid': 'ID kunci',
-  'keys.column.state': 'Status',
-  'keys.column.thumbprint': 'Thumbprint',
-  'keys.column.registered': 'Didaftarkan',
-  'keys.column.expires': 'Kedaluwarsa',
-  'keys.state.active': 'Aktif',
-  'keys.state.retiring': 'Akan pensiun',
-  'keys.state.revoked': 'Dicabut',
-  'keys.retiringLeft': '{hours, plural, =0 {dihapus dalam satu jam ini} other {dihapus dalam # jam}}',
-  'keys.rotate.open': 'Rotasi ke kunci baru',
-  'keys.rotate.title': 'Rotasi kunci client ini',
-  'keys.rotate.body':
-    'Tempel public key berikutnya yang dibuat tim. Kunci itu jadi aktif, dan kunci sekarang tetap berlaku sampai overlap selesai, jadi client bisa pindah tanpa gangguan.',
-  'keys.rotate.field': 'Public key berikutnya (JWK)',
-  'keys.rotate': 'Rotasi',
-  'keys.revoke.open': 'Cabut {kid}',
-  'keys.revoke.title': 'Cabut kunci {kid}',
-  'keys.revoke.body': 'Kunci ditolak mulai request berikutnya. Gunakan untuk kunci yang bocor.',
-  'keys.revoke.last':
-    'Ini kunci terakhir yang diterima: setelah dicabut, client tidak bisa autentikasi sampai kunci baru didaftarkan.',
-  'keys.revoke': 'Cabut',
-  'keys.done.rotated': 'Kunci baru aktif; kunci sebelumnya sedang pensiun.',
-  'keys.done.unchanged': 'Kunci itu sudah yang aktif; tidak ada yang berubah.',
-  'keys.done.revoked': 'Kunci sudah dicabut.',
-
-  'lifecycle.title': 'Siklus hidup',
-  'lifecycle.description':
-    'Penangguhan menghentikan client dan mengakhiri sesinya, dan bisa dipulihkan. Pensiun menghapus client dan tidak bisa dibatalkan.',
-  'lifecycle.suspend': 'Tangguhkan',
-  'lifecycle.restore': 'Pulihkan',
-  'lifecycle.retire': 'Pensiunkan',
-  'lifecycle.suspend.title': 'Tangguhkan client ini',
-  'lifecycle.suspend.body':
-    'Client berhenti mendapat token, dan sesinya berakhir. Pemulihan mengembalikannya, dan penggunanya masuk lagi.',
-  'lifecycle.restore.title': 'Pulihkan client ini',
-  'lifecycle.restore.body':
-    'Redirect URI dan kunci yang terdaftar ditulis ulang dulu, lalu client diaktifkan. Penggunanya masuk lagi.',
-  'lifecycle.retire.title': 'Pensiunkan client ini',
-  'lifecycle.retire.body':
-    'Client dihapus dari identity kernel dan tidak bisa dipulihkan. Registrasinya tetap ada sebagai catatan, dan client key-nya bisa didaftarkan lagi.',
-  'lifecycle.retire.confirm.label': 'Ketik {clientKey} untuk konfirmasi',
-  'lifecycle.retire.confirm.mismatch': 'Ketik client key persis seperti yang ditampilkan.',
-  'lifecycle.done.suspend': 'Client sudah ditangguhkan.',
-  'lifecycle.done.restore': 'Client sudah dipulihkan.',
-  'lifecycle.done.retire': 'Client sudah dipensiunkan.',
-
-  'form.cancel': 'Batal',
 
   'drift.runNow': 'Jalankan pembanding sekarang',
   'drift.deferred': 'Pembanding lain sedang berjalan. Hasilnya muncul di sini setelah selesai.',
@@ -678,13 +531,6 @@ export const id: Messages = {
   'workloads.create.publicKey': 'Public key (JWK)',
   'workloads.create.publicKey.hint':
     'Bagian public dari pasangan key yang dibuat tim workload, dalam format JWK: RSA, minimal 3072 bit.',
-  'workloads.key.empty': 'Tempel public key-nya.',
-  'workloads.key.notJson': 'Ini bukan JWK: tempel satu objek JSON.',
-  'workloads.key.private':
-    'Ini private key, dan tidak dikirim. Karena sudah disalin, key ini dianggap bocor: buat pasangan key baru dan tempel public key-nya saja.',
-  'workloads.key.notRsa': 'Key harus RSA.',
-  'workloads.key.members': 'JWK public hanya berisi kty, n, dan e, plus kid, use, dan alg kalau ada.',
-  'workloads.key.algorithm': 'Key harus untuk tanda tangan dengan PS256.',
   'workloads.create.submit': 'Buat workload',
   'workloads.created.title': 'Workload dibuat',
   'workloads.created.body':

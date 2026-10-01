@@ -2,18 +2,6 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormattedDate } from 'react-intl';
 
-import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
-import { readPublicKey } from '@identity-experience/app-core/domain/public-key';
-import {
-  hoursLeft,
-  keyed,
-  lastAccepted,
-  rotationOffered,
-  type ClientKey,
-  type KeyState,
-  type Registration,
-} from '@identity-experience/app-core/domain/registration';
-import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import {
   Button,
   Icon,
@@ -24,10 +12,22 @@ import {
   type StatusTone,
 } from '@identity-experience/ui';
 
-import { Message, useMessage } from '@/core/i18n/Message';
-
-import { useKeys, useRevokeKey, useRotateKey } from './registrations-api';
-import styles from './RegistrationsPage.module.scss';
+import { useKeys, useRevokeKey, useRotateKey } from './registration-api';
+import styles from './Registration.module.scss';
+import { ApiErrorPanel } from '../api/ApiErrorPanel';
+import { MutationError } from '../api/MutationError';
+import { readPublicKey } from '../domain/public-key';
+import {
+  hoursLeft,
+  keyed,
+  lastAccepted,
+  rotationOffered,
+  type ClientKey,
+  type KeyState,
+  type Registration,
+} from '../domain/registration';
+import { ReasonField, reasonRules } from '../forms/ReasonField';
+import { CoreMessage as Message, useCoreMessage } from '../i18n/CoreMessage';
 
 const tones: Readonly<Record<KeyState, StatusTone>> = {
   active: 'success',
@@ -75,7 +75,7 @@ function RotateForm({
   readonly onDone: (outcome: 'rotated' | 'unchanged') => void;
   readonly onCancel: () => void;
 }): ReactElement {
-  const t = useMessage();
+  const t = useCoreMessage();
   const rotate = useRotateKey(registration.registration_id);
   const form = useForm<{ publicKey: string }>({ defaultValues: { publicKey: '' } });
   const submit = form.handleSubmit((values) => {
@@ -107,11 +107,11 @@ function RotateForm({
           {...form.register('publicKey', {
             validate: (value) => {
               const read = readPublicKey(value);
-              return 'key' in read || t(`workloads.key.${read.problem}`);
+              return 'key' in read || t(`publicKey.problem.${read.problem}`);
             },
           })}
           label={<Message id="keys.rotate.field" />}
-          hint={<Message id="workloads.create.publicKey.hint" />}
+          hint={<Message id="keys.rotate.hint" />}
           error={form.formState.errors.publicKey?.message}
           spellCheck={false}
           required
@@ -177,9 +177,10 @@ function RevokeForm({
   );
 }
 
-// ClientKeys lists a keyed registration's keys and offers rotation and revocation on behalf of the
-// team that holds the private key (TDD-identity-experience-003 §Registration Drift Oversight). It is
-// the operator's path while the Developer Console has no authority model of its own.
+// ClientKeys lists a keyed registration's keys and offers rotation and revocation. An owner uses it in
+// the Developer Console for its own client (TDD-identity-experience-004 §Rotation, ADR-IAM-003), and
+// a provider in the Admin Portal for a registration whose owners cannot act
+// (TDD-identity-experience-003 §Registration Drift Oversight).
 export function ClientKeys({ registration }: { readonly registration: Registration }): ReactElement | null {
   const isKeyed = keyed(registration);
   const keys = useKeys(registration.registration_id, isKeyed);
@@ -231,7 +232,7 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
                   <Message id="keys.column.expires" />
                 </Table.HeaderCell>
                 <Table.HeaderCell>
-                  <Message id="findings.column.action" />
+                  <Message id="keys.column.action" />
                 </Table.HeaderCell>
               </Table.Row>
             </Table.Head>

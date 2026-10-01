@@ -40,4 +40,28 @@
     font-size: var(--ds-font-size-sm);
     color: var(--ds-color-neutral-text-subtle-default);
   }
+
+  .clientLink {
+    color: var(--ds-color-primary-text-default-default);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 3px;
+
+    &:hover {
+      text-decoration-color: currentcolor;
+    }
+  }
+
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+    font-size: var(--ds-font-size-sm);
+    color: var(--ds-color-neutral-text-subtle-default);
+
+    // The arrow points back: the shared glyph points forward.
+    & > svg {
+      transform: scaleX(-1);
+    }
+  }
 }

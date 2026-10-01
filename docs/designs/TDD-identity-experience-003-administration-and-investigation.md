@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.11.0
+  version: 1.12.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -255,9 +255,11 @@ behaving as that design's `ClientKeyPanel` does, on behalf of the team that hold
   key is the client's last accepted one, the form says the client stops authenticating until a new
   key is registered: a leaked key is contained that way, on purpose.
 
-This is the operator's path while the Developer Console has no authority model of its own: every
-Identity Control route requires provider scope, so only a provider can rotate a client's key. The
-team sends its public key, and the operator registers it.
+A registration's owners rotate and revoke its keys themselves, in the Developer Console
+(`ADR-IAM-003`, `TDD-identity-experience-004` §Ownership). This page is the provider's path for a
+registration whose owners cannot act. Both are the same panel, with the record and the lifecycle
+controls, from `packages/app-core`, so the two applications cannot drift apart in what a key
+command checks before it is sent.
 
 **Drift exceptions.** The same page lists the registration's drift exceptions, newest
 first. Each row shows the field class, the Keycloak user it names, the reason, the

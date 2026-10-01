@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useState, type ReactElement, type ReactNode } from 'react';
+import { useState, type ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
@@ -8,122 +8,23 @@ import {
   findingAttention,
   needsOperator,
   type Finding,
-  type Registration,
 } from '@identity-experience/app-core/domain/registration';
+import {
+  ClientKeys,
+  LifecycleActions,
+  RegistrationDetails,
+  useRegistration,
+} from '@identity-experience/app-core/registrations';
 import { useSession, SignInRequired } from '@identity-experience/app-core/session';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
-import type { MessageKey } from '@/core/i18n/messages';
 
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
-import { ClientKeys } from './ClientKeys';
 import { DriftExceptions } from './DriftExceptions';
-import { attentionTone, fieldLabel, findingClassLabel, profileLabel, stateLabel, stateTone } from './labels';
-import { LifecycleActions } from './LifecycleActions';
-import { useFindings, useRegistration } from './registrations-api';
+import { attentionTone, fieldLabel, findingClassLabel, stateLabel, stateTone } from './labels';
+import { useFindings } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
-
-function Field({
-  label,
-  children,
-}: {
-  readonly label: MessageKey;
-  readonly children: ReactNode;
-}): ReactElement {
-  return (
-    <div className={styles['field']}>
-      <dt>
-        <Message id={label} />
-      </dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
-
-function List({ values }: { readonly values: readonly string[] }): ReactElement {
-  if (values.length === 0) {
-    return (
-      <span className={styles['quiet']}>
-        <Message id="registration.none" />
-      </span>
-    );
-  }
-  return (
-    <ul className={styles['values']}>
-      {values.map((value) => (
-        <li key={value}>{value}</li>
-      ))}
-    </ul>
-  );
-}
-
-// The Application reference is an authority and an identifier within it (TDD-identity-control-003).
-const applicationReference = (registration: Registration): string =>
-  [registration.application_authority, registration.application_ref].join(':');
-
-function Details({ registration }: { readonly registration: Registration }): ReactElement {
-  return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="registration.details" />
-        </Panel.Title>
-      </Panel.Header>
-      <dl className={styles['fields']}>
-        <Field label="registration.field.id">
-          <code>{registration.registration_id}</code>
-        </Field>
-        <Field label="registration.field.realm">
-          <code>{registration.realm}</code>
-        </Field>
-        <Field label="registration.field.profile">
-          <Message id={profileLabel(registration.profile)} />
-        </Field>
-        <Field label="registration.field.audienceClass">
-          <code>{registration.audience_class}</code>
-        </Field>
-        <Field label="registration.field.application">
-          <code>{applicationReference(registration)}</code>
-        </Field>
-        <Field label="registration.field.algorithm">
-          <code>{registration.signing_algorithm}</code>
-        </Field>
-        <Field label="registration.field.lifetimeClass">
-          {registration.lifetime_class === undefined ? (
-            <span className={styles['quiet']}>
-              <Message id="registration.none" />
-            </span>
-          ) : (
-            <code>{registration.lifetime_class}</code>
-          )}
-        </Field>
-        <Field label="registration.field.lifespan">
-          {registration.access_token_lifespan === undefined ? (
-            <Message id="registrations.lifespan.none" />
-          ) : (
-            <Message id="registrations.lifespan" values={{ seconds: registration.access_token_lifespan }} />
-          )}
-        </Field>
-        <Field label="registration.field.audience">
-          <List values={registration.audience} />
-        </Field>
-        <Field label="registration.field.redirects">
-          <List values={registration.redirect_uris} />
-        </Field>
-        <Field label="registration.field.registeredBy">
-          <code>{registration.registered_by}</code>
-        </Field>
-        <Field label="registration.field.created">
-          <FormattedDate value={registration.created_at} dateStyle="medium" timeStyle="short" />
-        </Field>
-        <Field label="registration.field.version">
-          <code>{registration.version}</code>
-        </Field>
-      </dl>
-    </Panel.Root>
-  );
-}
 
 const compact = (value: unknown): string =>
   value === null || value === undefined ? '' : JSON.stringify(value);
@@ -305,7 +206,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
           <Message id={stateLabel(found.state)} />
         </StatusPill>
       </header>
-      <Details registration={found} />
+      <RegistrationDetails registration={found} />
       <LifecycleActions registration={found} />
       <ClientKeys registration={found} />
       <Findings registrationId={registrationId} operable={found.state === 'active'} />

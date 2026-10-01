@@ -220,7 +220,7 @@ export function CreateWorkloadForm(): ReactElement {
           {...form.register('publicKey', {
             validate: (value) => {
               const read = readPublicKey(value);
-              return 'key' in read || t(`workloads.key.${read.problem}`);
+              return 'key' in read || t(`publicKey.problem.${read.problem}`);
             },
           })}
           label={<Message id="workloads.create.publicKey" />}

@@ -73,3 +73,18 @@ export function useSignOut() {
     },
   });
 }
+
+// useCsrfToken is the token a command carries, or null when no one is signed in.
+export function useCsrfToken(): string | null {
+  const session = useSession();
+  return session.data?.authenticated === true ? session.data.csrfToken : null;
+}
+
+// requireToken refuses to send a command with no signed-in session. A form offering a command is
+// shown only to a signed-in session, so this is a defect caught, not a state shown.
+export function requireToken(token: string | null): string {
+  if (token === null) {
+    throw new Error('no signed-in session to send a command with');
+  }
+  return token;
+}
