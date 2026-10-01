@@ -49,5 +49,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: { modules: { classNameStrategy: 'non-scoped' } },
     restoreMocks: true,
+    // Above the five seconds a find* query may wait (src/test/setup.ts), so the query reports
+    // what it did not find rather than the test timing out around it.
+    testTimeout: 15_000,
   },
 });
