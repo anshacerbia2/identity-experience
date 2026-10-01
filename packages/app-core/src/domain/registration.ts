@@ -324,3 +324,47 @@ export function redirectDiff(before: readonly string[], after: readonly string[]
 
 export const openChange = (changes: readonly RegistrationChange[]): RegistrationChange | undefined =>
   changes.find((change) => change.state === 'proposed');
+
+// What the signed-in person may do with registrations beyond what it owns
+// (GET /v1/registrations:standing, TDD-identity-control-003 §Application Developers).
+export interface Standing {
+  readonly provider: boolean;
+  readonly application_developer: boolean;
+  readonly environment: 'production' | 'non-production';
+}
+
+// mayRegister is whether a console offers registration: an application developer creates
+// non-production registrations only (ADR-IAM-003 §5.3).
+export const mayRegister = (standing: Standing): boolean =>
+  standing.application_developer && standing.environment === 'non-production';
+
+// What an application developer registers: privileged carries the provider-scope claim surface, and
+// a workload is created by a provider through its own path.
+export const developerProfiles = ['public', 'confidential', 'resource'] as const;
+export type DeveloperProfile = (typeof developerProfiles)[number];
+export const developerClasses = ['internal', 'external'] as const;
+export type DeveloperClass = (typeof developerClasses)[number];
+
+// The lifetime classes a developer's resource may carry, and what each means
+// (STD-IAM-002 §3.3, TDD-identity-experience-004 §Lifetime Class as an Interval). L3 is for workload
+// audiences, which a developer does not register.
+export const developerLifetimeClasses = ['L0', 'L1', 'L2'] as const;
+export type DeveloperLifetimeClass = (typeof developerLifetimeClasses)[number];
+export const lifetimeMinutes: Readonly<
+  Record<DeveloperLifetimeClass, { token: number; revocation: number }>
+> = {
+  L0: { token: 4, revocation: 5 },
+  L1: { token: 9, revocation: 10 },
+  L2: { token: 15, revocation: 16 },
+};
+
+export interface RegisterRequest {
+  readonly client_key: string;
+  readonly profile: DeveloperProfile;
+  readonly audience_class: DeveloperClass;
+  readonly application_ref: string;
+  readonly lifetime_class?: DeveloperLifetimeClass;
+  readonly audience?: readonly string[];
+  readonly redirect_uris?: readonly string[];
+  readonly public_key?: unknown;
+}

@@ -32,6 +32,9 @@ function api(
     if (url.pathname === '/api/v1/principals:dangling') {
       return json({ dangling });
     }
+    if (url.pathname === '/api/v1/application-developers') {
+      return json({ developers: [] });
+    }
     return undefined;
   });
 }
@@ -47,13 +50,16 @@ afterEach(() => {
 });
 
 describe('PrincipalsPage', () => {
-  it('reads only the dangling mappings: no Principal population is listed', async () => {
+  it('reads only the dangling mappings and the standing grants: no Principal population is listed', async () => {
     const { requests } = api();
     const { container } = renderApp('/principals');
     const table = await screen.findByRole('table', { name: 'Principals whose Keycloak user is gone' });
     expect(within(table).getByText(lost)).toBeInTheDocument();
     const reads = requests.filter((url) => url.pathname.startsWith('/api/'));
-    expect(reads.map((url) => url.pathname)).toEqual(['/api/v1/principals:dangling']);
+    expect(reads.map((url) => url.pathname).sort()).toEqual([
+      '/api/v1/application-developers',
+      '/api/v1/principals:dangling',
+    ]);
     expect(await axe(container)).toHaveNoViolations();
   });
 

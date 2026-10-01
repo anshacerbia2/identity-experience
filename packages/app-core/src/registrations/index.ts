@@ -11,9 +11,11 @@ export {
   useLifecycle,
   useOwners,
   useProposeChange,
+  useRegister,
   useRegistration,
   useRevokeKey,
   useRotateKey,
+  useStanding,
 } from './registration-api';
 export { RegistrationDetails } from './RegistrationDetails';
 export { RegistrationOwners } from './RegistrationOwners';

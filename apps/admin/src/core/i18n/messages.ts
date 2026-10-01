@@ -302,6 +302,32 @@ export const en = {
   'changeQueue.done.withdraw': 'The change to {clientKey} is withdrawn.',
   'changeQueue.done.superseded':
     '{clientKey} changed since this was proposed, so nothing was applied. Its owner proposes it again.',
+
+  'developers.title': 'Application developers',
+  'developers.description':
+    'People who may create non-production registrations without provider authority, and become their first owner. A provider grants and revokes the standing, with a reason.',
+  'developers.caption': 'Application developer grants',
+  'developers.empty': 'No one holds application developer standing.',
+  'developers.column.principal': 'Principal',
+  'developers.column.state': 'State',
+  'developers.column.reason': 'Reason',
+  'developers.column.granted': 'Granted',
+  'developers.state.active': 'Active',
+  'developers.state.inactive': 'Revoked or inactive',
+  'developers.grant.open': 'Grant the standing',
+  'developers.grant.title': 'Grant application developer standing',
+  'developers.grant.body':
+    'Name the person by principal_id. A workload, an inactive Principal and someone who already holds it are refused.',
+  'developers.grant.principal': 'principal_id',
+  'developers.grant.principal.invalid': 'A principal_id is a UUID.',
+  'developers.grant': 'Grant',
+  'developers.revoke.open': 'Revoke {principal}',
+  'developers.revoke.title': 'Revoke application developer standing',
+  'developers.revoke.body':
+    'The person creates no new registration from the next request. The registrations they created keep their owners.',
+  'developers.revoke': 'Revoke',
+  'developers.done.granted': 'The standing is granted.',
+  'developers.done.revoked': 'The standing is revoked.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -600,6 +626,32 @@ export const id: Messages = {
   'changeQueue.done.withdraw': 'Perubahan pada {clientKey} ditarik.',
   'changeQueue.done.superseded':
     '{clientKey} berubah sejak ini diusulkan, jadi tidak ada yang diterapkan. Owner-nya mengusulkan lagi.',
+
+  'developers.title': 'Application developer',
+  'developers.description':
+    'Orang yang boleh membuat registrasi non-production tanpa wewenang provider, dan menjadi owner pertamanya. Provider memberi dan mencabut standing ini, dengan alasan.',
+  'developers.caption': 'Pemberian standing application developer',
+  'developers.empty': 'Belum ada yang memegang standing application developer.',
+  'developers.column.principal': 'Principal',
+  'developers.column.state': 'Status',
+  'developers.column.reason': 'Alasan',
+  'developers.column.granted': 'Diberikan',
+  'developers.state.active': 'Aktif',
+  'developers.state.inactive': 'Dicabut atau tidak aktif',
+  'developers.grant.open': 'Berikan standing',
+  'developers.grant.title': 'Berikan standing application developer',
+  'developers.grant.body':
+    'Sebutkan orangnya dengan principal_id. Workload, Principal yang tidak aktif, dan yang sudah memegangnya ditolak.',
+  'developers.grant.principal': 'principal_id',
+  'developers.grant.principal.invalid': 'principal_id berupa UUID.',
+  'developers.grant': 'Berikan',
+  'developers.revoke.open': 'Cabut {principal}',
+  'developers.revoke.title': 'Cabut standing application developer',
+  'developers.revoke.body':
+    'Orang ini tidak bisa membuat registrasi baru mulai request berikutnya. Registrasi yang sudah dibuatnya tetap punya owner.',
+  'developers.revoke': 'Cabut',
+  'developers.done.granted': 'Standing sudah diberikan.',
+  'developers.done.revoked': 'Standing sudah dicabut.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

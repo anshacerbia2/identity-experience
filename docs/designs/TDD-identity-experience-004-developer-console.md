@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.5.0
+  version: 1.6.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -69,6 +69,7 @@ a stated interval rather than as a label.
 | `MyRegistrationsPage` | The registrations the signed-in person owns, from the owner route |
 | `RegistrationPage` | One owned registration: its record, `ClientKeyPanel`, suspend and restore, its redirect URI changes, and its owners |
 | `RedirectUriChanges` | The registered redirect URIs, a proposal of the next set, the open change with its before and after, and the changes decided |
+| `RegisterPage` | A non-production registration by an application developer, offered only where the API accepts one |
 | `RegistrationWizard` | Guided flow with per-step validation against the API |
 | `RedirectUriEditor` | Live validation, exact-match preview, wildcard refusal with explanation |
 | `LifetimeClassSelector` | Class choice presented as an enforcement interval |
@@ -119,7 +120,8 @@ GET   /api/v1/registrations/{id}/owners                 owner of {id}
 POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason
 GET   /api/v1/registrations/{id}/changes                owner of {id}
 POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
-POST  /api/v1/registrations                             not yet: application developer standing
+GET   /api/v1/registrations:standing                    any signed-in person: its own standing
+POST  /api/v1/registrations                             application developer, non-production
 POST  /api/v1/registrations/{id}:validate               not yet
 ```
 
@@ -162,9 +164,32 @@ Identity Control API's record, checked on every request (`ADR-IAM-003`), and the
 shows what the API answers for the owner. It asks only the owner routes, so a provider
 using it sees what they own, as any owner does, and not every registration.
 
-The registration request flow below is built once Identity Control has the application
-developer standing and an update path for a registration (`ADR-IAM-003`). Until then a
-provider registers clients in the Admin Portal.
+### Registering a Client
+
+`ADR-IAM-003 §5.3` lets an application developer create non-production registrations
+(`TDD-identity-control-003` §Application Developers).
+
+```text
+read GET /v1/registrations:standing
+offer "Register a client" only to an application developer, outside production
+in production, say that a provider creates the registration, until creation by approval exists
+the form offers what an application developer may register, and nothing else:
+    profile public, confidential or resource
+    audience class internal or external
+    a resource's lifetime class, rendered as its interval (§Lifetime Class as an Interval)
+    a client's audience chosen from the resources the person owns
+    a confidential client's first public key, as §The Public Key, Never the Private One requires
+    a public or confidential client's redirect URIs, one per line
+send it once, under an Idempotency-Key kept for the same values, so a retry creates nothing new
+the API validates; a refusal is shown in its own words
+on success, open the new registration's page: its creator is its first owner
+```
+
+The form is one page rather than §RegistrationWizard's steps. Those wait on `:validate`, which
+Identity Control has not built. Without `:validate`, a step-by-step wizard would validate each
+step in the browser, which §Validation Parity forbids. So the form submits once, and the API's
+refusal names the rule.
+
 
 ### Where Approval Is Required
 
@@ -322,6 +347,11 @@ hand-maintained documentation always does.
   and a waiting one read differently, and a waiting one is withdrawn by its proposer with a reason.
 - A version conflict reads the registration again; a refusal shows the API's sentence.
 - The console offers no approval: approving is a provider's, in the Admin Portal.
+- "Register a client" is offered only to an application developer outside production. The form
+  offers no workload profile and no privileged class, and its audience lists only the person's
+  own resources.
+- A registration is sent under an Idempotency-Key that is reused for the same values. A success
+  opens the new registration, and a refusal shows the API's sentence.
 
 ### Validation Parity
 

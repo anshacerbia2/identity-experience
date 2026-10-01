@@ -150,8 +150,12 @@ change identity-control#36 records (TDD-004 1.5.0 §Redirect URI Changes, TDD-00
 Approval): an owner proposes the whole next set with a reason, and withdraws it. Outside production
 it applies at once. In production a provider other than the proposer approves or rejects it, on the
 registration's page or in the portal's approval queue, where each change shows its before and
-after as proposed. **Next:** audience and lifetime-class changes, and registration requests, which
-wait on identity-control's application developer standing (ADR-IAM-003 §5.3).
+after as proposed. A provider grants application developer standing on the Principals page
+(TDD-003 1.14.0), and an application developer registers a non-production client or resource from
+the console and becomes its first owner (TDD-004 1.6.0 §Registering a Client, identity-control#37
+and #38). Registration is offered only where `GET /v1/registrations:standing` says the API accepts
+it, and the form offers only what a developer may register. **Next:** production creation by
+approval, and audience and lifetime-class changes.
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration
