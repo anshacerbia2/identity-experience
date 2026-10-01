@@ -142,8 +142,12 @@ the same BFF under `/developer/` with the same session (TDD-001 1.6.0), lists th
 signed-in person owns, from identity-control#35's `GET /v1/registrations:mine` (ADR-IAM-003). Both
 applications take API access, the session, preferences, the frame every page renders in, and the
 registration domain from `packages/app-core`. A sign-in that does not complete now lands on the
-application it started from. **Next:** the console's registration page: its details, its keys
-rotated and revoked by an owner, and suspend and restore with a reason.
+application it started from. Each owned registration then has its page (TDD-004 1.4.0): its
+record, its keys rotated and revoked by an owner, suspend and restore with a reason, and its
+active owners. The record, the key panel and the lifecycle controls are the Admin Portal's,
+moved into `packages/app-core`; an owner is offered no retirement. **Next:** registration
+requests, which wait on identity-control's application developer standing and an update path for
+a registration (ADR-IAM-003).
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration

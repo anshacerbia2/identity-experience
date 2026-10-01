@@ -1,36 +1,33 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiGet, apiPost } from '@identity-experience/app-core/api';
-import type { PublicJwk } from '@identity-experience/app-core/domain/public-key';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import {
-  type ClientKey,
   type DriftException,
   type DriftStatus,
   type ExpiringKeys,
   type ExceptionField,
   type Finding,
-  type LifecycleAction,
   type ReconcileRun,
-  type Registration,
   type RegistrationPage,
   type RegistrationState,
 } from '@identity-experience/app-core/domain/registration';
-import { useSession } from '@identity-experience/app-core/session';
+import { registrationKeys as sharedRegistrationKeys } from '@identity-experience/app-core/registrations';
+import { requireToken, useCsrfToken } from '@identity-experience/app-core/session';
 
 // The registration and drift reads (TDD-identity-control-003 §API / Interface), through the BFF.
 
 const pageSize = 50;
 
+// The shared keys (one registration, its keys, its owners) and this application's own, under the
+// same prefix, so a command settled anywhere reads every registration query again.
 export const registrationKeys = {
-  all: ['registrations'] as const,
+  ...sharedRegistrationKeys,
   list: (state: RegistrationState | undefined) => ['registrations', 'list', state ?? 'all'] as const,
-  one: (registrationId: string) => ['registrations', 'one', registrationId] as const,
   findings: (registrationId: string) => ['registrations', 'findings', registrationId] as const,
   exceptions: (registrationId: string) => ['registrations', 'exceptions', registrationId] as const,
   drift: ['registrations', 'drift'] as const,
   expiringKeys: ['registrations', 'expiring-keys'] as const,
-  keys: (registrationId: string) => ['registrations', 'keys', registrationId] as const,
 };
 
 // useRegistrationPages pages by the API's cursor. Each page is kept, so "load more" appends and a
@@ -69,14 +66,6 @@ export function useExpiringKeys() {
   });
 }
 
-export function useRegistration(registrationId: string) {
-  return useQuery({
-    queryKey: registrationKeys.one(registrationId),
-    queryFn: ({ signal }) =>
-      apiGet<Registration>(`/v1/registrations/${encodeURIComponent(registrationId)}`, signal),
-  });
-}
-
 export function useFindings(registrationId: string) {
   return useQuery({
     queryKey: registrationKeys.findings(registrationId),
@@ -107,18 +96,6 @@ export function useExceptions(registrationId: string) {
 // The commands. Each carries the session's CSRF token, and each, once settled, reads every
 // registration query again: a sweep or a resolution changes the drift summary, the counts beside
 // each client, and the findings of the one it touched.
-
-function useCsrfToken(): string | null {
-  const session = useSession();
-  return session.data?.authenticated === true ? session.data.csrfToken : null;
-}
-
-function requireToken(token: string | null): string {
-  if (token === null) {
-    throw new Error('no signed-in session to send a command with');
-  }
-  return token;
-}
 
 interface ReconcileResponse {
   readonly run: ReconcileRun | null;
@@ -177,66 +154,6 @@ export function useGrantException(registrationId: string) {
           duration_seconds: request.hours * 3600,
         },
         { csrfToken: requireToken(token) },
-      ),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
-  });
-}
-
-// useLifecycle suspends, restores or retires one registration (ADR-IAM-001 §5.13), with the
-// operator's reason, which the API records with the change.
-export function useLifecycle(registrationId: string) {
-  const queryClient = useQueryClient();
-  const token = useCsrfToken();
-  return useMutation({
-    mutationFn: ({ action, reason }: { readonly action: LifecycleAction; readonly reason: string }) =>
-      apiPost<Registration>(
-        `/v1/registrations/${encodeURIComponent(registrationId)}:${action}`,
-        {},
-        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
-      ),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
-  });
-}
-
-// useKeys reads a keyed registration's keys, newest first.
-export function useKeys(registrationId: string, enabled: boolean) {
-  return useQuery({
-    queryKey: registrationKeys.keys(registrationId),
-    enabled,
-    queryFn: ({ signal }) =>
-      apiGet<{ keys: readonly ClientKey[] }>(
-        `/v1/registrations/${encodeURIComponent(registrationId)}/keys`,
-        signal,
-      ),
-  });
-}
-
-// useRotateKey registers the next public key, which starts a rotation. The answer carries the keys;
-// whether the key was new is read from them, since a retry after a lost answer is answered 200.
-export function useRotateKey(registrationId: string) {
-  const queryClient = useQueryClient();
-  const token = useCsrfToken();
-  return useMutation({
-    mutationFn: (publicKey: PublicJwk) =>
-      apiPost<{ keys: readonly ClientKey[] }>(
-        `/v1/registrations/${encodeURIComponent(registrationId)}/keys`,
-        { public_key: publicKey },
-        { csrfToken: requireToken(token) },
-      ),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
-  });
-}
-
-// useRevokeKey removes one key now, with a reason.
-export function useRevokeKey(registrationId: string) {
-  const queryClient = useQueryClient();
-  const token = useCsrfToken();
-  return useMutation({
-    mutationFn: ({ keyId, reason }: { readonly keyId: string; readonly reason: string }) =>
-      apiPost<{ keys: readonly ClientKey[] }>(
-        `/v1/registrations/${encodeURIComponent(registrationId)}/keys/${encodeURIComponent(keyId)}:revoke`,
-        {},
-        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });

@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.3.0
+  version: 1.4.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -67,6 +67,7 @@ a stated interval rather than as a label.
 | Component | Responsibility |
 | :-- | :-- |
 | `MyRegistrationsPage` | The registrations the signed-in person owns, from the owner route |
+| `RegistrationPage` | One owned registration: its record, `ClientKeyPanel`, suspend and restore, and its owners |
 | `RegistrationWizard` | Guided flow with per-step validation against the API |
 | `RedirectUriEditor` | Live validation, exact-match preview, wildcard refusal with explanation |
 | `LifetimeClassSelector` | Class choice presented as an enforcement interval |
@@ -137,7 +138,20 @@ the console reads GET /v1/registrations:mine for the registrations the person ow
 a registration the person does not own answers 404, and the console shows it as not found
 an action the API refuses an owner is not offered
 an empty list says that a provider grants ownership, and how to ask
+
+on one owned registration:
+    show its record, as the Admin Portal shows it
+    list its keys; rotate to a pasted public key; revoke one with a reason
+    offer suspend for an active client and restore for a suspended one, each with a reason
+    never offer retirement: it is a provider's
+    list its active owners, marking the signed-in one; no control changes them
 ```
+
+The record, the key panel and the lifecycle controls are the Admin Portal's own, shared through
+`packages/app-core`; in the console the lifecycle controls offer only what an owner may do, and
+say that retirement is a provider's. Owners are listed by `principal_id`, the identifier the API
+returns, with when and why each was granted; revoked ownerships stay in the API's record and are
+not listed.
 
 The console holds no authority of its own. Which registrations a person owns is the
 Identity Control API's record, checked on every request (`ADR-IAM-003`), and the console
@@ -268,6 +282,11 @@ hand-maintained documentation always does.
 - The console never reads the provider's list, `GET /api/v1/registrations`.
 - A signed-out visitor is asked to sign in, and the sign-in returns under `/developer/`.
 - A failed read states the failure and its reference, and offers to try again.
+- A registration's page offers suspend for an active client and restore for a suspended one,
+  each sending its reason, and never retirement.
+- A registration the API answers 404 for, one the person does not own, is shown as not found.
+- The owners list shows active owners only, marks the signed-in person, and offers no control.
+- Rotation sends the pasted public key and nothing else.
 
 ### Validation Parity
 

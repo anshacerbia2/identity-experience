@@ -1,20 +1,15 @@
 import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { MutationError } from '@identity-experience/app-core/api';
-import {
-  lifecycleActions,
-  type LifecycleAction,
-  type Registration,
-} from '@identity-experience/app-core/domain/registration';
-import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
-import { Message, useMessage } from '@/core/i18n/Message';
-import type { MessageKey } from '@/core/i18n/messages';
-
-import { useLifecycle } from './registrations-api';
-import styles from './RegistrationsPage.module.scss';
+import { useLifecycle } from './registration-api';
+import styles from './Registration.module.scss';
+import { MutationError } from '../api/MutationError';
+import { lifecycleActions, type LifecycleAction, type Registration } from '../domain/registration';
+import { ReasonField, reasonRules } from '../forms/ReasonField';
+import type { CoreMessageKey as MessageKey } from '../i18n/core-messages';
+import { CoreMessage as Message, useCoreMessage } from '../i18n/CoreMessage';
 
 interface Values {
   readonly reason: string;
@@ -53,7 +48,7 @@ function LifecycleForm({
   readonly onDone: (action: LifecycleAction) => void;
   readonly onCancel: () => void;
 }): ReactElement {
-  const t = useMessage();
+  const t = useCoreMessage();
   const lifecycle = useLifecycle(registration.registration_id);
   const form = useForm<Values>({ defaultValues: { reason: '', confirmation: '' } });
   const submit = form.handleSubmit((values) => {
@@ -115,17 +110,24 @@ function LifecycleForm({
   );
 }
 
+// What an owner may do to its registration's lifecycle (ADR-IAM-003): suspend and restore.
+// Retirement is a provider's.
+const ownerActions: readonly LifecycleAction[] = ['suspend', 'restore'];
+
 // LifecycleActions offers the suspension, restoration and retirement the API accepts for this
 // registration as it stands (ADR-IAM-001 §5.13), and nothing else: a workload's client is stopped
-// through its workload, and a retired registration has nothing left to stop.
+// through its workload, and a retired registration has nothing left to stop. For an owner, only
+// what the API accepts from an owner.
 export function LifecycleActions({
   registration,
+  owner = false,
 }: {
   readonly registration: Registration;
+  readonly owner?: boolean;
 }): ReactElement | null {
   const [open, setOpen] = useState<LifecycleAction | null>(null);
   const [done, setDone] = useState<LifecycleAction | null>(null);
-  const actions = lifecycleActions(registration);
+  const actions = lifecycleActions(registration).filter((action) => !owner || ownerActions.includes(action));
   if (actions.length === 0 && done === null) {
     return null;
   }
@@ -136,7 +138,7 @@ export function LifecycleActions({
         <Message id="lifecycle.title" />
       </h2>
       <p className={styles['quiet']}>
-        <Message id="lifecycle.description" />
+        <Message id={owner ? 'lifecycle.description.owner' : 'lifecycle.description'} />
       </p>
       {done === null ? null : (
         <p className={styles['success']} role="status">

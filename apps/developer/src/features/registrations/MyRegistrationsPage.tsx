@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
@@ -66,7 +67,15 @@ function MyRegistrations(): ReactElement {
       <Table.Body>
         {mine.data.map((registration) => (
           <Table.Row key={registration.registration_id}>
-            <Table.Cell mono>{registration.client_key}</Table.Cell>
+            <Table.Cell mono>
+              <Link
+                to="/registrations/$registrationId"
+                params={{ registrationId: registration.registration_id }}
+                className={styles['clientLink']}
+              >
+                {registration.client_key}
+              </Link>
+            </Table.Cell>
             <Table.Cell>
               <Message id={profileLabel(registration.profile)} />
             </Table.Cell>
