@@ -2,8 +2,10 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { apiGet, apiPost } from '@/core/api/api-client';
 import { useSession } from '@/core/session/session';
+import type { PublicJwk } from '@/domain/public-key';
 import { normalizeReason } from '@/domain/reason';
 import {
+  type ClientKey,
   type DriftException,
   type DriftStatus,
   type ExpiringKeys,
@@ -28,6 +30,7 @@ export const registrationKeys = {
   exceptions: (registrationId: string) => ['registrations', 'exceptions', registrationId] as const,
   drift: ['registrations', 'drift'] as const,
   expiringKeys: ['registrations', 'expiring-keys'] as const,
+  keys: (registrationId: string) => ['registrations', 'keys', registrationId] as const,
 };
 
 // useRegistrationPages pages by the API's cursor. Each page is kept, so "load more" appends and a
@@ -188,6 +191,50 @@ export function useLifecycle(registrationId: string) {
     mutationFn: ({ action, reason }: { readonly action: LifecycleAction; readonly reason: string }) =>
       apiPost<Registration>(
         `/v1/registrations/${encodeURIComponent(registrationId)}:${action}`,
+        {},
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useKeys reads a keyed registration's keys, newest first.
+export function useKeys(registrationId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: registrationKeys.keys(registrationId),
+    enabled,
+    queryFn: ({ signal }) =>
+      apiGet<{ keys: readonly ClientKey[] }>(
+        `/v1/registrations/${encodeURIComponent(registrationId)}/keys`,
+        signal,
+      ),
+  });
+}
+
+// useRotateKey registers the next public key, which starts a rotation. The answer carries the keys;
+// whether the key was new is read from them, since a retry after a lost answer is answered 200.
+export function useRotateKey(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: (publicKey: PublicJwk) =>
+      apiPost<{ keys: readonly ClientKey[] }>(
+        `/v1/registrations/${encodeURIComponent(registrationId)}/keys`,
+        { public_key: publicKey },
+        { csrfToken: requireToken(token) },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useRevokeKey removes one key now, with a reason.
+export function useRevokeKey(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ keyId, reason }: { readonly keyId: string; readonly reason: string }) =>
+      apiPost<{ keys: readonly ClientKey[] }>(
+        `/v1/registrations/${encodeURIComponent(registrationId)}/keys/${encodeURIComponent(keyId)}:revoke`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),

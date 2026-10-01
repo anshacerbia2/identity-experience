@@ -209,3 +209,43 @@ export const keyExpiryAttention: Readonly<Record<KeyExpirySeverity, Attention>> 
 export function daysLeft(expiresAt: string, now: number): number {
   return Math.max(0, Math.floor((Date.parse(expiresAt) - now) / 86_400_000));
 }
+
+// A registered client key (TDD-identity-control-003 §Client Key Records). The public key only: the
+// client keeps its private key, and nothing secret was ever submitted.
+export type KeyState = 'active' | 'retiring' | 'revoked';
+
+export interface ClientKey {
+  readonly key_id: string;
+  readonly registration_id: string;
+  readonly kid: string;
+  readonly thumbprint: string;
+  readonly state: KeyState;
+  readonly registered_by: string;
+  readonly registered_at: string;
+  readonly expires_at: string;
+  readonly retiring_at: string | null;
+  readonly revoked_at: string | null;
+  readonly revoked_by: string | null;
+  readonly revocation_reason?: string;
+}
+
+// keyed reports whether a registration authenticates with a registered key.
+export const keyed = (registration: Pick<Registration, 'profile'>): boolean =>
+  registration.profile === 'confidential' || registration.profile === 'workload';
+
+// rotationOffered is what the API accepts: an active registration, and no key still retiring, since
+// a registration holds one overlap at a time.
+export const rotationOffered = (
+  registration: Pick<Registration, 'state'>,
+  keys: readonly ClientKey[],
+): boolean => registration.state === 'active' && !keys.some((key) => key.state === 'retiring');
+
+// lastAccepted reports whether revoking this key leaves the client no key the kernel accepts.
+export const lastAccepted = (keys: readonly ClientKey[], keyId: string): boolean =>
+  keys.filter((key) => key.state !== 'revoked' && key.key_id !== keyId).length === 0;
+
+// hoursLeft is the time left until a moment, in whole hours, never below zero: a retiring key's
+// overlap shown as what is left of it.
+export function hoursLeft(until: string, now: number): number {
+  return Math.max(0, Math.floor((Date.parse(until) - now) / 3_600_000));
+}

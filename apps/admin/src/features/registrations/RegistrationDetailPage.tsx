@@ -18,6 +18,7 @@ import {
 } from '@/domain/registration';
 
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
+import { ClientKeys } from './ClientKeys';
 import { DriftExceptions } from './DriftExceptions';
 import { attentionTone, fieldLabel, findingClassLabel, profileLabel, stateLabel, stateTone } from './labels';
 import { LifecycleActions } from './LifecycleActions';
@@ -307,6 +308,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
       </header>
       <Details registration={found} />
       <LifecycleActions registration={found} />
+      <ClientKeys registration={found} />
       <Findings registrationId={registrationId} operable={found.state === 'active'} />
       <DriftExceptions registrationId={registrationId} grantable={found.state === 'active'} />
     </>

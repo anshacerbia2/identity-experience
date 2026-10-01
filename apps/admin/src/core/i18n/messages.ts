@@ -173,6 +173,36 @@ export const en = {
   'expiring.daysLeft': '{days, plural, =0 {today} one {in # day} other {in # days}}',
   'expiring.remedy':
     'The remedy is the client rotating to a new key it generates; this page reads only. Once a successor is registered, the client leaves this list.',
+  'keys.title': 'Client keys',
+  'keys.description':
+    'The public keys this client authenticates with. The team keeps the private key; this console never sees or generates one.',
+  'keys.caption': 'Registered keys',
+  'keys.empty': 'This client holds no key.',
+  'keys.column.kid': 'Key ID',
+  'keys.column.state': 'State',
+  'keys.column.thumbprint': 'Thumbprint',
+  'keys.column.registered': 'Registered',
+  'keys.column.expires': 'Expires',
+  'keys.state.active': 'Active',
+  'keys.state.retiring': 'Retiring',
+  'keys.state.revoked': 'Revoked',
+  'keys.retiringLeft':
+    '{hours, plural, =0 {removed within the hour} one {removed in # hour} other {removed in # hours}}',
+  'keys.rotate.open': 'Rotate to a new key',
+  'keys.rotate.title': "Rotate this client's key",
+  'keys.rotate.body':
+    'Paste the next public key the team generated. It becomes active, and the current key keeps working until the overlap ends, so the client can switch without an outage.',
+  'keys.rotate.field': 'Next public key (JWK)',
+  'keys.rotate': 'Rotate',
+  'keys.revoke.open': 'Revoke {kid}',
+  'keys.revoke.title': 'Revoke key {kid}',
+  'keys.revoke.body': 'The key is refused from the next request. Use this for a key that has leaked.',
+  'keys.revoke.last':
+    "This is the client's last accepted key: once it is revoked, the client stops authenticating until a new key is registered.",
+  'keys.revoke': 'Revoke',
+  'keys.done.rotated': 'The new key is active; the previous one is retiring.',
+  'keys.done.unchanged': 'That key was already the active one; nothing changed.',
+  'keys.done.revoked': 'The key is revoked.',
 
   'lifecycle.title': 'Lifecycle',
   'lifecycle.description':
@@ -546,6 +576,35 @@ export const id: Messages = {
   'expiring.daysLeft': '{days, plural, =0 {hari ini} other {dalam # hari}}',
   'expiring.remedy':
     'Solusinya: client merotasi ke kunci baru yang dibuatnya sendiri; halaman ini hanya membaca. Setelah pengganti terdaftar, client hilang dari daftar ini.',
+  'keys.title': 'Kunci client',
+  'keys.description':
+    'Public key yang dipakai client ini untuk autentikasi. Tim menyimpan private key-nya; console ini tidak pernah melihat atau membuatnya.',
+  'keys.caption': 'Kunci terdaftar',
+  'keys.empty': 'Client ini tidak punya kunci.',
+  'keys.column.kid': 'ID kunci',
+  'keys.column.state': 'Status',
+  'keys.column.thumbprint': 'Thumbprint',
+  'keys.column.registered': 'Didaftarkan',
+  'keys.column.expires': 'Kedaluwarsa',
+  'keys.state.active': 'Aktif',
+  'keys.state.retiring': 'Akan pensiun',
+  'keys.state.revoked': 'Dicabut',
+  'keys.retiringLeft': '{hours, plural, =0 {dihapus dalam satu jam ini} other {dihapus dalam # jam}}',
+  'keys.rotate.open': 'Rotasi ke kunci baru',
+  'keys.rotate.title': 'Rotasi kunci client ini',
+  'keys.rotate.body':
+    'Tempel public key berikutnya yang dibuat tim. Kunci itu jadi aktif, dan kunci sekarang tetap berlaku sampai overlap selesai, jadi client bisa pindah tanpa gangguan.',
+  'keys.rotate.field': 'Public key berikutnya (JWK)',
+  'keys.rotate': 'Rotasi',
+  'keys.revoke.open': 'Cabut {kid}',
+  'keys.revoke.title': 'Cabut kunci {kid}',
+  'keys.revoke.body': 'Kunci ditolak mulai request berikutnya. Gunakan untuk kunci yang bocor.',
+  'keys.revoke.last':
+    'Ini kunci terakhir yang diterima: setelah dicabut, client tidak bisa autentikasi sampai kunci baru didaftarkan.',
+  'keys.revoke': 'Cabut',
+  'keys.done.rotated': 'Kunci baru aktif; kunci sebelumnya sedang pensiun.',
+  'keys.done.unchanged': 'Kunci itu sudah yang aktif; tidak ada yang berubah.',
+  'keys.done.revoked': 'Kunci sudah dicabut.',
 
   'lifecycle.title': 'Siklus hidup',
   'lifecycle.description':
