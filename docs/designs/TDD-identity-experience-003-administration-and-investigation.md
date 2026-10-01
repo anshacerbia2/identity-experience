@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.9.0
+  version: 1.10.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -177,6 +177,7 @@ GET   /api/v1/registrations                      one page, ?after=&limit=&state=
 GET   /api/v1/registrations/{registration_id}
 GET   /api/v1/registrations/{registration_id}/findings
 GET   /api/v1/registrations:drift
+GET   /api/v1/registrations:expiring-keys
 POST  /api/v1/registrations:reconcile            a sweep; with findings and a reason, apply
 POST  /api/v1/registrations/{registration_id}/drift-exceptions
 GET   /api/v1/registrations/{registration_id}/drift-exceptions
@@ -211,6 +212,14 @@ section is shown only while one is open. It names the two ways out and offers ne
 - **Delete it** in the Admin Console, when nothing depends on it.
 
 Either one converges the finding on the next sweep, and the list drops it then.
+
+**Keys about to expire.** Below the unmanaged clients, the page lists every client the API reports
+in its key expiry warning (`TDD-identity-control-003` §Key Expiry Warnings): an active keyed client
+whose key ends within 14 days with no successor, within 3 days, or which holds no key the kernel
+accepts. Each row names the client, linked to its page, the severity as a word and a glyph, the key's
+`kid`, and when it ends, with the days left. A client that cannot authenticate says so. The section
+is shown only while one is reported, and its remedy is the client's own key rotation, which the
+Developer Console offers (`TDD-identity-experience-004`); this page reads only.
 
 **Adoption has no screen, by decision.** An adoption states the registration's profile,
 audience class, application authority and reference, and which repairable differences it
@@ -432,6 +441,9 @@ again and shows the user signed out rather than a page of errors.
   Admin Console, and sends nothing.
 - The `client_keys` and `suspension` field classes and the `unmanaged` finding class are shown
   as words.
+- Each client the key expiry warning reports is listed with its severity, `kid` and end, most urgent
+  first as the API orders them, linked to its registration; the section is absent while none is
+  reported, and it sends nothing.
 
 ### Principals
 

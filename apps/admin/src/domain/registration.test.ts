@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   convergenceSeconds,
+  daysLeft,
   lifecycleActions,
   needsOperator,
   openFindingsByRegistration,
@@ -101,5 +102,14 @@ describe('registration read model', () => {
     expect(lifecycleActions(registration('resource', 'retired'))).toEqual([]);
     expect(lifecycleActions(registration('workload', 'active'))).toEqual([]);
     expect(lifecycleActions(registration('workload', 'suspended'))).toEqual([]);
+  });
+});
+
+describe('key expiry', () => {
+  it('counts whole days left, never below zero', () => {
+    const now = Date.parse('2026-10-01T00:00:00Z');
+    expect(daysLeft('2026-10-03T06:00:00Z', now)).toBe(2);
+    expect(daysLeft('2026-10-01T06:00:00Z', now)).toBe(0);
+    expect(daysLeft('2026-09-30T00:00:00Z', now)).toBe(0);
   });
 });
