@@ -11,6 +11,7 @@ import type {
   Registration,
   RegisterRequest,
   RegistrationChange,
+  RegistrationRequestRecord,
   Standing,
 } from '../domain/registration';
 import { requireToken, useCsrfToken } from '../session/session';
@@ -30,6 +31,8 @@ export const registrationKeys = {
   changes: (registrationId: string) => ['registrations', 'changes', registrationId] as const,
   changeQueue: ['registrations', 'change-queue'] as const,
   standing: ['registrations', 'standing'] as const,
+  requestQueue: ['registrations', 'request-queue'] as const,
+  myRequests: ['registrations', 'my-requests'] as const,
 };
 
 const registrationPath = (registrationId: string): `/v1/${string}` =>
@@ -215,6 +218,73 @@ export function useRegister() {
         csrfToken: requireToken(token),
         headers: { 'idempotency-key': idempotencyKey },
       }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+type Requests = { readonly requests: readonly RegistrationRequestRecord[] | null };
+
+// useRequestQueue reads every request waiting for approval, oldest first. It is a provider's read.
+export function useRequestQueue() {
+  return useQuery({
+    queryKey: registrationKeys.requestQueue,
+    queryFn: async ({ signal }) =>
+      (await apiGet<Requests>('/v1/registration-requests', signal)).requests ?? [],
+  });
+}
+
+// useMyRequests reads the signed-in person's own requests, newest first.
+export function useMyRequests(enabled: boolean) {
+  return useQuery({
+    queryKey: registrationKeys.myRequests,
+    enabled,
+    queryFn: async ({ signal }) =>
+      (await apiGet<Requests>('/v1/registration-requests:mine', signal)).requests ?? [],
+  });
+}
+
+// useProposeRegistration requests a production registration, naming its owners, with a reason.
+export function useProposeRegistration() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      request,
+      owners,
+      reason,
+    }: {
+      readonly request: RegisterRequest;
+      readonly owners: readonly string[];
+      readonly reason: string;
+    }) =>
+      apiPost<RegistrationRequestRecord>(
+        '/v1/registration-requests',
+        { ...request, owners },
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+// useDecideRequest approves, rejects or withdraws one request, with a reason.
+export function useDecideRequest() {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      decision,
+      reason,
+    }: {
+      readonly requestId: string;
+      readonly decision: ChangeDecision;
+      readonly reason: string;
+    }) =>
+      apiPost<RegistrationRequestRecord>(
+        `/v1/registration-requests/${encodeURIComponent(requestId)}:${decision}`,
+        {},
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
 }

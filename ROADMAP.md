@@ -154,8 +154,11 @@ after as proposed. A provider grants application developer standing on the Princ
 (TDD-003 1.14.0), and an application developer registers a non-production client or resource from
 the console and becomes its first owner (TDD-004 1.6.0 §Registering a Client, identity-control#37
 and #38). Registration is offered only where `GET /v1/registrations:standing` says the API accepts
-it, and the form offers only what a developer may register. **Next:** production creation by
-approval, and audience and lifetime-class changes.
+it, and the form offers only what a developer may register. In production the same form requests
+the client, naming at least two owners (TDD-004 1.7.0, identity-control#39): the console lists the
+person's requests and withdraws an open one, and the portal's Approvals page lists every request
+with its document and owners, for a provider other than the requester to approve or reject
+(TDD-003 1.15.0). **Next:** audience and lifetime-class changes.
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration

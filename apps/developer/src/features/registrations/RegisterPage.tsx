@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
@@ -10,13 +10,23 @@ import {
   developerProfiles,
   lifetimeMinutes,
   mayRegister,
+  mayRequest,
+  minProductionOwners,
+  ownerLines,
   redirectLines,
   type DeveloperClass,
   type DeveloperLifetimeClass,
   type DeveloperProfile,
   type RegisterRequest,
+  type RegistrationRequestRecord,
 } from '@identity-experience/app-core/domain/registration';
-import { profileLabel, useRegister, useStanding } from '@identity-experience/app-core/registrations';
+import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import {
+  profileLabel,
+  useProposeRegistration,
+  useRegister,
+  useStanding,
+} from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
 import { Button, Icon, Panel, SelectField, TextAreaField, TextField } from '@identity-experience/ui';
 
@@ -34,6 +44,8 @@ interface Values {
   readonly audience: readonly string[];
   readonly redirectUris: string;
   readonly publicKey: string;
+  readonly owners: string;
+  readonly reason: string;
 }
 
 const empty: Values = {
@@ -45,7 +57,13 @@ const empty: Values = {
   audience: [],
   redirectUris: '',
   publicKey: '',
+  owners: '',
+  reason: '',
 };
+
+// A form registers a client outside production, and requests one in production, where a provider
+// other than the person approves it (TDD-identity-experience-004 §Registering a Client).
+type Mode = 'register' | 'request';
 
 // request is the registration the form's values describe, with only the fields its profile takes:
 // the API refuses a resource with redirect URIs, and a public client with a key.
@@ -71,13 +89,36 @@ function request(values: Values): RegisterRequest {
   return 'key' in read ? { ...client, public_key: read.key } : client;
 }
 
-function RegisterForm(): ReactElement {
+function Requested({ request }: { readonly request: RegistrationRequestRecord }): ReactElement {
+  return (
+    <Panel.Root>
+      <Panel.Header>
+        <Panel.Title>
+          <Message id="request.done.title" values={{ clientKey: request.client_key }} />
+        </Panel.Title>
+        <Panel.Description>
+          <Message id="request.done.body" />
+        </Panel.Description>
+      </Panel.Header>
+      <Panel.Body>
+        <Link to="/" className={styles['clientLink']}>
+          <Message id="registration.back" />
+        </Link>
+      </Panel.Body>
+    </Panel.Root>
+  );
+}
+
+function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string | null }): ReactElement {
   const t = useMessage();
   const navigate = useNavigate();
   const create = useRegister();
+  const propose = useProposeRegistration();
   const keyFor = useIdempotencyKey();
   const mine = useMyRegistrations();
-  const form = useForm<Values>({ defaultValues: empty });
+  const [requested, setRequested] = useState<RegistrationRequestRecord | null>(null);
+  const form = useForm<Values>({ defaultValues: { ...empty, owners: me === null ? '' : `${me}\n` } });
+  const sending = mode === 'register' ? create : propose;
   const profile = useWatch({ control: form.control, name: 'profile' });
   const resources = (mine.data ?? []).filter(
     (registration) => registration.profile === 'resource' && registration.state !== 'retired',
@@ -85,6 +126,13 @@ function RegisterForm(): ReactElement {
 
   const submit = form.handleSubmit((values) => {
     const body = request(values);
+    if (mode === 'request') {
+      propose.mutate(
+        { request: body, owners: ownerLines(values.owners), reason: values.reason },
+        { onSuccess: setRequested },
+      );
+      return;
+    }
     create.mutate(
       { request: body, idempotencyKey: keyFor(body) },
       {
@@ -98,14 +146,17 @@ function RegisterForm(): ReactElement {
     );
   });
 
+  if (requested !== null) {
+    return <Requested request={requested} />;
+  }
   return (
     <Panel.Root>
       <Panel.Header>
         <Panel.Title>
-          <Message id="register.form.title" />
+          <Message id={mode === 'request' ? 'request.form.title' : 'register.form.title'} />
         </Panel.Title>
         <Panel.Description>
-          <Message id="register.form.body" />
+          <Message id={mode === 'request' ? 'request.form.body' : 'register.form.body'} />
         </Panel.Description>
       </Panel.Header>
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
@@ -204,10 +255,30 @@ function RegisterForm(): ReactElement {
             required
           />
         ) : null}
-        {create.isError ? <MutationError error={create.error} /> : null}
+        {mode === 'request' ? (
+          <>
+            <TextAreaField
+              {...form.register('owners', {
+                validate: (value) =>
+                  ownerLines(value).length >= minProductionOwners ||
+                  t('request.owners.tooFew', { min: minProductionOwners }),
+              })}
+              label={<Message id="request.owners" />}
+              hint={<Message id="request.owners.hint" values={{ min: minProductionOwners }} />}
+              error={form.formState.errors.owners?.message}
+              spellCheck={false}
+              required
+            />
+            <ReasonField
+              registration={form.register('reason', reasonRules)}
+              error={form.formState.errors.reason}
+            />
+          </>
+        ) : null}
+        {sending.isError ? <MutationError error={sending.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={create.isPending} icon={<Icon name="shield" />}>
-            <Message id="register.submit" />
+          <Button type="submit" disabled={sending.isPending} icon={<Icon name="shield" />}>
+            <Message id={mode === 'request' ? 'request.submit' : 'register.submit'} />
           </Button>
           <Button
             variant="ghost"
@@ -225,6 +296,8 @@ function RegisterForm(): ReactElement {
 
 function Gate(): ReactElement {
   const standing = useStanding();
+  const session = useSession();
+  const me = session.data?.authenticated === true ? session.data.principalId : null;
   if (standing.isPending) {
     return <Panel.Root aria-busy="true" />;
   }
@@ -238,6 +311,9 @@ function Gate(): ReactElement {
       />
     );
   }
+  if (mayRequest(standing.data)) {
+    return <RegisterForm mode="request" me={me} />;
+  }
   if (!mayRegister(standing.data)) {
     return (
       <Panel.Root>
@@ -246,24 +322,19 @@ function Gate(): ReactElement {
             <Message id="register.unavailable.title" />
           </Panel.Title>
           <Panel.Description>
-            <Message
-              id={
-                standing.data.application_developer
-                  ? 'register.unavailable.production'
-                  : 'register.unavailable.standing'
-              }
-            />
+            <Message id="register.unavailable.standing" />
           </Panel.Description>
         </Panel.Header>
       </Panel.Root>
     );
   }
-  return <RegisterForm />;
+  return <RegisterForm mode="register" me={me} />;
 }
 
-// RegisterPage is a non-production registration by an application developer (ADR-IAM-003 §5.3,
-// TDD-identity-experience-004 §Registering a Client). It is offered only where the API accepts one,
-// and the form offers only what an application developer may register.
+// RegisterPage is a registration by an application developer (ADR-IAM-003 §5.3,
+// TDD-identity-experience-004 §Registering a Client): registered at once outside production, and
+// requested in production, naming its owners, for a provider other than the person to approve. The
+// form offers only what an application developer may register.
 export function RegisterPage(): ReactElement {
   const session = useSession();
   return (

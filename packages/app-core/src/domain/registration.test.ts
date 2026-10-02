@@ -5,8 +5,10 @@ import {
   convergenceSeconds,
   daysLeft,
   lifecycleActions,
+  mayRequest,
   needsOperator,
   openFindingsByRegistration,
+  ownerLines,
   redirectDiff,
   redirectLines,
   unmanagedClients,
@@ -140,5 +142,18 @@ describe('redirect URI changes', () => {
     expect(changeable({ profile: 'confidential', state: 'suspended' })).toBe(false);
     expect(changeable({ profile: 'workload', state: 'active' })).toBe(false);
     expect(changeable({ profile: 'resource', state: 'active' })).toBe(false);
+  });
+});
+
+describe('registration requests', () => {
+  it('reads owners one per line, each once', () => {
+    expect(ownerLines(' a \n\nb\na\n')).toEqual(['a', 'b']);
+  });
+
+  it('offers a request to an application developer in production only', () => {
+    const developer = { provider: false, application_developer: true } as const;
+    expect(mayRequest({ ...developer, environment: 'production' })).toBe(true);
+    expect(mayRequest({ ...developer, environment: 'non-production' })).toBe(false);
+    expect(mayRequest({ ...developer, application_developer: false, environment: 'production' })).toBe(false);
   });
 });

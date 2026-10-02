@@ -78,4 +78,10 @@
     align-items: center;
     gap: var(--ds-spacing-sm);
   }
+
+  .sectionTitle {
+    font-size: var(--ds-font-size-lg);
+    font-weight: var(--ds-font-weight-semibold);
+    color: var(--ds-color-neutral-text-strong-default);
+  }
 }

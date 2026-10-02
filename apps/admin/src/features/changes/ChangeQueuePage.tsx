@@ -11,6 +11,7 @@ import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 
 import styles from './ChangeQueuePage.module.scss';
+import { RequestQueue } from './RequestQueue';
 
 const dayMs = 24 * 60 * 60 * 1000;
 
@@ -105,7 +106,8 @@ function Queue(): ReactElement {
   );
 }
 
-// ChangeQueuePage is every registration change waiting for a provider's approval, oldest first
+// ChangeQueuePage is what waits for a provider's approval, oldest first: production registration
+// requests (ADR-IAM-003 §5.3), and every registration change
 // (TDD-identity-experience-003 §Change Approval, ADR-IAM-003 §5.2). Each shows the redirect URIs
 // before and after as the API recorded them when it was proposed, and a provider approves or
 // rejects a change it did not propose.
@@ -124,7 +126,19 @@ export function ChangeQueuePage(): ReactElement {
           <Message id="changeQueue.lead" />
         </p>
       </header>
-      {session.data?.authenticated === true ? <Queue /> : session.isPending ? null : <SignInRequired />}
+      {session.data?.authenticated === true ? (
+        <>
+          <RequestQueue />
+          <section className={styles['list']} aria-labelledby="change-queue-title">
+            <h2 id="change-queue-title" className={styles['sectionTitle']}>
+              <Message id="changeQueue.changes.title" />
+            </h2>
+            <Queue />
+          </section>
+        </>
+      ) : session.isPending ? null : (
+        <SignInRequired />
+      )}
     </div>
   );
 }

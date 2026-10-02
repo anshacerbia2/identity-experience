@@ -293,7 +293,7 @@ export const en = {
   'changeQueue.eyebrow': 'Separation of duties',
   'changeQueue.title': 'Changes waiting for approval',
   'changeQueue.lead':
-    'Every production registration change waiting for a provider other than its proposer, oldest first. Each shows the redirect URIs before and after, as they stood when it was proposed.',
+    'Every production registration request and registration change waiting for a provider other than its proposer, oldest first, shown as it was proposed.',
   'changeQueue.loading': 'Loading the changes waiting for approval',
   'changeQueue.empty': 'No change is waiting for approval.',
   'changeQueue.waited': '{days, plural, =0 {Proposed today} one {Waiting # day} other {Waiting # days}}',
@@ -328,6 +328,33 @@ export const en = {
   'developers.revoke': 'Revoke',
   'developers.done.granted': 'The standing is granted.',
   'developers.done.revoked': 'The standing is revoked.',
+
+  'changeQueue.changes.title': 'Redirect URI changes',
+  'requestQueue.title': 'Production registration requests',
+  'requestQueue.loading': 'Loading the registration requests',
+  'requestQueue.empty': 'No production registration is waiting for approval.',
+  'requestQueue.proposed':
+    'Requested by {proposer} · {days, plural, =0 {today} one {waiting # day} other {waiting # days}}',
+  'requestQueue.reason': 'Reason: {reason}',
+  'requestQueue.none': 'None',
+  'requestQueue.field.profile': 'Profile',
+  'requestQueue.field.audienceClass': 'Audience class',
+  'requestQueue.field.application': 'Application reference',
+  'requestQueue.field.lifetimeClass': 'Lifetime class',
+  'requestQueue.field.redirects': 'Redirect URIs',
+  'requestQueue.field.audience': 'Audience',
+  'requestQueue.field.owners': 'Owners',
+  'requestQueue.field.requested': 'Requested',
+  'requestQueue.ownRequest': 'You requested this, so another provider decides it.',
+  'requestQueue.approve': 'Approve',
+  'requestQueue.reject': 'Reject',
+  'requestQueue.approve.title': 'Approve {clientKey}',
+  'requestQueue.approve.body':
+    'The client is registered as shown, as its requester’s, and the owners named are granted ownership at once.',
+  'requestQueue.reject.title': 'Reject {clientKey}',
+  'requestQueue.reject.body': 'Nothing is registered. Your reason is recorded with the decision.',
+  'requestQueue.done.approved': '{clientKey} is approved and registered. Open it.',
+  'requestQueue.done.rejected': 'The request for {clientKey} is rejected.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -617,7 +644,7 @@ export const id: Messages = {
   'changeQueue.eyebrow': 'Pemisahan tugas',
   'changeQueue.title': 'Perubahan yang menunggu persetujuan',
   'changeQueue.lead':
-    'Semua perubahan registrasi production yang menunggu provider selain pengusulnya, dari yang paling lama. Masing-masing menunjukkan redirect URI sebelum dan sesudah, seperti saat diusulkan.',
+    'Semua permintaan registrasi production dan perubahan registrasi yang menunggu provider selain pengusulnya, dari yang paling lama, seperti saat diusulkan.',
   'changeQueue.loading': 'Memuat perubahan yang menunggu persetujuan',
   'changeQueue.empty': 'Tidak ada perubahan yang menunggu persetujuan.',
   'changeQueue.waited': '{days, plural, =0 {Diusulkan hari ini} other {Menunggu # hari}}',
@@ -652,6 +679,32 @@ export const id: Messages = {
   'developers.revoke': 'Cabut',
   'developers.done.granted': 'Standing sudah diberikan.',
   'developers.done.revoked': 'Standing sudah dicabut.',
+
+  'changeQueue.changes.title': 'Perubahan redirect URI',
+  'requestQueue.title': 'Permintaan registrasi production',
+  'requestQueue.loading': 'Memuat permintaan registrasi',
+  'requestQueue.empty': 'Tidak ada registrasi production yang menunggu persetujuan.',
+  'requestQueue.proposed': 'Diminta oleh {proposer} · {days, plural, =0 {hari ini} other {menunggu # hari}}',
+  'requestQueue.reason': 'Alasan: {reason}',
+  'requestQueue.none': 'Tidak ada',
+  'requestQueue.field.profile': 'Profil',
+  'requestQueue.field.audienceClass': 'Kelas audiens',
+  'requestQueue.field.application': 'Referensi aplikasi',
+  'requestQueue.field.lifetimeClass': 'Kelas umur',
+  'requestQueue.field.redirects': 'Redirect URI',
+  'requestQueue.field.audience': 'Audiens',
+  'requestQueue.field.owners': 'Owner',
+  'requestQueue.field.requested': 'Diminta',
+  'requestQueue.ownRequest': 'Kamu yang meminta ini, jadi provider lain yang memutuskan.',
+  'requestQueue.approve': 'Setujui',
+  'requestQueue.reject': 'Tolak',
+  'requestQueue.approve.title': 'Setujui {clientKey}',
+  'requestQueue.approve.body':
+    'Client didaftarkan persis seperti yang ditampilkan, atas nama pemintanya, dan owner yang disebut langsung mendapat kepemilikan.',
+  'requestQueue.reject.title': 'Tolak {clientKey}',
+  'requestQueue.reject.body': 'Tidak ada yang didaftarkan. Alasanmu dicatat bersama keputusan.',
+  'requestQueue.done.approved': '{clientKey} disetujui dan terdaftar. Buka.',
+  'requestQueue.done.rejected': 'Permintaan untuk {clientKey} ditolak.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

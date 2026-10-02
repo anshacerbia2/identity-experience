@@ -51,6 +51,9 @@ function api(queue: readonly RegistrationChange[], command?: (sent: Sent) => Res
     if (url.pathname === '/api/v1/registrations:changes') {
       return json({ changes: queue });
     }
+    if (url.pathname === '/api/v1/registration-requests') {
+      return json({ requests: [] });
+    }
     return undefined;
   });
 }

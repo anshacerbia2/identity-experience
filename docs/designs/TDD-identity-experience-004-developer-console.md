@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.6.0
+  version: 1.7.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -122,6 +122,9 @@ GET   /api/v1/registrations/{id}/changes                owner of {id}
 POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
 GET   /api/v1/registrations:standing                    any signed-in person: its own standing
 POST  /api/v1/registrations                             application developer, non-production
+POST  /api/v1/registration-requests                     application developer, production, with a reason
+GET   /api/v1/registration-requests:mine                its own requests
+POST  /api/v1/registration-requests/{r}:withdraw        its proposer, with a reason
 POST  /api/v1/registrations/{id}:validate               not yet
 ```
 
@@ -171,8 +174,11 @@ using it sees what they own, as any owner does, and not every registration.
 
 ```text
 read GET /v1/registrations:standing
-offer "Register a client" only to an application developer, outside production
-in production, say that a provider creates the registration, until creation by approval exists
+offer "Register a client" to an application developer outside production
+offer "Request a production client" to an application developer in production: the same form,
+    with at least two owners named by principal_id and a reason, sent as a request
+    (`TDD-identity-control-003` §Registration Requests); a provider other than the proposer
+    approves it in the Admin Portal, and the console says so
 the form offers what an application developer may register, and nothing else:
     profile public, confidential or resource
     audience class internal or external
@@ -183,6 +189,9 @@ the form offers what an application developer may register, and nothing else:
 send it once, under an Idempotency-Key kept for the same values, so a retry creates nothing new
 the API validates; a refusal is shown in its own words
 on success, open the new registration's page: its creator is its first owner
+on a request's success, say it waits for another provider; the person's requests are listed on
+    My registrations with their state, the decision's reason, and the registration an approval
+    created; an open one is withdrawn with a reason
 ```
 
 The form is one page rather than §RegistrationWizard's steps. Those wait on `:validate`, which
@@ -352,6 +361,8 @@ hand-maintained documentation always does.
   own resources.
 - A registration is sent under an Idempotency-Key that is reused for the same values. A success
   opens the new registration, and a refusal shows the API's sentence.
+- In production the form sends a request naming its owners, one per line, at least two, the
+  signed-in person first; the request is listed with its state, and withdrawn with a reason.
 
 ### Validation Parity
 
