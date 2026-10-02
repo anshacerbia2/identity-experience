@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.6.0
+  version: 1.7.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -86,6 +86,12 @@ This experience is `privileged` in the audience taxonomy of STD-IAM-002 §3.1, s
 access tokens take lifetime class `L0`: a four-minute lifetime derived from a
 five-minute revocation target. That figure is what bounds how long an open browser
 tab survives a revocation, and it is the reason the class is not a tuning parameter.
+
+Its access tokens name `identity-control-api` in `aud`: the Identity Control API's keyless
+`resource` registration, never its Admin API client `identity-control`. STD-IAM-002 §3.1 forbids a
+client that authenticates in `aud`, because Keycloak lets a client named there exchange the token.
+A BFF registered before the resource existed moves by an audience change
+(`TDD-identity-control-003` §Registration Changes).
 
 ## Component Design
 
