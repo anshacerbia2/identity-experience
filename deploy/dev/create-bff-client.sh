@@ -15,7 +15,7 @@
 #   identity-experience-bff  the BFF's confidential client (TDD-identity-experience-001).
 #                            Authorization Code with PKCE S256 and nothing else: no password grant,
 #                            no implicit flow, no service account (STD-IAM-001 §3.2). The kernel's
-#                            scnehaux-provider scope attached and identity-control named in aud, so
+#                            scnehaux-provider scope attached and identity-control-api named in aud, so
 #                            its access tokens are what the Identity Control API accepts
 #                            (STD-IAM-002 §3.1.1). PS256 for the ID token as well as the access
 #                            token, because the BFF accepts no other algorithm. A 240-second access
@@ -89,9 +89,12 @@ uuid="$(kc create clients -r "$realm" -i \
 	-s 'attributes."access.token.lifespan"=240')"
 # The audience belongs to the client relationship, not to the claim profile, as on
 # identity-control-caller: the provider scope does not make every provider token valid at every API.
+# It names identity-control-api, the Identity Control API's keyless resource, never its Admin API
+# client (STD-IAM-002 §3.1), written exactly as identity-control writes an audience mapper, so the
+# adopted BFF's declared audience matches it.
 kc create "clients/$uuid/protocol-mappers/models" -r "$realm" \
-	-s name=identity-control-audience -s protocol=openid-connect -s protocolMapper=oidc-audience-mapper \
-	-s 'config."included.client.audience"=identity-control' \
+	-s name=audience-identity-control-api -s protocol=openid-connect -s protocolMapper=oidc-audience-mapper \
+	-s 'config."included.client.audience"=identity-control-api' \
 	-s 'config."access.token.claim"=true' -s 'config."id.token.claim"=false' \
 	-s 'config."introspection.token.claim"=true' >/dev/null
 kc update "clients/$uuid/default-client-scopes/$scope" -r "$realm"
