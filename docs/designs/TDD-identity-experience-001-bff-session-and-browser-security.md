@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.8.0
+  version: 1.9.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -264,9 +264,11 @@ repository, on Fastify. It also serves the built browser applications, so the br
 reaches one origin: the session cookie, the content security policy and the API proxy
 all apply to each. The Identity Admin Portal is served at `/`. The Developer Identity
 Console is served under `/developer/` from its own build, when the deployment names one
-(`TDD-identity-experience-004` §Delivery). Its hashed assets, its shell and its
-client-side routes are answered from that build, `/developer` redirects to `/developer/`,
-and every other page path is the Admin Portal's. Each application is rendered client-side,
+(`TDD-identity-experience-004` §Delivery). The account security experience is served under
+`/account/` from its own build in the same way (`TDD-identity-experience-002` §Delivery). For
+each, its hashed assets, its shell and its client-side routes are answered from its build, the
+path without its slash redirects to the one with it, and every other page path is the Admin
+Portal's. Each application is rendered client-side,
 per STD-GLB-FE-001 §3 for authenticated administrative portals, and is built with Vite.
 
 One BFF serves both because SAD-002 §4.1 gives both the same BFF, and one origin is what
@@ -464,6 +466,7 @@ user-experience control only.
 | `IDENTITY_EXPERIENCE_PUBLIC_ORIGIN` | none, required | Exact origin the browser uses; what the `Origin` check compares against |
 | `IDENTITY_EXPERIENCE_WEB_ROOT` | none, required | The built Identity Admin Portal, served at `/` |
 | `IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT` | none | The built Developer Identity Console, served under `/developer/`. Unset, the console is not served and its paths are the Admin Portal's |
+| `IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT` | none | The built account security experience, served under `/account/`. Unset, it is not served and its paths are the Admin Portal's |
 | `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
 | `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
 | `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
