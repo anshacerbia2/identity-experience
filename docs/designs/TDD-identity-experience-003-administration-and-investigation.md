@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.16.0
+  version: 1.17.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -30,7 +30,7 @@ it inherits the obligation to be safer than the console rather than merely prett
 
 - Principal search, and why search is itself a privileged operation.
 - Security state inspection: sessions, authenticators, federation links, findings.
-- Containment: quarantine, session termination, authenticator revocation.
+- Containment: suspension, session termination, authenticator revocation.
 - Reason and evidence capture on every privileged action.
 - The self-action boundary.
 - Oversight of protocol client registrations and their drift.
@@ -61,8 +61,8 @@ that, and reproducing it would replace one enumeration surface with a friendlier
 | :-- | :-- |
 | `PrincipalSearch` | Scoped, logged lookup; never an unbounded listing |
 | `SecurityStateView` | Sessions, authenticators, federation links, findings for one subject |
-| `ContainmentActions` | Quarantine, terminate sessions, revoke authenticators |
-| `EvidencePanel` | Renders privileged-administration events for the subject |
+| `ContainmentActions` | Suspend and restore, terminate sessions, revoke authenticators |
+| `EvidencePanel` | Renders privileged-administration events for the subject, once the Audit API serves them |
 | `ChangeQueue` | Every registration change waiting for approval, oldest first, approved or rejected with a reason |
 
 ### Navigation
@@ -128,12 +128,14 @@ GET   /api/v1/principals/{principal_id}
 GET   /api/v1/principals/{principal_id}/sessions
 GET   /api/v1/principals/{principal_id}/authenticators
 GET   /api/v1/principals/{principal_id}/findings
-POST  /api/v1/principals/{principal_id}:quarantine
-POST  /api/v1/principals/{principal_id}:release
+POST  /api/v1/principals/{principal_id}:suspend
+POST  /api/v1/principals/{principal_id}:restore
 POST  /api/v1/principals/{principal_id}/sessions:terminate-all
 POST  /api/v1/principals/{principal_id}/authenticators/{id}:revoke
-GET   /api/v1/principals/{principal_id}/events
 ```
+
+`GET …/events` follows when the Audit API exists. Until then `TDD-identity-control-005` publishes
+the evidence as events, and the `EvidencePanel` is absent rather than empty.
 
 Every mutation carries an idempotency key, an optimistic version, a reason, and a
 correlation identifier. The reason is a required field on the request, not a prompt
@@ -174,14 +176,14 @@ reconstructible as a write.
 
 ```text
 if subject == acting administrator:
-    quarantine        refuse
-    release           refuse
+    suspend           refuse
+    restore           refuse
     revoke own last authenticator   refuse
     terminate own sessions          permit, through self-service
 ```
 
-An administrator cannot quarantine themselves, and more importantly cannot release
-themselves. Permitting self-release would make quarantine advisory for anyone holding
+An administrator cannot suspend themselves, and more importantly cannot restore
+themselves. Permitting self-restoration would make suspension advisory for anyone holding
 the administrative role, which is precisely the population it must apply to.
 
 Self-service actions remain available through `TDD-identity-experience-002`. The refusal
@@ -193,13 +195,15 @@ applies.
 | Action | Reversible | Confirmation |
 | :-- | :-- | :-- |
 | Terminate sessions | The subject signs in again | Reason |
-| Quarantine | Release restores | Reason, and the effect stated plainly |
+| Suspend | Restore re-enables sign-in; no session comes back | Reason, and the effect stated plainly: sign-in stops, Memberships and ownerships are kept, a token already issued lives out its lifetime |
 | Revoke an authenticator | The subject re-enrolls, if another factor remains | Reason, and the remaining factor count shown |
 | Retire a Principal | **No** | Reason, typed confirmation of the identifier, and the count of Memberships that end |
 
-Quarantine disables rather than deletes, on the same reasoning as the reconciler in
+Suspension disables rather than deletes, on the same reasoning as the reconciler in
 `TDD-identity-control-001`: a false positive caused by a mistaken administrator is
-recoverable, and deletion of a Principal is not.
+recoverable, and deletion of a Principal is not. It is not the reconciler's `quarantined`, which
+no administrator sets or lifts (`TDD-identity-control-005` §Containment Is Reversible). A
+quarantined Principal is shown as such, with no containment action offered.
 
 Revoking an authenticator shows the remaining count before the action, because revoking
 the last one locks the subject out and the administrator is the one person who will not
@@ -507,13 +511,13 @@ again and shows the user signed out rather than a page of errors.
 
 ### Self-Action
 
-- An administrator cannot quarantine themselves.
-- An administrator cannot release themselves from quarantine.
+- An administrator cannot suspend themselves.
+- An administrator cannot restore themselves from a suspension.
 - Self session termination remains available through self-service.
 
 ### Containment
 
-- Quarantine disables and does not delete; release restores.
+- Suspension disables and does not delete; restoration re-enables.
 - Revoking an authenticator displays the remaining factor count before submission.
 - Retiring a Principal requires typed confirmation and shows the count of Memberships
   that end.
@@ -591,8 +595,8 @@ administration surface. Replacing it with a surface that offers the same unbound
 search and the same unlogged reads would move the problem rather than solve it, which is
 why search is constrained and reads are evented here and are not in the console.
 
-The self-release refusal is the one control that would be easy to omit and would quietly
-void quarantine. An administrator who can release themselves cannot be contained by the
+The self-restoration refusal is the one control that would be easy to omit and would quietly
+void suspension. An administrator who can restore themselves cannot be contained by the
 mechanism, and administrators are the accounts most worth containing.
 
 Every privileged action carries a reason collected before submission. A reason recorded
@@ -609,14 +613,14 @@ and page size, so its cost is fixed regardless of the Principal population.
 | :-- | :-- | :-- |
 | Searches per actor per hour | above the configured rate | ten times it |
 | Privileged reads per actor per day | above baseline | — |
-| Quarantine without a subsequent release or retirement | 30 days | — |
+| Suspension without a subsequent restoration or retirement | 30 days | — |
 | Self-action refusal | any occurrence | — |
 
 A self-action refusal is worth surfacing even though it worked. It means an
 administrator attempted to act on themselves through the administrative path, and the
 reason matters.
 
-Runbooks required before production: suspected directory enumeration, quarantine
+Runbooks required before production: suspected directory enumeration, suspension
 review, and locked-out subject after authenticator revocation.
 
 ## Traceability
