@@ -76,6 +76,14 @@
   .nav {
     display: flex;
     flex-direction: column;
+    gap: var(--ds-spacing-md);
+  }
+
+  // One labelled group of the navigation: its label, then its links (TDD-identity-experience-003
+  // §Navigation groups by what an administrator acts on).
+  .navGroup {
+    display: flex;
+    flex-direction: column;
     gap: var(--ds-spacing-xs);
   }
 

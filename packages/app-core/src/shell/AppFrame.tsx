@@ -14,6 +14,7 @@ import { SignInNotice } from '../session/SignInNotice';
 // and an item whose aria-current marks the page.
 export const navClasses = {
   nav: styles['nav'],
+  group: styles['navGroup'],
   section: styles['navSection'],
   list: styles['navList'],
   item: styles['navItem'],

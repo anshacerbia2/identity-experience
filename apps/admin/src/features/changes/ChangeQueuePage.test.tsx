@@ -125,7 +125,7 @@ describe('the approval queue', () => {
     renderApp('/changes', 'id');
     expect(await screen.findByText('Tidak ada perubahan yang menunggu persetujuan.')).toBeInTheDocument();
     expect(
-      within(screen.getByRole('navigation', { name: 'Control plane' })).getByRole('link', {
+      within(screen.getByRole('navigation', { name: 'Utama' })).getByRole('link', {
         name: 'Persetujuan',
       }),
     ).toBeInTheDocument();

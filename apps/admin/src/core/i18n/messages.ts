@@ -15,7 +15,9 @@ export const en = {
 
   'shell.nav.label': 'Primary',
   'shell.nav.overview': 'Overview',
-  'shell.nav.section.control': 'Control plane',
+  'shell.nav.section.identities': 'Identities',
+  'shell.nav.section.applications': 'Applications',
+  'shell.nav.section.governance': 'Governance',
 
   'overview.eyebrow': 'Identity control plane',
   'overview.title': 'Every identity, accounted for.',
@@ -367,7 +369,9 @@ export const id: Messages = {
 
   'shell.nav.label': 'Utama',
   'shell.nav.overview': 'Ringkasan',
-  'shell.nav.section.control': 'Control plane',
+  'shell.nav.section.identities': 'Identitas',
+  'shell.nav.section.applications': 'Aplikasi',
+  'shell.nav.section.governance': 'Tata kelola',
 
   'overview.eyebrow': 'Control plane identitas',
   'overview.title': 'Setiap identitas, tercatat.',
