@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.3.0
+  version: 1.4.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -142,6 +142,18 @@ shows neither. Enrollment followed in 1.3.0 (below):
   takes the first code. This application never sees the secret (§Data Model).
 - **Back on the page.** It says whether the kernel reports the action as done or cancelled, and reads
   the authenticators again.
+
+**Adding a security key (1.4.0).** Built on `TDD-identity-control-005` slice 4b (2.7.0).
+- **Asking.** "Add a security key" asks the API to authorize `{"type":"webauthn"}`. The level and the
+  step-up are the same as for an authenticator app.
+- **Authorized.** The API names `webauthn-register`. The page navigates to the BFF's sign-in with
+  that action. The kernel's own page asks the browser to create the credential and names it. This
+  application never sees the key.
+- **Back on the page.** The outcome is said the same way. The kernel's `kc_action_status` does not say
+  which action ran, so the sentence names neither: "The authenticator is added."
+- **What it is used for.** A key added here is a second factor beside the password, which the
+  kernel's level 2 accepts in place of a code (TDD-identity-kernel-001 1.11.0). A passkey that
+  replaces the password is not offered.
 
 This is the enrollment step §The Last Authenticator Guard makes the safe order: enroll a
 replacement, then remove the old one.
