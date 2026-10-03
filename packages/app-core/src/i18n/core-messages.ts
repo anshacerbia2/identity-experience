@@ -175,7 +175,7 @@ export const coreEn = {
   'changes.withdraw': 'Withdraw',
   'changes.decide.approve.title': 'Approve this change',
   'changes.decide.approve.body':
-    'The redirect URIs are written to the registration and to the client at once, as the proposal shows them.',
+    'This change is written to the registration and to the client at once, exactly as proposed.',
   'changes.decide.reject.title': 'Reject this change',
   'changes.decide.reject.body': 'Nothing changes. Your reason is recorded with the decision.',
   'changes.decide.withdraw.title': 'Withdraw this change',
@@ -189,10 +189,12 @@ export const coreEn = {
     'The registration changed since this was proposed, so nothing was applied. It can be proposed again.',
   'changes.history.caption': 'Decided changes',
   'changes.column.outcome': 'Outcome',
-  'changes.column.uris': 'Redirect URIs',
+  'changes.column.values': 'Values',
   'changes.column.decidedBy': 'Decided by',
   'changes.column.reason': 'Reason',
   'changes.column.decided': 'Decided',
+  'changes.kind.redirect_uris': 'Redirect URIs',
+  'changes.kind.audience': 'Audience',
 } as const;
 
 export type CoreMessageKey = keyof typeof coreEn;
@@ -367,7 +369,7 @@ export const coreId: CoreMessages = {
   'changes.withdraw': 'Tarik',
   'changes.decide.approve.title': 'Setujui perubahan ini',
   'changes.decide.approve.body':
-    'Redirect URI langsung ditulis ke registrasi dan ke client, persis seperti yang ditunjukkan usulan.',
+    'Perubahan ini langsung ditulis ke registrasi dan ke client, persis seperti yang diusulkan.',
   'changes.decide.reject.title': 'Tolak perubahan ini',
   'changes.decide.reject.body': 'Tidak ada yang berubah. Alasanmu dicatat bersama keputusan.',
   'changes.decide.withdraw.title': 'Tarik perubahan ini',
@@ -381,10 +383,12 @@ export const coreId: CoreMessages = {
     'Registrasi berubah sejak ini diusulkan, jadi tidak ada yang diterapkan. Bisa diusulkan lagi.',
   'changes.history.caption': 'Perubahan yang sudah diputuskan',
   'changes.column.outcome': 'Hasil',
-  'changes.column.uris': 'Redirect URI',
+  'changes.column.values': 'Nilai',
   'changes.column.decidedBy': 'Diputuskan oleh',
   'changes.column.reason': 'Alasan',
   'changes.column.decided': 'Diputuskan',
+  'changes.kind.redirect_uris': 'Redirect URI',
+  'changes.kind.audience': 'Audiens',
 };
 
 export const coreMessages: Readonly<Record<Locale, CoreMessages>> = { en: coreEn, id: coreId };

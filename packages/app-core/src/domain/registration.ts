@@ -269,18 +269,23 @@ export interface Owner {
 export const activeOwners = (owners: readonly Owner[]): readonly Owner[] =>
   owners.filter((owner) => owner.active);
 
-// A change to a registration's redirect URIs (ADR-IAM-003 §5.2, TDD-identity-control-003
-// §Registration Changes). The API records the set it replaces and the version it was read at, so
-// what an approver sees is what the proposer saw.
+// A change to a registration's redirect URIs or its audience (ADR-IAM-003 §5.2,
+// TDD-identity-control-003 §Registration Changes). The API records the set it replaces and the
+// version it was read at, so what an approver sees is what the proposer saw. Exactly one of the
+// two before/after pairs is set, by `kind`; the other pair is `null`, never `[]`.
 export type ChangeState = 'proposed' | 'applied' | 'rejected' | 'withdrawn' | 'superseded';
+export type ChangeKind = 'redirect_uris' | 'audience';
 
 export interface RegistrationChange {
   readonly change_id: string;
   readonly registration_id: string;
   readonly client_key: string;
   readonly base_version: number;
-  readonly previous_redirect_uris: readonly string[];
-  readonly redirect_uris: readonly string[];
+  readonly kind: ChangeKind;
+  readonly previous_redirect_uris: readonly string[] | null;
+  readonly redirect_uris: readonly string[] | null;
+  readonly previous_audience: readonly string[] | null;
+  readonly audience: readonly string[] | null;
   readonly approval_required: boolean;
   readonly proposed_by: string;
   readonly proposal_reason: string;
@@ -289,6 +294,17 @@ export interface RegistrationChange {
   readonly decided_by: string | null;
   readonly decision_reason?: string;
   readonly decided_at: string | null;
+}
+
+// changeValues is a change's before and after, picked by its kind: the API leaves the other kind's
+// pair `null`.
+export function changeValues(change: RegistrationChange): {
+  readonly before: readonly string[];
+  readonly after: readonly string[];
+} {
+  return change.kind === 'audience'
+    ? { before: change.previous_audience ?? [], after: change.audience ?? [] }
+    : { before: change.previous_redirect_uris ?? [], after: change.redirect_uris ?? [] };
 }
 
 export type ChangeDecision = 'approve' | 'reject' | 'withdraw';
@@ -307,18 +323,19 @@ export const redirectLines = (text: string): string[] =>
     .map((line) => line.trim())
     .filter((line) => line !== '');
 
-export interface RedirectDiff {
+export interface SetDiff {
   readonly added: readonly string[];
   readonly removed: readonly string[];
   readonly kept: readonly string[];
 }
 
-// redirectDiff is a change's before and after, as an approver reads it.
-export function redirectDiff(before: readonly string[], after: readonly string[]): RedirectDiff {
+// setDiff is a change's before and after, as an approver reads it. Generic over the two kinds of
+// set a registration change carries: redirect URIs and audience entries.
+export function setDiff(before: readonly string[], after: readonly string[]): SetDiff {
   return {
-    added: after.filter((uri) => !before.includes(uri)),
-    removed: before.filter((uri) => !after.includes(uri)),
-    kept: after.filter((uri) => before.includes(uri)),
+    added: after.filter((value) => !before.includes(value)),
+    removed: before.filter((value) => !after.includes(value)),
+    kept: after.filter((value) => before.includes(value)),
   };
 }
 
