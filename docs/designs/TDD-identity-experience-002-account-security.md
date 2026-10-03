@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.2.0
+  version: 1.3.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -102,10 +102,9 @@ its marker.
 
 ### As Built: Sessions and Authenticators (1.2.0)
 
-Built on `TDD-identity-control-005` slice 3a. Consents, enrollment and recovery are not built yet,
-and the page shows none of them:
+Built on `TDD-identity-control-005` slice 3a. Consents and recovery are not built yet, and the page
+shows neither. Enrollment followed in 1.3.0 (below):
 - Consents wait for the API's slice 3b.
-- Enrollment waits for slice 4.
 - Recovery waits for the kernel's recovery pages.
 
 **Sessions.**
@@ -131,6 +130,21 @@ and the page shows none of them:
 - A refusal is the API's (`last_authenticator`). The page renders it as "This is your last way to
   sign in", and does not compute it beforehand (§The Last Authenticator Guard). Enrolling a
   replacement first is not possible yet, so the sentence says so.
+
+**Enrolling an authenticator app (1.3.0).** Built on `TDD-identity-control-005` slice 4a.
+- **Asking.** "Add an authenticator app" asks the API to authorize the enrollment
+  (`POST /api/v1/me/authenticators:enroll`, `{"type":"totp"}`).
+- **Too old an authentication.** The API asks for the level binding requires: `aal2` once the person
+  holds a second factor, `aal1` before, and recent. The page offers the step-up sign-in, as every
+  challenge does. The person presses the button again after it.
+- **Authorized.** The API names the kernel action, `CONFIGURE_TOTP`. The page navigates to the BFF's
+  sign-in with that action, returning to `/account/`. The kernel's own page shows the QR code and
+  takes the first code. This application never sees the secret (§Data Model).
+- **Back on the page.** It says whether the kernel reports the action as done or cancelled, and reads
+  the authenticators again.
+
+This is the enrollment step §The Last Authenticator Guard makes the safe order: enroll a
+replacement, then remove the old one.
 
 **Commands.** Every command carries an Idempotency-Key kept per distinct request, and no reason
 and no version: the API takes neither for a person's own commands. A `202` is followed at
