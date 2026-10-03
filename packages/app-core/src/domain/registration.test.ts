@@ -9,8 +9,8 @@ import {
   needsOperator,
   openFindingsByRegistration,
   ownerLines,
-  redirectDiff,
   redirectLines,
+  setDiff,
   unmanagedClients,
   unmanagedEnabled,
   type Finding,
@@ -129,7 +129,7 @@ describe('redirect URI changes', () => {
   });
 
   it('states what a change adds, removes and keeps', () => {
-    expect(redirectDiff(['https://a/cb', 'https://b/cb'], ['https://b/cb', 'https://c/cb'])).toEqual({
+    expect(setDiff(['https://a/cb', 'https://b/cb'], ['https://b/cb', 'https://c/cb'])).toEqual({
       added: ['https://c/cb'],
       removed: ['https://a/cb'],
       kept: ['https://b/cb'],

@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.7.0
+  version: 1.7.1
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-01
+  last_reviewed: 2026-10-03
   parent_sad: SAD-002
 ---
 
@@ -245,7 +245,14 @@ on an active public or confidential registration:
     the open change is shown as its before and after; its proposer withdraws it with a reason
     a version conflict says the registration changed since it was read, and reads it again
     decided changes are listed with their outcome, who decided, and why
+    a registration's changes include audience changes; each is labelled by its kind and shown
+        with that kind's before and after, never read as redirect URIs
 ```
+
+The API returns redirect URI changes and audience changes in one list, each with a `kind`, and
+leaves the other kind's before and after `null`. The page reads the pair its kind names, so an
+audience change in the history does not break the page. Proposing an audience change from the
+console is not built yet.
 
 The console sends the whole set rather than an edit, because the API pins a change to the set it
 replaces, and the approver sees both. Nothing is validated in the browser beyond splitting the

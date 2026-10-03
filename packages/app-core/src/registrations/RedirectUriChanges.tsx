@@ -19,10 +19,12 @@ import { ApiErrorPanel } from '../api/ApiErrorPanel';
 import { MutationError } from '../api/MutationError';
 import {
   changeable,
+  changeValues,
   openChange,
-  redirectDiff,
   redirectLines,
+  setDiff,
   type ChangeDecision,
+  type ChangeKind,
   type ChangeState,
   type Registration,
   type RegistrationChange,
@@ -42,6 +44,14 @@ const stateTones: Readonly<Record<ChangeState, StatusTone>> = {
   superseded: 'warning',
 };
 
+// kindLabel names what a change's before/after values are: redirect URIs, or an audience of
+// resource client_keys. A registration's own redirect URIs and audience class are shown
+// elsewhere; this is only ever used to label one change in a list that can hold both kinds.
+const kindLabel: Readonly<Record<ChangeKind, CoreMessageKey>> = {
+  redirect_uris: 'changes.kind.redirect_uris',
+  audience: 'changes.kind.audience',
+};
+
 function useMe(): string | null {
   const session = useSession();
   return session.data?.authenticated === true ? session.data.principalId : null;
@@ -54,7 +64,8 @@ function Who({ principal, me }: { readonly principal: string; readonly me: strin
 // ChangeDiffList is a change's before and after as the API recorded them when it was proposed: what
 // it adds, removes and keeps, each said in words and not by colour alone.
 function ChangeDiffList({ change }: { readonly change: RegistrationChange }): ReactElement {
-  const diff = redirectDiff(change.previous_redirect_uris, change.redirect_uris);
+  const { before, after } = changeValues(change);
+  const diff = setDiff(before, after);
   const rows: readonly { readonly uri: string; readonly label: CoreMessageKey; readonly tone: StatusTone }[] =
     [
       ...diff.added.map((uri) => ({ uri, label: 'changes.diff.added' as const, tone: 'success' as const })),
@@ -363,7 +374,7 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
             <CoreMessage id="changes.column.outcome" />
           </Table.HeaderCell>
           <Table.HeaderCell>
-            <CoreMessage id="changes.column.uris" />
+            <CoreMessage id="changes.column.values" />
           </Table.HeaderCell>
           <Table.HeaderCell>
             <CoreMessage id="changes.column.decidedBy" />
@@ -385,9 +396,12 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
               </StatusPill>
             </Table.Cell>
             <Table.Cell mono>
+              <span className={styles['quiet']}>
+                <CoreMessage id={kindLabel[change.kind]} />
+              </span>
               <ul className={styles['values']}>
-                {change.redirect_uris.map((uri) => (
-                  <li key={uri}>{uri}</li>
+                {changeValues(change).after.map((value) => (
+                  <li key={value}>{value}</li>
                 ))}
               </ul>
             </Table.Cell>
