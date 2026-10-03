@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.17.1
+  version: 1.18.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-01
+  last_reviewed: 2026-10-03
   parent_sad: SAD-002
 ---
 
@@ -127,11 +127,13 @@ GET   /api/v1/principals:search
 GET   /api/v1/principals/{principal_id}
 GET   /api/v1/principals/{principal_id}/sessions
 GET   /api/v1/principals/{principal_id}/authenticators
+GET   /api/v1/principals/{principal_id}/federation-links
 GET   /api/v1/principals/{principal_id}/findings
 POST  /api/v1/principals/{principal_id}:suspend
 POST  /api/v1/principals/{principal_id}:restore
 POST  /api/v1/principals/{principal_id}/sessions:terminate-all
-POST  /api/v1/principals/{principal_id}/authenticators/{id}:revoke
+POST  /api/v1/principals/{principal_id}/authenticators/{security_ref}:revoke
+GET   /api/v1/security-operations/{operation_id}
 ```
 
 `GET …/events` follows when the Audit API exists. Until then `TDD-identity-control-005` keeps the
@@ -391,10 +393,9 @@ own proposal is a courtesy: the API refuses it, and so does the database.
 
 ### Principal Provisioning and Portability
 
-Principal search and a Principal's security state (§API / Interface above) depend on
-`TDD-identity-control-005`, which is not built upstream. What the Identity Control API
-offers today comes from `TDD-identity-control-001`, and the console shows that and
-nothing more:
+Creation, dangling mappings and relink come from `TDD-identity-control-001`. Search and a
+Principal's security state come from `TDD-identity-control-005` (§Principal Search and Security
+State, below).
 
 ```text
 POST  /api/v1/principals                    Idempotency-Key
@@ -423,6 +424,68 @@ what the sweep found, not by the Principal population, so it is not the listing
 §Search Is Not Listing rules out. No page lists every Principal. **Run the Principal
 sweep now** runs pending recovery and the dangling-mapping sweep, as the schedule does,
 and reports how many it recovered and how many it found dangling.
+
+### Principal Search and Security State
+
+Built on `TDD-identity-control-005` 2.2.0: its reads (slice 1) and its containment (slice 2).
+
+**Search.** The Principals page opens with a search box and lists nothing until a query is sent.
+- A query needs three characters that are not wildcards. Shorter, the API refuses it with its
+  sentence.
+- A result row shows the username, email, subject type and state, and links to the Principal's
+  page. The page holds at most 25 rows, and says so when it is full: a narrower query finds the
+  rest.
+- There is no "show all" (§Search Is Not Listing).
+
+**A Principal's page** (`/principals/{principal_id}`). It reads the Principal, then four sections,
+each its own privileged read:
+- **Summary.** State, subject type, `principal_id`, the creation and activation times, and a
+  quarantine with its reason.
+- **Sessions.** Each one's start, last use and clients.
+- **Authenticators.** Each one's type, label and creation time.
+- **Federation links.** Each one's provider and username there.
+- **Findings.** Each one's class, when it was detected, and whether it is resolved.
+
+The page renders a section when it is opened, not before. A read the operator did not ask for is a
+disclosure nobody needed (§Reads Are Privileged Too).
+
+**Containment.** These actions are offered only where the API accepts them:
+
+| The Principal is | Offered |
+| :-- | :-- |
+| `active` | Suspend; end every session; revoke an authenticator |
+| `suspended` | Restore; end every session; revoke an authenticator |
+| `pending`, `quarantined`, `retired` | Nothing, with the state's sentence |
+| A workload | Nothing; a link to its Workloads page |
+| The operator's own Principal | Nothing; self-service is the place for one's own sessions (§The Self-Action Boundary) |
+
+- **What every action carries.** A reason, and `expected_version`, the page's `security_version`.
+  It also carries an Idempotency-Key kept per distinct request, as creation's is.
+- **Suspend** states its effect: sign-in stops, sessions end, Memberships and ownerships are kept,
+  and a token already issued lives out its lifetime.
+- **Restore** states that no session comes back.
+- **Revoke** shows how many first factors would remain, as §Containment Is Reversible First asks.
+  A first factor is one that begins a sign-in: a password or a passkey. Revoke is not offered for
+  the last one, because the API refuses it (`last_authenticator`). The row says to suspend the
+  Principal instead.
+
+**Outcomes.**
+- **`200 applied`.** The page says what changed and reads the Principal again, so the next
+  command names the new version.
+- **`200 refused`.** The page shows the result code's sentence.
+- **`202`.** The command is accepted and still running. The page polls
+  `GET /v1/security-operations/{operation_id}` every two seconds for up to thirty seconds, then
+  shows the operation identifier and says it is still running.
+- **`unresolved`.** The page says the command is parked for an operator, and that the Principal's
+  later commands wait behind it.
+- **`409 version-conflict`.** The page reads the Principal again and asks the operator to repeat
+  the command.
+- **`401 insufficient_user_authentication`.** The page offers **Sign in again to continue**, with
+  the challenge's `max_age` (`TDD-identity-experience-001` §Step-Up). The form is filled in again
+  after the sign-in.
+
+**References stay in memory.** A `security_ref` lives in the authenticators query's cache for the
+rendered page. It is never written to browser storage (§Data Model).
 
 ### Application Developers
 
@@ -500,6 +563,7 @@ again and shows the user signed out rather than a page of errors.
 ### Search
 
 - An empty or wildcard-only query is refused.
+- The Principals page lists nothing until a query is sent, and says when a page of results is full.
 - A query below the minimum length is refused.
 - No endpoint returns an unbounded Principal listing.
 - Every search emits a privileged read event carrying the query and the result count.
@@ -520,6 +584,11 @@ again and shows the user signed out rather than a page of errors.
 
 - Suspension disables and does not delete; restoration re-enables.
 - Revoking an authenticator displays the remaining factor count before submission.
+- Revoke is not offered for the last first factor. Suspend is offered only for an `active` human
+  Principal, restore only for a `suspended` one, and nothing for the operator's own Principal or
+  for a workload.
+- A `202` is followed to its final state. An `insufficient_user_authentication` challenge offers a
+  sign-in with its `max_age` and keeps the session.
 - Retiring a Principal requires typed confirmation and shows the count of Memberships
   that end.
 - Every mutation carries a reason; a request without one is refused by the API.

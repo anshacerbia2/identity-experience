@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.7.0
+  version: 1.8.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -279,10 +279,9 @@ Identity Control API authorizes for the session's token, not in how the session 
 ### BFF Endpoints
 
 ```text
-GET   /auth/login
+GET   /auth/login            ?return_to=&max_age=
 GET   /auth/callback
 POST  /auth/logout
-POST  /auth/step-up
 POST  /auth/back-channel-logout
 GET   /auth/session
 POST  /auth/context
@@ -314,7 +313,8 @@ and `If-None-Match` pass, never `Authorization` or `Cookie`, and no upstream `Se
 comes back. A path that would resolve outside `/v1/` — a dot-segment, or an encoded slash
 or backslash in any segment — is refused before any session is read.
 
-`POST /auth/step-up` and `POST /auth/context` are built with the screens that need them.
+`POST /auth/context` is built with the screen that needs it. Step-up has no endpoint of its own:
+it is a sign-in with `max_age` (§Step-Up).
 
 Errors are RFC 7807 problem documents per STD-GLB-001, with the problem types of
 `foundation-platform`'s registry. `foundation-platform` is a Go module, so the BFF writes
@@ -392,19 +392,46 @@ an idle tab makes no request and therefore exercises no authority.
 
 ### Step-Up
 
+The Identity Control API declares when a command needs a fresher authentication. It answers `401`
+with `WWW-Authenticate: Bearer error="insufficient_user_authentication", max_age=N`
+(`TDD-identity-control-005` §Step-Up). RFC 9470 §4 says what a client does with that: it "SHOULD
+parse the WWW-Authenticate header for acr_values and max_age and use them, if present, in
+constructing an authorization request" [R1].
+
 ```text
-on an operation requiring elevated assurance:
-    if session.acr satisfies the requirement and auth_time is recent enough:
-        proceed
+proxy, on an upstream 401:
+    if WWW-Authenticate carries error="insufficient_user_authentication":
+        keep the session; pass the 401, its problem document and WWW-Authenticate through
     else:
-        redirect to Keycloak with the required acr_values and max_age
-        on return, update session.acr and auth_time
-        proceed once
+        destroy the session, as §How a Revocation Reaches an Open Tab says
+
+application, on that 401:
+    offer "sign in again to continue", a navigation to /auth/login?max_age=N&return_to=<here>
+
+/auth/login with max_age:
+    send max_age in the authorization request; keep it with the sign-in in flight
+/auth/callback:
+    require the ID token's auth_time within max_age of now, as openid-client checks it
+    start a new session, as every sign-in does
 ```
 
-The requirement is declared by the Identity Control API, not decided by the browser.
-The BFF reads the requirement from the API's response and drives the ceremony; it
-never grants elevated assurance on its own.
+- **The session is kept on a step-up challenge.** This 401 says the authentication is too old for
+  this command. It does not say the token is refused, so ending the session would sign out an
+  operator who did nothing wrong. Every other 401 still ends the session.
+- **Step-up is a sign-in, not a separate endpoint.** OpenID Connect gives `max_age` the exact
+  meaning needed: "If the elapsed time is greater than this value, the OP MUST attempt to actively
+  re-authenticate the End-User", and "the ID Token returned MUST include an auth_time Claim Value"
+  [R2]. A sign-in already binds the callback to the browser and replaces the session identifier, so
+  the step-up gets those properties without new code. `max_age` is an integer from 0 to 86400; any
+  other value is ignored, and the sign-in goes ahead without it.
+- **`acr_values` is not sent.** The realm maps no level of authentication, so there is no stronger
+  class to ask for (`TDD-identity-control-005` §Step-Up).
+- **The browser never decides the requirement.** The application reads `max_age` from the API's
+  challenge, which the BFF passes through. A request that sets `max_age` itself only makes its own
+  sign-in stricter.
+- **What the command keeps.** The page is reloaded after the sign-in, so the command's form is
+  filled in again. The application keeps no reference or reason in browser storage (TDD-003 §Data
+  Model).
 
 ### Context Switch
 
@@ -537,7 +564,11 @@ the build emits styles and fonts as files served from this origin, never inline.
 - An identity kernel outage during refresh answers 503 and keeps the session.
 - Concurrent requests that find the token near expiry refresh once.
 - Back-channel logout destroys the matching session and no other.
-- A 401 from the Identity Control API destroys the session.
+- A 401 from the Identity Control API destroys the session, unless it is a step-up challenge.
+- A step-up challenge (`insufficient_user_authentication`) keeps the session, and its
+  `WWW-Authenticate` reaches the browser.
+- `/auth/login?max_age=N` sends `max_age`. A callback whose `auth_time` is older than `N` is
+  refused. A malformed `max_age` is ignored.
 - Measured time from Membership revocation to session destruction stays within the
   remaining access token lifetime of class `L0`.
 
@@ -635,3 +666,10 @@ produces no runtime edge, and no dependency on Notification, Audit, Software Cat
 or Subscription & Entitlement. Verification and recovery messages are delivered by the
 identity kernel's own mail path, and evidence facts leave through the Identity Control
 outbox.
+
+## References
+
+| Ref | Source |
+| :-- | :-- |
+| R1 | IETF RFC 9470, *OAuth 2.0 Step Up Authentication Challenge Protocol*, §4, <https://www.rfc-editor.org/rfc/rfc9470#section-4>: "A client receiving a challenge from the resource server carrying the insufficient_user_authentication error code SHOULD parse the WWW-Authenticate header for acr_values and max_age and use them, if present, in constructing an authorization request." |
+| R2 | OpenID Foundation, *OpenID Connect Core 1.0*, §3.1.2.1, <https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest>, accessed 2026-10-03: max_age "Specifies the allowable elapsed time in seconds since the last time the End-User was actively authenticated by the OP. If the elapsed time is greater than this value, the OP MUST attempt to actively re-authenticate the End-User … When max_age is used, the ID Token returned MUST include an auth_time Claim Value." |
