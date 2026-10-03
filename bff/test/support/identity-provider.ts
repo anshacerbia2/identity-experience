@@ -41,6 +41,8 @@ export type RefreshBehaviour = 'rotate' | 'invalid_grant' | 'unavailable';
 interface PendingCode {
   readonly user: User;
   readonly sid: string;
+  // acr is the level the request asked for, which the kernel's flow reaches; aal1 otherwise.
+  readonly acr: string;
   readonly nonce: string;
   readonly challenge: string;
   readonly redirectUri: string;
@@ -49,6 +51,7 @@ interface PendingCode {
 interface Grant {
   readonly user: User;
   readonly sid: string;
+  readonly acr: string;
 }
 
 const base64url = (buffer: Buffer): string => buffer.toString('base64url');
@@ -62,6 +65,8 @@ const readBody = async (request: IncomingMessage): Promise<string> => {
 };
 
 export class IdentityProvider {
+  // lastAuthorization is the query of the latest authorization request, for asserting what it asked.
+  lastAuthorization: URLSearchParams | null = null;
   readonly clientId = 'identity-experience';
   // Every client assertion the BFF presented, so a test can see it never repeats one.
   readonly assertionIds = new Set<string>();
@@ -153,9 +158,11 @@ export class IdentityProvider {
       throw new Error(`authorization request refused: ${params.toString()}`);
     }
     const code = randomUUID();
+    this.lastAuthorization = params;
     this.#codes.set(code, {
       user,
       sid: randomUUID(),
+      acr: params.get('acr_values') ?? 'aal1',
       nonce: params.get('nonce') ?? '',
       challenge: params.get('code_challenge') ?? '',
       redirectUri: params.get('redirect_uri') ?? '',
@@ -284,7 +291,7 @@ export class IdentityProvider {
       }
       return {
         status: 200,
-        body: await this.#tokens({ user: pending.user, sid: pending.sid }, pending.nonce),
+        body: await this.#tokens({ user: pending.user, sid: pending.sid, acr: pending.acr }, pending.nonce),
       };
     }
 
@@ -321,7 +328,7 @@ export class IdentityProvider {
         iat: now,
         exp: now + 300,
         auth_time: now,
-        acr: '1',
+        acr: grant.acr,
         sid: grant.sid,
         principal_id: grant.user.principalId,
         provider_scope: 'platform',

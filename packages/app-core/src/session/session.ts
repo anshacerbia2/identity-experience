@@ -42,10 +42,22 @@ export function useSession() {
 export const signInHref = (returnTo: string): string =>
   `/auth/login?return_to=${encodeURIComponent(returnTo)}`;
 
-// stepUpHref starts the sign-in a step-up challenge asks for: the same sign-in, with the max_age the
-// API stated, returning here (TDD-identity-experience-001 §Step-Up).
-export const stepUpHref = (returnTo: string, maxAge: number): string =>
-  `/auth/login?max_age=${String(maxAge)}&return_to=${encodeURIComponent(returnTo)}`;
+// stepUpHref starts the sign-in a step-up challenge asks for: the same sign-in, with the level and
+// the age the API stated, returning here (TDD-identity-experience-001 §Step-Up).
+export function stepUpHref(
+  returnTo: string,
+  stepUp: { readonly acr: string | null; readonly maxAge: number | null },
+): string {
+  const query = new URLSearchParams();
+  if (stepUp.maxAge !== null) {
+    query.set('max_age', String(stepUp.maxAge));
+  }
+  if (stepUp.acr !== null) {
+    query.set('acr_values', stepUp.acr);
+  }
+  query.set('return_to', returnTo);
+  return `/auth/login?${query.toString()}`;
+}
 
 // useHere is the path a sign-in returns to: where the browser is, on this origin. The router's own
 // location leaves out the base path an application is served under (/developer/ for the Developer

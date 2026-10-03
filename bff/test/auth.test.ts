@@ -282,6 +282,36 @@ describe('step-up', () => {
     expect(stepUpMaxAge(undefined)).toBeNull();
   });
 
+  it('signs the Admin Portal in at aal2, and the other applications at no level of their own', async () => {
+    const level = async (url: string) =>
+      new URL(String((await harness.app.inject({ method: 'GET', url })).headers.location)).searchParams.get(
+        'acr_values',
+      );
+    expect(await level('/auth/login?return_to=/principals')).toBe('aal2');
+    expect(await level('/auth/login')).toBe('aal2');
+    expect(await level('/auth/login?return_to=/developer/')).toBeNull();
+    expect(await level('/auth/login?return_to=/account/')).toBeNull();
+    expect(await level('/auth/login?return_to=/account/&acr_values=aal2')).toBe('aal2');
+    expect(await level('/auth/login?return_to=/account/&acr_values=phr')).toBeNull();
+  });
+
+  it('refuses a callback whose acr is below the level asked for', async () => {
+    harness.provider.tamper = { claims: { acr: 'aal1' } };
+    const { login } = await (async () => {
+      const response = await harness.app.inject({ method: 'GET', url: '/auth/login?return_to=/principals' });
+      return { login: response };
+    })();
+    const query = harness.provider.authorize(String(login.headers.location));
+    const callback = await harness.app.inject({
+      method: 'GET',
+      url: `/auth/callback${query}`,
+      cookies: { '__Host-ident_login': cookieValue(login, '__Host-ident_login') ?? '' },
+    });
+    expect(callback.statusCode).toBe(302);
+    expect(callback.headers.location).toBe('/?sign-in=failed');
+    expect(cookieValue(callback, '__Host-ident_session')).toBeUndefined();
+  });
+
   it('a step-up challenge from the API keeps the session and reaches the browser', async () => {
     const { session } = await signIn(harness);
     const challenge = 'Bearer error="insufficient_user_authentication", max_age=300';

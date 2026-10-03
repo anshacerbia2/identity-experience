@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as client from 'openid-client';
 
+import { meets, requestedLevel } from './levels.js';
 import { IdentityProviderUnavailable, OidcError, type Oidc } from './oidc.js';
 import { applicationRoot } from '../http/applications.js';
 import { authenticate } from '../http/authenticate.js';
@@ -86,7 +87,7 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     },
   );
 
-  app.get<{ Querystring: { return_to?: string; max_age?: string } }>(
+  app.get<{ Querystring: { return_to?: string; max_age?: string; acr_values?: string } }>(
     '/auth/login',
     async (request, reply) => {
       const binding = randomToken();
@@ -94,19 +95,26 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
       const state = client.randomState();
       const nonce = client.randomNonce();
       const maxAge = stepUpMaxAge(request.query.max_age);
+      const returnTo = safeReturnTo(request.query.return_to, publicOrigin);
+      // The Admin Portal signs in at aal2: every provider route requires it (ADR-IAM-004 §5.3). The
+      // BFF decides that by where the sign-in returns; a level the request names is its own.
+      const acrValues =
+        requestedLevel(request.query.acr_values) ?? (applicationRoot(returnTo) === '/' ? 'aal2' : null);
       await store.putLoginState(digest(binding), {
         state,
         nonce,
         codeVerifier,
-        returnTo: safeReturnTo(request.query.return_to, publicOrigin),
+        returnTo,
         expiresAt: new Date(now().getTime() + loginLifetimeSeconds * 1_000),
         maxAge,
+        acrValues,
       });
       const location = oidc.authorizationUrl({
         state,
         nonce,
         codeChallenge: await client.calculatePKCECodeChallenge(codeVerifier),
         maxAge,
+        acrValues,
       });
       setLoginCookie(reply, binding);
       return noStore(reply).redirect(location.href, 302);
@@ -160,6 +168,11 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     const { identity } = grant;
     if (identity === null) {
       return fail('the token response carried no identity');
+    }
+    // The kernel decides how a person reaches the level asked for; the BFF checks that it did.
+    const asked = requestedLevel(login.acrValues);
+    if (asked !== null && !meets(identity.acr, asked)) {
+      return fail(`the authentication reached acr ${identity.acr ?? 'none'}, below the ${asked} asked for`);
     }
 
     // A sign-in always issues a new session identifier, and the one the browser held before, if

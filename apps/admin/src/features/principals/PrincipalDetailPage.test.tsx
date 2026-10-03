@@ -209,6 +209,29 @@ describe('PrincipalDetailPage', () => {
     expect(screen.getAllByText('Ada Admin').length).toBeGreaterThan(0);
   });
 
+  it('offers a sign-in at aal2 when a read is challenged for its level', async () => {
+    stubFetch((url) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (url.pathname === `/api/v1/principals/${subject}`) {
+        return new Response(JSON.stringify({ status: 401 }), {
+          status: 401,
+          headers: {
+            'content-type': 'application/problem+json',
+            'www-authenticate': 'Bearer error="insufficient_user_authentication", acr_values="aal2"',
+          },
+        });
+      }
+      return undefined;
+    });
+    renderApp(`/principals/${subject}`);
+    const link = await screen.findByRole('link', { name: 'Sign in again to continue' });
+    expect(link.getAttribute('href')).toMatch(/^\/auth\/login\?acr_values=aal2&return_to=/);
+    // The session is kept: the shell still shows the operator.
+    expect(screen.getAllByText('Ada Admin').length).toBeGreaterThan(0);
+  });
+
   it('does not offer the last way to sign in, and shows what remains for another', async () => {
     api({});
     renderApp(`/principals/${subject}`);

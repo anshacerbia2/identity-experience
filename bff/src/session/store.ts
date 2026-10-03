@@ -34,6 +34,8 @@ export interface LoginState {
   // maxAge is a step-up's allowable time since the last authentication, in seconds; null for a
   // plain sign-in (TDD-identity-experience-001 §Step-Up).
   readonly maxAge: number | null;
+  // acrValues is the level the sign-in asked for (ADR-IAM-004); null for none.
+  readonly acrValues: string | null;
 }
 
 // TokenUpdate is what a refresh writes back: the new tokens and what they assert.
@@ -68,6 +70,7 @@ interface LoginStateRow {
   return_to: string;
   expires_at: Date;
   max_age: number | null;
+  acr_values: string | null;
 }
 
 const sessionColumns =
@@ -86,11 +89,11 @@ export class SessionStore {
 
   async putLoginState(bindingHash: Buffer, login: LoginState): Promise<void> {
     await this.#pool.query(
-      `INSERT INTO login_states (binding_hash, state, nonce, code_verifier, return_to, expires_at, max_age)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO login_states (binding_hash, state, nonce, code_verifier, return_to, expires_at, max_age, acr_values)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (binding_hash) DO UPDATE SET state = EXCLUDED.state, nonce = EXCLUDED.nonce,
          code_verifier = EXCLUDED.code_verifier, return_to = EXCLUDED.return_to, expires_at = EXCLUDED.expires_at,
-         max_age = EXCLUDED.max_age`,
+         max_age = EXCLUDED.max_age, acr_values = EXCLUDED.acr_values`,
       [
         bindingHash,
         login.state,
@@ -99,6 +102,7 @@ export class SessionStore {
         login.returnTo,
         login.expiresAt,
         login.maxAge,
+        login.acrValues,
       ],
     );
   }
@@ -106,7 +110,7 @@ export class SessionStore {
   // takeLoginState consumes the row: a callback is answered once, and a replayed one finds nothing.
   async takeLoginState(bindingHash: Buffer): Promise<LoginState | null> {
     const { rows } = await this.#pool.query<LoginStateRow>(
-      'DELETE FROM login_states WHERE binding_hash = $1 RETURNING state, nonce, code_verifier, return_to, expires_at, max_age',
+      'DELETE FROM login_states WHERE binding_hash = $1 RETURNING state, nonce, code_verifier, return_to, expires_at, max_age, acr_values',
       [bindingHash],
     );
     const row = rows[0];
@@ -120,6 +124,7 @@ export class SessionStore {
       returnTo: row.return_to,
       expiresAt: row.expires_at,
       maxAge: row.max_age,
+      acrValues: row.acr_values,
     };
   }
 
