@@ -80,6 +80,21 @@
     gap: var(--ds-spacing-sm);
   }
 
+  .searchForm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ds-spacing-sm);
+    max-inline-size: 40rem;
+  }
+
+  .details {
+    display: grid;
+    grid-template-columns: minmax(8rem, max-content) 1fr;
+    gap: var(--ds-spacing-2xs) var(--ds-spacing-md);
+    margin: 0;
+  }
+
   .subject {
     font-family: var(--ds-font-family-mono);
     font-size: var(--ds-font-size-sm);

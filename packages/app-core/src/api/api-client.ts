@@ -16,6 +16,11 @@ export class ApiError extends Error {
     readonly title: string | null,
     readonly detail: string | null,
     readonly correlationId: string | null,
+    // stepUpMaxAge is set when the API asked for a fresher sign-in: RFC 9470's
+    // insufficient_user_authentication, with the age it allows in seconds. The session is still
+    // valid; the application offers a sign-in with this max_age (TDD-identity-experience-001
+    // §Step-Up).
+    readonly stepUpMaxAge: number | null = null,
   ) {
     super(`${String(status)}${title === null ? '' : ` ${title}`}`);
   }
@@ -35,6 +40,16 @@ interface ProblemDocument {
 
 const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
+// stepUpChallenge reads a step-up challenge's max_age from WWW-Authenticate, or null when the 401 is
+// not one. A challenge without max_age asks for a sign-in now.
+export function stepUpChallenge(header: string | null): number | null {
+  if (header === null || !/error="insufficient_user_authentication"/.test(header)) {
+    return null;
+  }
+  const maxAge = /max_age="?(\d{1,5})"?/.exec(header);
+  return maxAge?.[1] === undefined ? 0 : Number(maxAge[1]);
+}
+
 async function toError(response: Response): Promise<ApiError> {
   let problem: ProblemDocument = {};
   if ((response.headers.get('content-type') ?? '').includes('json')) {
@@ -50,6 +65,7 @@ async function toError(response: Response): Promise<ApiError> {
     text(problem.title),
     text(problem.detail),
     text(problem.correlation_id),
+    response.status === 401 ? stepUpChallenge(response.headers.get('www-authenticate')) : null,
   );
 }
 

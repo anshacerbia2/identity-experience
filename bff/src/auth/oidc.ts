@@ -174,7 +174,15 @@ export class Oidc {
     this.#now = now;
   }
 
-  authorizationUrl(checks: { state: string; nonce: string; codeChallenge: string }): URL {
+  // authorizationUrl builds the sign-in request. maxAge, for a step-up, asks the kernel to
+  // authenticate the user again unless it did within that many seconds (OpenID Connect Core
+  // §3.1.2.1; TDD-identity-experience-001 §Step-Up).
+  authorizationUrl(checks: {
+    state: string;
+    nonce: string;
+    codeChallenge: string;
+    maxAge?: number | null;
+  }): URL {
     return client.buildAuthorizationUrl(this.#configuration, {
       redirect_uri: this.#redirectUri,
       scope: signInScope,
@@ -183,6 +191,7 @@ export class Oidc {
       nonce: checks.nonce,
       code_challenge: checks.codeChallenge,
       code_challenge_method: 'S256',
+      ...(checks.maxAge === undefined || checks.maxAge === null ? {} : { max_age: String(checks.maxAge) }),
     });
   }
 
@@ -191,7 +200,7 @@ export class Oidc {
   // sent to the token endpoint is the registered one.
   async exchange(
     query: string,
-    checks: { state: string; nonce: string; codeVerifier: string },
+    checks: { state: string; nonce: string; codeVerifier: string; maxAge?: number | null },
   ): Promise<Grant> {
     const callback = new URL(this.#redirectUri);
     callback.search = query;
@@ -201,6 +210,9 @@ export class Oidc {
         expectedState: checks.state,
         expectedNonce: checks.nonce,
         idTokenExpected: true,
+        // A step-up's ID token must show an authentication within max_age; openid-client refuses
+        // one whose auth_time is older, or absent.
+        ...(checks.maxAge === undefined || checks.maxAge === null ? {} : { maxAge: checks.maxAge }),
       });
       return this.#grant(response, null);
     } catch (error) {

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChangesIndexRouteImport } from './routes/changes/index'
 import { Route as PrincipalsIndexRouteImport } from './routes/principals/index'
+import { Route as PrincipalsPrincipalIdRouteImport } from './routes/principals/$principalId'
 import { Route as RegistrationsIndexRouteImport } from './routes/registrations/index'
 import { Route as RegistrationsRegistrationIdRouteImport } from './routes/registrations/$registrationId'
 import { Route as WorkloadsIndexRouteImport } from './routes/workloads/index'
@@ -29,6 +30,11 @@ const ChangesIndexRoute = ChangesIndexRouteImport.update({
 const PrincipalsIndexRoute = PrincipalsIndexRouteImport.update({
   id: '/principals/',
   path: '/principals/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrincipalsPrincipalIdRoute = PrincipalsPrincipalIdRouteImport.update({
+  id: '/principals/$principalId',
+  path: '/principals/$principalId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistrationsIndexRoute = RegistrationsIndexRouteImport.update({
@@ -50,6 +56,7 @@ const WorkloadsIndexRoute = WorkloadsIndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes/': typeof ChangesIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes': typeof ChangesIndexRoute
   '/principals': typeof PrincipalsIndexRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes/': typeof ChangesIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes/'
     | '/principals/'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes'
     | '/principals'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes/'
     | '/principals/'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrincipalsPrincipalIdRoute: typeof PrincipalsPrincipalIdRoute
   RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
   ChangesIndexRoute: typeof ChangesIndexRoute
   PrincipalsIndexRoute: typeof PrincipalsIndexRoute
@@ -132,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrincipalsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/principals/$principalId': {
+      id: '/principals/$principalId'
+      path: '/principals/$principalId'
+      fullPath: '/principals/$principalId'
+      preLoaderRoute: typeof PrincipalsPrincipalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/registrations/': {
       id: '/registrations/'
       path: '/registrations'
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrincipalsPrincipalIdRoute: PrincipalsPrincipalIdRoute,
   RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
   ChangesIndexRoute: ChangesIndexRoute,
   PrincipalsIndexRoute: PrincipalsIndexRoute,
