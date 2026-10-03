@@ -5,6 +5,9 @@ import { Button, Icon, StatusPill } from '@identity-experience/ui';
 import { signInHref, useHere, useSession, useSignOut } from './session';
 import { CoreMessage } from '../i18n/CoreMessage';
 
+// The account security experience's root, served by the same BFF.
+const accountRoot = '/account/';
+
 // SessionControl states who is signed in and offers the one action that applies: sign in, or
 // sign out. Signing in is a full navigation to the BFF, never a fetch: the identity kernel's
 // hosted page is where credentials are entered.
@@ -41,6 +44,13 @@ export function SessionControl(): ReactElement {
       <StatusPill tone="success">
         {displayName ?? principalId ?? <CoreMessage id="shell.session.signedIn" />}
       </StatusPill>
+      {/* Every person's own account security, a separate application (TDD-identity-experience-002
+          §Delivery). Not offered from inside it. */}
+      {here.startsWith(accountRoot) ? null : (
+        <Button variant="ghost" size="sm" href={accountRoot} icon={<Icon name="shield" />}>
+          <CoreMessage id="shell.session.account" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="sm"

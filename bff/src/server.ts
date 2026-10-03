@@ -10,7 +10,7 @@ import { apiProxy } from './api/proxy.js';
 import { Oidc } from './auth/oidc.js';
 import { authRoutes } from './auth/routes.js';
 import type { Config } from './config.js';
-import { developerPrefix, isDeveloperPath } from './http/applications.js';
+import { accountPrefix, developerPrefix, isAccountPath, isDeveloperPath } from './http/applications.js';
 import { registerCanonicalHost } from './http/canonical-host.js';
 import { sendProblem } from './http/problem.js';
 import { registerSecurityHeaders } from './http/security-headers.js';
@@ -119,12 +119,29 @@ export async function buildServer(
     });
   }
 
+  // The account security experience, in the same way under /account/.
+  const accountRoot = config.accountWebRoot === null ? null : path.resolve(config.accountWebRoot);
+  if (accountRoot !== null) {
+    await app.register(fastifyStatic, {
+      root: accountRoot,
+      prefix: accountPrefix,
+      index: false,
+      wildcard: true,
+      decorateReply: false,
+      setHeaders,
+    });
+  }
+
   // sendShell answers with the shell of the application a page path belongs to.
   const sendShell = (url: string, reply: FastifyReply): FastifyReply => {
     reply.header('cache-control', 'no-store');
-    return developerRoot !== null && isDeveloperPath(url)
-      ? reply.sendFile('index.html', developerRoot)
-      : reply.sendFile('index.html');
+    if (developerRoot !== null && isDeveloperPath(url)) {
+      return reply.sendFile('index.html', developerRoot);
+    }
+    if (accountRoot !== null && isAccountPath(url)) {
+      return reply.sendFile('index.html', accountRoot);
+    }
+    return reply.sendFile('index.html');
   };
 
   // An application's root is the one page the static handler cannot answer: to it, "/" is a
@@ -135,6 +152,13 @@ export async function buildServer(
     // One address for the console's root: its shell is at /developer/.
     app.get(developerPrefix.slice(0, -1), async (_request, reply) =>
       reply.header('cache-control', 'no-store').redirect(developerPrefix, 308),
+    );
+  }
+
+  if (accountRoot !== null) {
+    app.get(accountPrefix, async (request, reply) => sendShell(request.url, reply));
+    app.get(accountPrefix.slice(0, -1), async (_request, reply) =>
+      reply.header('cache-control', 'no-store').redirect(accountPrefix, 308),
     );
   }
 

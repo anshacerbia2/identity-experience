@@ -20,6 +20,10 @@ export interface Config {
   // when this deployment does not serve it.
   readonly developerWebRoot: string | null;
 
+  // accountWebRoot is the built account security experience, served under /account/ in the same
+  // way (TDD-identity-experience-002 §Delivery). Null when this deployment does not serve it.
+  readonly accountWebRoot: string | null;
+
   // publicOrigin is the exact origin the browser uses. It is what the Origin check compares a
   // state-changing request against, so a value with a trailing slash would refuse every one.
   readonly publicOrigin: string;
@@ -153,6 +157,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   const webRoot = required('IDENTITY_EXPERIENCE_WEB_ROOT');
   const developerWebRoot = optional('IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT') || null;
+  const accountWebRoot = optional('IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT') || null;
 
   const rawPort = optional('IDENTITY_EXPERIENCE_LISTEN_PORT') || '8080';
   const listenPort = Number.parseInt(rawPort, 10);
@@ -220,6 +225,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     listenPort,
     webRoot,
     developerWebRoot,
+    accountWebRoot,
     publicOrigin,
     logLevel: logLevel as Config['logLevel'],
     // clientKey is set whenever problems is empty: clientKeyFrom reports every other outcome.

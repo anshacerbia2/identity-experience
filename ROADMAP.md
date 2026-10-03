@@ -121,6 +121,14 @@ not extend it, because the refresh path bounds it independently.
 
 ## Week 3 · Account security
 
+**Started** on identity-control's TDD-005 slice 3a (TDD-002 1.2.0 §As Built). `apps/account` is served under `/account/`:
+
+- A person's sessions, with this browser marked. Ending one says the device keeps access for at most four minutes.
+- "Sign out everywhere" asks for a confirmation, then also signs this browser out.
+- Their authenticators: remove under step-up, with the API's `last_authenticator` refusal rendered.
+
+The shared frame links to it from the Portal and the console. **Next:** consents once the API's slice 3b exists, enrollment with slice 4, and recovery entry points.
+
 - Session and device inventory with termination
 - Authenticator enrollment, replacement, and removal
 - Consent inventory and withdrawal

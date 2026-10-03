@@ -10,6 +10,7 @@ export const coreEn = {
   'shell.session.unavailable': 'Session unavailable',
   'shell.session.signIn': 'Sign in',
   'shell.session.signOut': 'Sign out',
+  'shell.session.account': 'Account security',
   'shell.session.signedIn': 'Signed in',
   'shell.session.signInFailed':
     'Sign-in did not complete. Try again; if it keeps failing, the reason is in the service log.',
@@ -208,6 +209,7 @@ export const coreId: CoreMessages = {
   'shell.session.unavailable': 'Sesi tidak tersedia',
   'shell.session.signIn': 'Masuk',
   'shell.session.signOut': 'Keluar',
+  'shell.session.account': 'Keamanan akun',
   'shell.session.signedIn': 'Sudah masuk',
   'shell.session.signInFailed':
     'Proses masuk tidak selesai. Coba lagi; kalau terus gagal, alasannya ada di log layanan.',
