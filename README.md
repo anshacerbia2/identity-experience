@@ -90,7 +90,7 @@ Source code
 | Path                 | Contents                                                                                                                                             |
 | :------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/admin/`        | Identity admin portal: Vite, React 19, TanStack Router and Query, rendered in the browser                                                            |
-| `apps/account/`      | Account security experience (not started)                                                                                                            |
+| `apps/account/`      | Account security experience, served under `/account/`: a person's own sessions and authenticators                                                    |
 | `apps/developer/`    | Developer identity console, served under `/developer/`: the registrations a person owns, their keys and lifecycle                                    |
 | `packages/app-core/` | `@identity-experience/app-core`: API access, session, query client, preferences, the shared frame and the registration domain every application uses |
 | `packages/ui/`       | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)                                                    |

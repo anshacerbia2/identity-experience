@@ -260,6 +260,70 @@ describe('the Developer Console', () => {
   });
 });
 
+describe('the account security experience', () => {
+  let all: FastifyInstance;
+  let adminOnly: FastifyInstance;
+
+  const config = (accountWebRoot: string | null) =>
+    testConfig({
+      oidc: {
+        issuer: 'http://127.0.0.1:9/realms/test',
+        internalBaseUrl: 'http://127.0.0.1:9/realms/test',
+        clientId: 'identity-experience',
+        clientKey: testClientKey().key,
+        redirectUri: `${publicOrigin}/auth/callback`,
+      },
+      databaseUrl: 'postgres://unused@127.0.0.1:9/unused',
+      developerWebRoot: webRoot('console'),
+      accountWebRoot,
+    });
+
+  beforeAll(async () => {
+    all = await buildServer(config(webRoot('account')));
+    adminOnly = await buildServer(config(null));
+  });
+
+  afterAll(async () => {
+    await Promise.all([all.close(), adminOnly.close()]);
+  });
+
+  it('serves its own shell under /account/, for its root and its client-side routes, never cached', async () => {
+    for (const url of ['/account/', '/account/sessions', '/account/?sign-in=failed']) {
+      const response = await all.inject({ method: 'GET', url, headers: page });
+      expect(response.statusCode, url).toBe(200);
+      expect(response.body, url).toContain('<title>account</title>');
+      expect(response.headers['cache-control'], url).toBe('no-store');
+    }
+  });
+
+  it('leaves the console’s pages and every other page where they were', async () => {
+    const console = await all.inject({ method: 'GET', url: '/developer/', headers: page });
+    expect(console.body).toContain('<title>console</title>');
+    for (const url of ['/', '/principals', '/accounts', '/accountx/abc']) {
+      const response = await all.inject({ method: 'GET', url, headers: page });
+      expect(response.body, url).toContain('<title>shell</title>');
+    }
+  });
+
+  it('serves its assets from its own build and redirects /account to /account/', async () => {
+    const asset = await all.inject({ method: 'GET', url: '/account/assets/app-3f9a.js' });
+    expect(asset.statusCode).toBe(200);
+    expect(asset.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+    const bare = await all.inject({ method: 'GET', url: '/account', headers: page });
+    expect(bare.statusCode).toBe(308);
+    expect(bare.headers.location).toBe('/account/');
+  });
+
+  it('carries the same security headers, and is not served when no build is named', async () => {
+    const response = await all.inject({ method: 'GET', url: '/account/', headers: page });
+    for (const [name, value] of Object.entries(securityHeaders)) {
+      expect(response.headers[name], name).toBe(value);
+    }
+    const absent = await adminOnly.inject({ method: 'GET', url: '/account/', headers: page });
+    expect(absent.body).toContain('<title>shell</title>');
+  });
+});
+
 describe('configuration', () => {
   it('reports every problem at once', () => {
     let caught: unknown;
@@ -305,6 +369,12 @@ describe('configuration', () => {
     ).toBe('./developer/dist');
   });
 
+  it('serves the account security experience only when its build is named', () => {
+    expect(
+      loadConfig({ ...complete, IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT: './account/dist' }).accountWebRoot,
+    ).toBe('./account/dist');
+  });
+
   it('applies the defaults', () => {
     const config = loadConfig(complete);
     expect(config).toMatchObject({
@@ -315,6 +385,7 @@ describe('configuration', () => {
       identityControlBaseUrl: 'http://identity-control:8080',
       upstreamTimeoutMs: 10_000,
       developerWebRoot: null,
+      accountWebRoot: null,
     });
     // The internal address defaults to the issuer: one address for both, the simple deployment.
     expect(config.oidc.internalBaseUrl).toBe(complete.IDENTITY_EXPERIENCE_ISSUER);

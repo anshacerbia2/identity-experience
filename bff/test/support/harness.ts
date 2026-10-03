@@ -54,6 +54,7 @@ export function testConfig(overrides: Partial<Config> & Pick<Config, 'oidc' | 'd
     listenPort: 8080,
     webRoot: webRoot(),
     developerWebRoot: null,
+    accountWebRoot: null,
     publicOrigin,
     logLevel: 'fatal',
     session: { idleMs: minutes(30), absoluteMs: minutes(8 * 60), refreshSkewMs: 30_000, key: sessionKey },

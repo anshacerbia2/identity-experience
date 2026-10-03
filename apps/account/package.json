@@ -1,0 +1,47 @@
+{
+  "name": "@identity-experience/account",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build && node ../../scripts/check-dist.mjs dist",
+    "check:dist": "node ../../scripts/check-dist.mjs dist",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint:styles": "stylelint \"src/**/*.scss\"",
+    "lint:boundaries": "depcruise src --config .dependency-cruiser.cjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@identity-experience/app-core": "workspace:*",
+    "@identity-experience/ui": "workspace:*",
+    "@tanstack/react-query": "5.104.0",
+    "@tanstack/react-router": "1.170.40",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.89.0",
+    "react-intl": "12.1.3",
+    "zustand": "5.0.15"
+  },
+  "devDependencies": {
+    "@tanstack/router-plugin": "1.168.41",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "dependency-cruiser": "18.4.0",
+    "jsdom": "29.1.1",
+    "sass-embedded": "1.105.0",
+    "stylelint": "17.15.0",
+    "stylelint-config-standard-scss": "17.0.0",
+    "typescript": "6.0.3",
+    "vite": "8.3.1",
+    "vitest": "5.0.2",
+    "vitest-axe": "0.1.0"
+  }
+}

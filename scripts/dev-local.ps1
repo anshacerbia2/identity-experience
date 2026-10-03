@@ -5,8 +5,9 @@
 
 .DESCRIPTION
   Nothing here needs Docker. Keycloak stays on the server; this machine runs the BFF on
-  http://127.0.0.1:8090, which serves the built admin application at / and the Developer Console
-  at /developer/, and keeps its sessions in the local PostgreSQL.
+  http://127.0.0.1:8090, which serves the built admin application at /, the Developer Console
+  at /developer/ and the account security experience at /account/, and keeps its sessions in the
+  local PostgreSQL.
 
   Reads .env beside the repository root (copy .env.example). The BFF authenticates to the kernel
   with its own key (private_key_jwt), keys/identity-experience-bff.pem, made on this machine by
@@ -87,6 +88,7 @@ $sessionDatabase = $database.Uri.AbsoluteUri
 $env:IDENTITY_EXPERIENCE_PUBLIC_ORIGIN = $origin
 $env:IDENTITY_EXPERIENCE_WEB_ROOT = Join-Path $root 'apps\admin\dist'
 $env:IDENTITY_EXPERIENCE_DEVELOPER_WEB_ROOT = Join-Path $root 'apps\developer\dist'
+$env:IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT = Join-Path $root 'apps\account\dist'
 $env:IDENTITY_EXPERIENCE_LISTEN_HOST = '127.0.0.1'
 $env:IDENTITY_EXPERIENCE_LISTEN_PORT = $port
 $env:IDENTITY_EXPERIENCE_ISSUER = Get-OrDefault 'IDENTITY_EXPERIENCE_ISSUER' 'https://gqr8l4jz-8080.asse.devtunnels.ms/realms/scnehaux'
