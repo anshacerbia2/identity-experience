@@ -183,6 +183,7 @@ export class Oidc {
     codeChallenge: string;
     maxAge?: number | null;
     acrValues?: string | null;
+    kcAction?: string | null;
   }): URL {
     return client.buildAuthorizationUrl(this.#configuration, {
       redirect_uri: this.#redirectUri,
@@ -197,6 +198,9 @@ export class Oidc {
       ...(checks.acrValues === undefined || checks.acrValues === null
         ? {}
         : { acr_values: checks.acrValues }),
+      // An application-initiated action the kernel performs on its own pages (TDD-identity-experience-001
+      // §Step-Up); only an allowlisted one reaches here.
+      ...(checks.kcAction === undefined || checks.kcAction === null ? {} : { kc_action: checks.kcAction }),
     });
   }
 

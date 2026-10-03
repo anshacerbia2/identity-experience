@@ -52,8 +52,12 @@ export const en = {
   'security.authenticators.remove.title': 'Remove this {type}',
   'security.authenticators.remove.body': 'It stops working at once. You can enroll it again later.',
   'security.authenticators.removed': 'Removed.',
-  'security.authenticators.last':
-    'Refused: this is your last way to sign in. Enrolling a replacement here is not available yet; ask your administrator.',
+  'security.authenticators.add': 'Add an authenticator app',
+  'security.authenticators.enrolled': 'The authenticator app is added. Its codes now work at sign-in.',
+  'security.authenticators.enrollCancelled': 'Nothing was added: the setup was cancelled.',
+  'security.authenticators.last': 'Refused: this is your last way to sign in.',
+  'security.authenticators.floor':
+    'Refused: as a provider you keep a second factor. Add another authenticator app first, then remove this one.',
 };
 
 export type MessageKey = keyof typeof en;
@@ -104,8 +108,13 @@ export const id: Messages = {
   'security.authenticators.remove.title': 'Hapus {type} ini',
   'security.authenticators.remove.body': 'Langsung berhenti berfungsi. Kamu bisa mendaftarkannya lagi nanti.',
   'security.authenticators.removed': 'Dihapus.',
-  'security.authenticators.last':
-    'Ditolak: ini cara login terakhirmu. Mendaftarkan pengganti di sini belum tersedia; hubungi administratormu.',
+  'security.authenticators.add': 'Tambah aplikasi authenticator',
+  'security.authenticators.enrolled':
+    'Aplikasi authenticator ditambahkan. Kodenya sekarang berlaku saat login.',
+  'security.authenticators.enrollCancelled': 'Tidak ada yang ditambahkan: pengaturannya dibatalkan.',
+  'security.authenticators.last': 'Ditolak: ini cara login terakhirmu.',
+  'security.authenticators.floor':
+    'Ditolak: sebagai provider kamu wajib punya faktor kedua. Tambahkan aplikasi authenticator lain dulu, lalu hapus yang ini.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

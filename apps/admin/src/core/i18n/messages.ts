@@ -280,6 +280,8 @@ export const en = {
   'principals.contain.done.revoke': 'The authenticator is revoked.',
   'principals.contain.refused.lastAuthenticator':
     'Refused: it is the last way to sign in. Suspend the Principal instead.',
+  'principals.contain.refused.floor':
+    'Refused: a provider keeps a second factor. Suspend the Principal to contain it, and have them add another first.',
   'principals.contain.refused.other': 'Refused ({code}).',
   'principals.contain.unresolved':
     'Keycloak did not confirm it after every attempt. It is parked for an operator, and this Principal’s later commands wait behind it. Operation {id}.',
@@ -717,6 +719,8 @@ export const id: Messages = {
   'principals.contain.done.revoke': 'Authenticator sudah dicabut.',
   'principals.contain.refused.lastAuthenticator':
     'Ditolak: ini cara login terakhir. Tangguhkan Principal-nya saja.',
+  'principals.contain.refused.floor':
+    'Ditolak: provider wajib punya faktor kedua. Tangguhkan Principal-nya untuk menahan akses, dan minta dia menambah yang lain dulu.',
   'principals.contain.refused.other': 'Ditolak ({code}).',
   'principals.contain.unresolved':
     'Keycloak tidak mengonfirmasi setelah semua percobaan. Perintah ini diparkir untuk operator, dan perintah berikutnya untuk Principal ini menunggu di belakangnya. Operasi {id}.',

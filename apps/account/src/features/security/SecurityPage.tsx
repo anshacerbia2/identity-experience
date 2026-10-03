@@ -8,6 +8,7 @@ import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui'
 import { Message } from '@/core/i18n/Message';
 
 import {
+  useEnroll,
   useMyAuthenticators,
   useMySessions,
   useSelfCommand,
@@ -42,7 +43,9 @@ function Outcome({
             id={
               operation.result_code === 'last_authenticator'
                 ? 'security.authenticators.last'
-                : 'security.refused'
+                : operation.result_code === 'assurance_floor'
+                  ? 'security.authenticators.floor'
+                  : 'security.refused'
             }
             values={{ code: operation.result_code ?? '' }}
           />
@@ -266,6 +269,41 @@ function RemoveForm({
   );
 }
 
+// AddAuthenticator enrolls an authenticator app: the API authorizes it, and the kernel's own page
+// shows the QR code and takes the first code (TDD-identity-experience-002 §Enrolling an
+// authenticator app). The outcome the kernel reports is shown when the page comes back.
+function AddAuthenticator(): ReactElement {
+  const enroll = useEnroll();
+  const outcome = new URLSearchParams(window.location.search).get('kc_action_status');
+  return (
+    <div className={styles['confirm']}>
+      {outcome === 'success' ? (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id="security.authenticators.enrolled" />
+        </p>
+      ) : outcome === 'cancelled' ? (
+        <p className={styles['quiet']} role="status">
+          <Message id="security.authenticators.enrollCancelled" />
+        </p>
+      ) : null}
+      {enroll.isError ? <MutationError error={enroll.error} /> : null}
+      <div className={styles['actions']}>
+        <Button
+          variant="secondary"
+          icon={<Icon name="key" />}
+          disabled={enroll.isPending}
+          onClick={() => {
+            enroll.mutate();
+          }}
+        >
+          <Message id="security.authenticators.add" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // Authenticators offers removal on every row: the last-authenticator refusal is the API's, rendered
 // here, never computed (TDD-identity-experience-002 §The Last Authenticator Guard).
 function Authenticators(): ReactElement {
@@ -354,6 +392,7 @@ function Authenticators(): ReactElement {
           />
         )}
         {outcome === null ? null : <Outcome done="remove" operation={outcome} />}
+        <AddAuthenticator />
       </Panel.Body>
     </Panel.Root>
   );

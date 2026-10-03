@@ -64,7 +64,9 @@ function Outcome({
             id={
               operation.result_code === 'last_authenticator'
                 ? 'principals.contain.refused.lastAuthenticator'
-                : 'principals.contain.refused.other'
+                : operation.result_code === 'assurance_floor'
+                  ? 'principals.contain.refused.floor'
+                  : 'principals.contain.refused.other'
             }
             values={{ code: operation.result_code ?? '' }}
           />
