@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.17.0
+  version: 1.17.1
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -134,8 +134,9 @@ POST  /api/v1/principals/{principal_id}/sessions:terminate-all
 POST  /api/v1/principals/{principal_id}/authenticators/{id}:revoke
 ```
 
-`GET …/events` follows when the Audit API exists. Until then `TDD-identity-control-005` publishes
-the evidence as events, and the `EvidencePanel` is absent rather than empty.
+`GET …/events` follows when the Audit API exists. Until then `TDD-identity-control-005` keeps the
+evidence in its insert-only `identity.privileged_access`, and the `EvidencePanel` is absent rather
+than empty.
 
 Every mutation carries an idempotency key, an optimistic version, a reason, and a
 correlation identifier. The reason is a required field on the request, not a prompt
