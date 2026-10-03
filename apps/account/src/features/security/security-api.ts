@@ -129,18 +129,18 @@ export const browser = {
 export const enrollHref = (action: string): string =>
   `/auth/login?${new URLSearchParams({ kc_action: action, return_to: '/account/' }).toString()}`;
 
-// useEnroll asks the API to authorize enrolling an authenticator app, then goes to the kernel's
-// page that enrolls it (TDD-identity-control-005 §Enrollment and the Assurance Floor).
+// The authenticator types a person may enroll: an authenticator app, or a security key used as a
+// second factor (TDD-identity-experience-002 1.4.0).
+export type EnrollType = 'totp' | 'webauthn';
+
+// useEnroll asks the API to authorize enrolling an authenticator, then goes to the kernel's page
+// that enrolls it (TDD-identity-control-005 §Enrollment and the Assurance Floor).
 export function useEnroll() {
   const session = useSession();
   const token = session.data?.authenticated === true ? session.data.csrfToken : '';
   return useMutation({
-    mutationFn: () =>
-      apiPost<{ readonly action: string }>(
-        '/v1/me/authenticators:enroll',
-        { type: 'totp' },
-        { csrfToken: token },
-      ),
+    mutationFn: (type: EnrollType) =>
+      apiPost<{ readonly action: string }>('/v1/me/authenticators:enroll', { type }, { csrfToken: token }),
     onSuccess: ({ action }) => {
       browser.assign(enrollHref(action));
     },

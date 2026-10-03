@@ -180,6 +180,23 @@ describe('enrolling an authenticator app', () => {
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
   });
 
+  it('adds a security key through webauthn-register', async () => {
+    const { browser } = await import('./security-api');
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    const { sent } = api((request) =>
+      request.url.pathname === '/api/v1/me/authenticators:enroll'
+        ? json({ action: 'webauthn-register' })
+        : undefined,
+    );
+    renderApp('/account/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add a security key' }));
+    await waitFor(() => {
+      expect(assign).toHaveBeenCalledWith('/auth/login?kc_action=webauthn-register&return_to=%2Faccount%2F');
+    });
+    const [request] = posts(sent);
+    expect(request?.body).toEqual({ type: 'webauthn' });
+  });
+
   it('offers the step-up its level needs, and goes nowhere', async () => {
     const { browser } = await import('./security-api');
     const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);

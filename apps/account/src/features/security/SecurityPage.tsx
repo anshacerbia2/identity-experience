@@ -269,9 +269,10 @@ function RemoveForm({
   );
 }
 
-// AddAuthenticator enrolls an authenticator app: the API authorizes it, and the kernel's own page
-// shows the QR code and takes the first code (TDD-identity-experience-002 §Enrolling an
-// authenticator app). The outcome the kernel reports is shown when the page comes back.
+// AddAuthenticator enrolls an authenticator app or a security key: the API authorizes it, and the
+// kernel's own page enrolls it (TDD-identity-experience-002 §Enrolling an authenticator app,
+// §Adding a security key). The outcome the kernel reports is shown when the page comes back; it
+// does not say which was added.
 function AddAuthenticator(): ReactElement {
   const enroll = useEnroll();
   const outcome = new URLSearchParams(window.location.search).get('kc_action_status');
@@ -294,10 +295,20 @@ function AddAuthenticator(): ReactElement {
           icon={<Icon name="key" />}
           disabled={enroll.isPending}
           onClick={() => {
-            enroll.mutate();
+            enroll.mutate('totp');
           }}
         >
           <Message id="security.authenticators.add" />
+        </Button>
+        <Button
+          variant="secondary"
+          icon={<Icon name="shield" />}
+          disabled={enroll.isPending}
+          onClick={() => {
+            enroll.mutate('webauthn');
+          }}
+        >
+          <Message id="security.authenticators.addKey" />
         </Button>
       </div>
     </div>
