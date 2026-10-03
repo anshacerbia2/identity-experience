@@ -107,7 +107,14 @@ is rejected.
 API destroying the session, and sign-out ending the Keycloak session. Step-up followed
 identity-control#61 (TDD-001 1.8.0 §Step-Up): a `401 insufficient_user_authentication` keeps the
 session and reaches the application, which offers a sign-in with the challenge's `max_age`, and the
-callback refuses an `auth_time` older than it. **Next:** the measured exit below.
+callback refuses an `auth_time` older than it.
+The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
+
+- `acr_values` passes to `/auth/login`, and the callback refuses an `acr` below it.
+- A sign-in returning to the Admin Portal asks for `aal2` by default.
+- A read challenged for its level offers the same sign-in.
+
+**Next:** the measured exit below.
 
 - Back-channel logout receiver, destroying the matching session and no other
 - 401 from the Identity Control API destroying the session

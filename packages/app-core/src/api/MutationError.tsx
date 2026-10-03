@@ -19,7 +19,7 @@ export function MutationError({ error }: { readonly error: unknown }): ReactElem
   const apiError = error instanceof ApiError ? error : null;
   // A step-up challenge is not a refusal: the API asks for a fresher sign-in, and the session is
   // kept. The command is repeated after it.
-  if (apiError?.stepUpMaxAge !== null && apiError?.stepUpMaxAge !== undefined) {
+  if (apiError !== null && apiError.stepUp !== null) {
     return (
       <div className={styles['root']} role="alert">
         <Icon name="shield" />
@@ -28,7 +28,7 @@ export function MutationError({ error }: { readonly error: unknown }): ReactElem
             <CoreMessage id="api.stepUp" />
           </p>
           <p>
-            <a href={stepUpHref(here(), apiError.stepUpMaxAge)}>
+            <a href={stepUpHref(here(), apiError.stepUp)}>
               <CoreMessage id="api.stepUp.action" />
             </a>
           </p>

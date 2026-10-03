@@ -182,6 +182,7 @@ export class Oidc {
     nonce: string;
     codeChallenge: string;
     maxAge?: number | null;
+    acrValues?: string | null;
   }): URL {
     return client.buildAuthorizationUrl(this.#configuration, {
       redirect_uri: this.#redirectUri,
@@ -192,6 +193,10 @@ export class Oidc {
       code_challenge: checks.codeChallenge,
       code_challenge_method: 'S256',
       ...(checks.maxAge === undefined || checks.maxAge === null ? {} : { max_age: String(checks.maxAge) }),
+      // The level to reach (ADR-IAM-004); the kernel decides how, and the callback checks it did.
+      ...(checks.acrValues === undefined || checks.acrValues === null
+        ? {}
+        : { acr_values: checks.acrValues }),
     });
   }
 

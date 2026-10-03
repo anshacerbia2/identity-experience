@@ -16,11 +16,10 @@ export class ApiError extends Error {
     readonly title: string | null,
     readonly detail: string | null,
     readonly correlationId: string | null,
-    // stepUpMaxAge is set when the API asked for a fresher sign-in: RFC 9470's
-    // insufficient_user_authentication, with the age it allows in seconds. The session is still
-    // valid; the application offers a sign-in with this max_age (TDD-identity-experience-001
-    // §Step-Up).
-    readonly stepUpMaxAge: number | null = null,
+    // stepUp is set when the API asked for a stronger or fresher sign-in: RFC 9470's
+    // insufficient_user_authentication, with the level it names and the age it allows. The session
+    // is still valid; the application offers that sign-in (TDD-identity-experience-001 §Step-Up).
+    readonly stepUp: StepUp | null = null,
   ) {
     super(`${String(status)}${title === null ? '' : ` ${title}`}`);
   }
@@ -40,14 +39,24 @@ interface ProblemDocument {
 
 const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
-// stepUpChallenge reads a step-up challenge's max_age from WWW-Authenticate, or null when the 401 is
-// not one. A challenge without max_age asks for a sign-in now.
-export function stepUpChallenge(header: string | null): number | null {
+// StepUp is what a step-up challenge asks for: a level (acr_values), an age (max_age), or both.
+export interface StepUp {
+  readonly acr: string | null;
+  readonly maxAge: number | null;
+}
+
+// stepUpChallenge reads a step-up challenge from WWW-Authenticate, or null when the 401 is not one.
+export function stepUpChallenge(header: string | null): StepUp | null {
   if (header === null || !/error="insufficient_user_authentication"/.test(header)) {
     return null;
   }
   const maxAge = /max_age="?(\d{1,5})"?/.exec(header);
-  return maxAge?.[1] === undefined ? 0 : Number(maxAge[1]);
+  // acr_values lists levels in order of preference; the first is the one asked for.
+  const acr = /acr_values="([^"\s]+)/.exec(header);
+  return {
+    acr: acr?.[1] ?? null,
+    maxAge: maxAge?.[1] === undefined ? null : Number(maxAge[1]),
+  };
 }
 
 async function toError(response: Response): Promise<ApiError> {
