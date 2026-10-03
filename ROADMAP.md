@@ -141,7 +141,7 @@ The shared frame links to it from the Portal and the console. Enrolling an authe
 - the kernel's page enrolls the app;
 - the outcome comes back as `kc_action_status`.
 
-A provider's refused removal of their last second factor is shown with its sentence. **Next:** consents once the API's slice 3b exists, WebAuthn with slice 4b, and recovery entry points.
+A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. **Next:** consents once the API's slice 3b exists, and recovery entry points.
 
 - Session and device inventory with termination
 - Authenticator enrollment, replacement, and removal

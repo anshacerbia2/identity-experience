@@ -59,7 +59,7 @@ const noStore = (reply: FastifyReply): FastifyReply => reply.header('cache-contr
 
 // The application-initiated actions the BFF passes to the kernel, and the outcomes it carries back
 // (TDD-identity-experience-001 §Step-Up). Anything else is ignored.
-const kernelActions = new Set(['CONFIGURE_TOTP']);
+const kernelActions = new Set(['CONFIGURE_TOTP', 'webauthn-register']);
 const actionOutcomes = new Set(['success', 'cancelled']);
 
 export const kernelAction = (value: unknown): string | null =>

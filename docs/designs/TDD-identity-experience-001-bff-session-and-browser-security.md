@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.11.0
+  version: 1.12.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-01
+  last_reviewed: 2026-10-03
   parent_sad: SAD-002
 ---
 
@@ -464,8 +464,10 @@ application, on that 401:
   first page (`ADR-IAM-004 §5.3`). A sign-in returning to the Developer Console or the account
   application asks for no level. This is the BFF's rule, by where the sign-in returns, and the browser
   cannot lower it.
-- **An application-initiated action (1.11.0).** `/auth/login` passes `kc_action` to the kernel only
-  for an action on its allowlist, which today is `CONFIGURE_TOTP` alone. Any other value is ignored.
+- **An application-initiated action (1.11.0, 1.12.0).** `/auth/login` passes `kc_action` to the
+  kernel only for an action on its allowlist: `CONFIGURE_TOTP`, and since 1.12.0 `webauthn-register`
+  [R7]. Any other value is ignored, `webauthn-register-passwordless` included, because no realm flow
+  admits a passkey as a first factor (`TDD-identity-control-005` 2.7.0).
   - The account application asks for the action after the Identity Control API authorized the
     enrollment (`TDD-identity-control-005` §Enrollment and the Assurance Floor). The kernel performs
     it on its own pages.
@@ -621,7 +623,8 @@ the build emits styles and fonts as files served from this origin, never inline.
   `WWW-Authenticate` reaches the browser.
 - `/auth/login?max_age=N` sends `max_age`. A callback whose `auth_time` is older than `N` is
   refused. A malformed `max_age` is ignored.
-- `/auth/login?kc_action=CONFIGURE_TOTP` sends it, and any other action is not sent. The callback
+- `/auth/login?kc_action=CONFIGURE_TOTP` and `?kc_action=webauthn-register` send it, and any other
+  action is not sent. The callback
   carries `kc_action_status` `success` or `cancelled` onto the return address, and nothing else.
 - `/auth/login?acr_values=aal2` sends it. A callback whose ID token `acr` is below it is refused. An
   unknown level is ignored. A sign-in returning to the Admin Portal asks for `aal2` unless it names a
@@ -734,3 +737,4 @@ outbox.
 | R4 | IETF, *OAuth 2.0 for Browser-Based Applications*, draft-ietf-oauth-browser-based-apps-27, §6.1, <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps>: "The BFF runs as a server-side component, but it is a component of the frontend application" (§6.1.3); "The BFF relies on browser cookies to keep track of the user's session, which is used to access the user's tokens" (§6.1.2.3); "This architecture is strongly recommended for business applications, sensitive applications, and applications that handle personal data" (§6.1.4.3). |
 | R5 | Duende Software, *BFF: Multiple Frontends*, <https://docs.duendesoftware.com/bff/fundamentals/multi-frontend/>, accessed 2026-10-03: frontends are "identified either via path based routing and/or host selection"; each can "Define its own Cookie settings"; "having a dedicated backend service for each frontend introduces quite a lot of operational overhead." |
 | R6 | Keycloak, *Server Administration Guide*, Application Initiated Actions, <https://www.keycloak.org/docs/latest/server_admin/index.html>, accessed 2026-10-03: AIA "is triggered by adding the kc_action parameter to the OIDC login URL"; a cancelled action returns "kc_action_status=cancelled"; "The kc_action and kc_action_status parameters are a Keycloak proprietary mechanism unsupported by the OIDC specification." |
+| R7 | Keycloak 26.7.5, *Server Administration Guide*, Registering WebAuthn credentials using AIA, source `docs/documentation/server_admin/topics/authentication/webauthn.adoc` at tag 26.7.5, accessed 2026-10-03: "The actions *Webauthn Register* (`kc_action=webauthn-register`) and *Webauthn Register Passwordless* (`kc_action=webauthn-register-passwordless`) are available for the applications if enabled in the Required actions tab." identity-kernel's compat suite proves `webauthn-register` on the pinned kernel (TDD-identity-kernel-001 1.11.0). |
