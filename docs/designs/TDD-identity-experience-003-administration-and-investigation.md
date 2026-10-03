@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.15.0
+  version: 1.16.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -64,6 +64,53 @@ that, and reproducing it would replace one enumeration surface with a friendlier
 | `ContainmentActions` | Quarantine, terminate sessions, revoke authenticators |
 | `EvidencePanel` | Renders privileged-administration events for the subject |
 | `ChangeQueue` | Every registration change waiting for approval, oldest first, approved or rejected with a reason |
+
+### Navigation
+
+**The navigation is grouped by what an administrator acts on, never by which system implements
+it.** A session, an authenticator or a consent is held by the kernel, and a registration, an
+ownership or a workload by the Identity Control API. An administrator investigating a Principal needs
+both on one page and does not know, and should not need to know, which system answers. NN/g:
+"Organizations often categorize components using schemes that are familiar to them. For example,
+they mirror their organizational charts … Instead, research your user base to determine _their_
+mental models" [R1]. Its intranet studies found that "task-based structures often endured better
+than intranets organized departmentally", and that task-based navigation "tends to facilitate
+ease-of-learning" [R2]. Microsoft Entra does the same. Users, groups, devices, enterprise
+applications and app registrations sit side by side under one product area, whatever answers each
+[R3], and the admin center is a separate portal from the one where a user manages their own
+security info [R4].
+
+**Three applications, by audience.** The account application is a person acting on their own
+account (`TDD-identity-experience-002`), as Entra's My Account is [R4]. The Developer Console is a
+person acting on their own applications (`TDD-identity-experience-004`). This Admin Portal is a
+provider acting on others. No administrative action appears in the account application, and no
+self-service action in this portal: the self-action boundary (§The Self-Action Boundary) is also a
+boundary between applications.
+
+**The Admin Portal's groups**, each shown once it holds a built page:
+
+| Group | Pages | Answered by |
+| :-- | :-- | :-- |
+| (none) | Overview | both |
+| Identities | Principals, and one Principal's security state: sessions, authenticators, consents, federation links, containment; Workloads | the kernel through the Identity Control API, and the Identity Control API |
+| Applications | Registrations, their keys, owners, changes and drift | the Identity Control API |
+| Governance | Approvals: registration changes and registration requests waiting for a provider | the Identity Control API |
+| Monitoring | Reconciler findings and runs, privileged-administration events | the Identity Control API |
+
+A group is not shown before it has a page, because a link to nothing is a dead end. A page belongs to
+the group of the object it acts on: a Principal's sessions are under Identities, not under a
+"Keycloak" group.
+
+**Tradeoff.** Grouping by backend would say which system to blame when a page fails. That is an
+operator's concern, and the problem detail and the correlation identifier already carry it.
+Grouping by object costs one decision per new page, which this table records.
+
+| Ref | Source |
+| :-- | :-- |
+| R1 | Nielsen Norman Group, *5 Tips for Avoiding Confusing Category Names*, <https://www.nngroup.com/articles/category-names-suck/>, accessed 2026-10-03 |
+| R2 | Nielsen Norman Group, *Intranet Information Architecture (IA) Methods*, <https://www.nngroup.com/articles/intranet-ia-methods/>, accessed 2026-10-03 |
+| R3 | Microsoft, *Microsoft Entra admin center*, <https://learn.microsoft.com/en-us/entra/fundamentals/entra-admin-center>, accessed 2026-10-03: Entra ID covers "users, groups, devices, applications, roles, and authentication methods" |
+| R4 | Microsoft, *My Account portal for work or school accounts*, <https://support.microsoft.com/en-us/account-billing/my-account-portal-for-work-or-school-accounts-eab41bfe-3b9e-441e-82be-1f6e568d65fd>, accessed 2026-10-03: "The My Account portal helps you to manage your work or school account by setting up and managing your security info, managing your devices" |
 
 ## Data Model
 
