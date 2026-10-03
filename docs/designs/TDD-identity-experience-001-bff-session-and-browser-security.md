@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.9.0
+  version: 1.9.1
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -271,10 +271,34 @@ path without its slash redirects to the one with it, and every other page path i
 Portal's. Each application is rendered client-side,
 per STD-GLB-FE-001 §3 for authenticated administrative portals, and is built with Vite.
 
-One BFF serves both because SAD-002 §4.1 gives both the same BFF, and one origin is what
+One BFF serves all three because SAD-002 §4.1 gives them the same BFF, and one origin is what
 keeps one session: a second origin would need a second session cookie, a second sign-in
-and a second CSRF token for the same person. The two applications differ in what the
+and a second CSRF token for the same person. The applications differ in what the
 Identity Control API authorizes for the session's token, not in how the session is held.
+
+**Why one BFF is the pattern applied correctly, not a shortcut.**
+- **Sam Newman's rule is "one experience, one BFF".** It allows a shared BFF where experiences are
+  alike and one team owns them: "if the iOS and Android experiences are very similar, then it is
+  easier to justify having a single BFF", and "team structure should drive how many BFFs you have"
+  [R3]. Here all three applications run in the same browser, on the same origin, and belong to one
+  team: every TDD in this repository is owned by the Identity Experience Team.
+- **This BFF does not shape a different API for each application.** It is the IETF's
+  security BFF: "a component of the frontend application" that "relies on browser cookies to keep
+  track of the user's session, which is used to access the user's tokens". The IETF "strongly
+  recommended [it] for business applications, sensitive applications, and applications that handle
+  personal data" [R4]. Its work is the same for every application: sign-in, token custody,
+  refresh, CSRF and an unchanged proxy. One application cannot ask it for anything another cannot.
+- **Products ship the same arrangement.** Duende's BFF serves several frontends from one instance,
+  "identified either via path based routing and/or host selection". It gives the reason that "having
+  a dedicated backend service for each frontend introduces quite a lot of operational overhead"
+  [R5].
+
+**What would split it.** Duende lets each frontend "define its own Cookie settings" [R5], and that
+is the boundary to watch. If the Portal comes to need a session policy the account application must
+not have, the frontends get their own session settings, and a second BFF follows only if their
+release or ownership diverges. A shorter idle timeout or a stronger `acr` for administration would be
+such a policy. Authority would not be, because the Identity Control API already decides it per route
+class.
 
 ## API / Interface
 
@@ -676,3 +700,6 @@ outbox.
 | :-- | :-- |
 | R1 | IETF RFC 9470, *OAuth 2.0 Step Up Authentication Challenge Protocol*, §4, <https://www.rfc-editor.org/rfc/rfc9470#section-4>: "A client receiving a challenge from the resource server carrying the insufficient_user_authentication error code SHOULD parse the WWW-Authenticate header for acr_values and max_age and use them, if present, in constructing an authorization request." |
 | R2 | OpenID Foundation, *OpenID Connect Core 1.0*, §3.1.2.1, <https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest>, accessed 2026-10-03: max_age "Specifies the allowable elapsed time in seconds since the last time the End-User was actively authenticated by the OP. If the elapsed time is greater than this value, the OP MUST attempt to actively re-authenticate the End-User … When max_age is used, the ID Token returned MUST include an auth_time Claim Value." |
+| R3 | Sam Newman, *Backends For Frontends*, <https://samnewman.io/patterns/architectural/bff/>, accessed 2026-10-03: "'one experience, one BFF'. So if the iOS and Android experiences are very similar, then it is easier to justify having a single BFF"; "BFFs work best when aligned around team boundaries, so team structure should drive how many BFFs you have." |
+| R4 | IETF, *OAuth 2.0 for Browser-Based Applications*, draft-ietf-oauth-browser-based-apps-27, §6.1, <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps>: "The BFF runs as a server-side component, but it is a component of the frontend application" (§6.1.3); "The BFF relies on browser cookies to keep track of the user's session, which is used to access the user's tokens" (§6.1.2.3); "This architecture is strongly recommended for business applications, sensitive applications, and applications that handle personal data" (§6.1.4.3). |
+| R5 | Duende Software, *BFF: Multiple Frontends*, <https://docs.duendesoftware.com/bff/fundamentals/multi-frontend/>, accessed 2026-10-03: frontends are "identified either via path based routing and/or host selection"; each can "Define its own Cookie settings"; "having a dedicated backend service for each frontend introduces quite a lot of operational overhead." |
