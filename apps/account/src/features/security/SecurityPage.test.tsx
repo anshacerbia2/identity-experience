@@ -132,11 +132,7 @@ describe('SecurityPage', () => {
       .getByRole('heading', { name: 'Remove this password' })
       .closest('section') as HTMLElement;
     await userEvent.click(within(form).getByRole('button', { name: 'Remove' }));
-    expect(
-      await screen.findByText(
-        'Refused: this is your last way to sign in. Enrolling a replacement here is not available yet; ask your administrator.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Refused: this is your last way to sign in.')).toBeInTheDocument();
   });
 
   it('offers a fresh sign-in when removing needs a recent one', async () => {
@@ -162,5 +158,46 @@ describe('SecurityPage', () => {
     await userEvent.click(within(form).getByRole('button', { name: 'Remove' }));
     const link = await screen.findByRole('link', { name: 'Sign in again to continue' });
     expect(link.getAttribute('href')).toMatch(/^\/auth\/login\?max_age=300&return_to=/);
+  });
+});
+
+describe('enrolling an authenticator app', () => {
+  it('asks the API, then goes to the kernel page that enrolls it', async () => {
+    const { browser } = await import('./security-api');
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    const { sent } = api((request) =>
+      request.url.pathname === '/api/v1/me/authenticators:enroll'
+        ? json({ action: 'CONFIGURE_TOTP' })
+        : undefined,
+    );
+    renderApp('/account/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add an authenticator app' }));
+    await waitFor(() => {
+      expect(assign).toHaveBeenCalledWith('/auth/login?kc_action=CONFIGURE_TOTP&return_to=%2Faccount%2F');
+    });
+    const [request] = posts(sent);
+    expect(request?.body).toEqual({ type: 'totp' });
+    expect(request?.headers['x-csrf-token']).toBe(csrfToken);
+  });
+
+  it('offers the step-up its level needs, and goes nowhere', async () => {
+    const { browser } = await import('./security-api');
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    api(
+      () =>
+        new Response(JSON.stringify({ status: 401 }), {
+          status: 401,
+          headers: {
+            'content-type': 'application/problem+json',
+            'www-authenticate':
+              'Bearer error="insufficient_user_authentication", acr_values="aal2", max_age=300',
+          },
+        }),
+    );
+    renderApp('/account/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Add an authenticator app' }));
+    const link = await screen.findByRole('link', { name: 'Sign in again to continue' });
+    expect(link.getAttribute('href')).toMatch(/max_age=300&acr_values=aal2&return_to=/);
+    expect(assign).not.toHaveBeenCalled();
   });
 });

@@ -11,7 +11,7 @@ import {
   type Harness,
 } from './support/harness.js';
 import { defaultUser } from './support/identity-provider.js';
-import { safeReturnTo, stepUpMaxAge } from '../src/auth/routes.js';
+import { safeReturnTo, stepUpMaxAge, withActionOutcome } from '../src/auth/routes.js';
 import { digest } from '../src/session/seal.js';
 
 // TDD-identity-experience-001 §Testing Strategy, against a real PostgreSQL session store and a
@@ -310,6 +310,42 @@ describe('step-up', () => {
     expect(callback.statusCode).toBe(302);
     expect(callback.headers.location).toBe('/?sign-in=failed');
     expect(cookieValue(callback, '__Host-ident_session')).toBeUndefined();
+  });
+
+  it('passes an allowlisted kernel action, and no other', async () => {
+    const action = async (value: string) =>
+      new URL(
+        String(
+          (
+            await harness.app.inject({
+              method: 'GET',
+              url: `/auth/login?return_to=/account/&kc_action=${value}`,
+            })
+          ).headers.location,
+        ),
+      ).searchParams.get('kc_action');
+    expect(await action('CONFIGURE_TOTP')).toBe('CONFIGURE_TOTP');
+    expect(await action('UPDATE_PASSWORD')).toBeNull();
+    expect(await action('delete_account')).toBeNull();
+  });
+
+  it('carries the action outcome back, and nothing else', async () => {
+    expect(withActionOutcome('/account/', 'success')).toBe('/account/?kc_action_status=success');
+    expect(withActionOutcome('/account/?x=1', 'cancelled')).toBe('/account/?x=1&kc_action_status=cancelled');
+    expect(withActionOutcome('/account/', 'error')).toBe('/account/');
+    expect(withActionOutcome('/account/', null)).toBe('/account/');
+
+    const login = await harness.app.inject({
+      method: 'GET',
+      url: '/auth/login?return_to=/account/&kc_action=CONFIGURE_TOTP',
+    });
+    const query = harness.provider.authorize(String(login.headers.location));
+    const callback = await harness.app.inject({
+      method: 'GET',
+      url: `/auth/callback${query}&kc_action_status=success`,
+      cookies: { '__Host-ident_login': cookieValue(login, '__Host-ident_login') ?? '' },
+    });
+    expect(callback.headers.location).toBe('/account/?kc_action_status=success');
   });
 
   it('a step-up challenge from the API keeps the session and reaches the browser', async () => {

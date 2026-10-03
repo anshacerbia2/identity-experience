@@ -116,3 +116,33 @@ export function useSelfCommand() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: securityKeys.all }),
   });
 }
+
+// browser is the one place the page leaves for the kernel, so a test can stand in for it.
+export const browser = {
+  assign: (url: string): void => {
+    window.location.assign(url);
+  },
+};
+
+// enrollHref is the BFF's sign-in that performs the kernel action the API authorized, returning to
+// this page (TDD-identity-experience-001 §Step-Up).
+export const enrollHref = (action: string): string =>
+  `/auth/login?${new URLSearchParams({ kc_action: action, return_to: '/account/' }).toString()}`;
+
+// useEnroll asks the API to authorize enrolling an authenticator app, then goes to the kernel's
+// page that enrolls it (TDD-identity-control-005 §Enrollment and the Assurance Floor).
+export function useEnroll() {
+  const session = useSession();
+  const token = session.data?.authenticated === true ? session.data.csrfToken : '';
+  return useMutation({
+    mutationFn: () =>
+      apiPost<{ readonly action: string }>(
+        '/v1/me/authenticators:enroll',
+        { type: 'totp' },
+        { csrfToken: token },
+      ),
+    onSuccess: ({ action }) => {
+      browser.assign(enrollHref(action));
+    },
+  });
+}

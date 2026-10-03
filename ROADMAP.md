@@ -134,7 +134,14 @@ not extend it, because the refresh path bounds it independently.
 - "Sign out everywhere" asks for a confirmation, then also signs this browser out.
 - Their authenticators: remove under step-up, with the API's `last_authenticator` refusal rendered.
 
-The shared frame links to it from the Portal and the console. **Next:** consents once the API's slice 3b exists, enrollment with slice 4, and recovery entry points.
+The shared frame links to it from the Portal and the console. Enrolling an authenticator app followed identity-control's slice 4a (TDD-002 1.3.0, TDD-001 1.11.0):
+
+- the API authorizes the enrollment at its level;
+- the BFF passes `kc_action=CONFIGURE_TOTP` from its allowlist;
+- the kernel's page enrolls the app;
+- the outcome comes back as `kc_action_status`.
+
+A provider's refused removal of their last second factor is shown with its sentence. **Next:** consents once the API's slice 3b exists, WebAuthn with slice 4b, and recovery entry points.
 
 - Session and device inventory with termination
 - Authenticator enrollment, replacement, and removal

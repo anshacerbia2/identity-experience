@@ -57,6 +57,24 @@ export function safeReturnTo(value: unknown, publicOrigin: string): string {
 
 const noStore = (reply: FastifyReply): FastifyReply => reply.header('cache-control', 'no-store');
 
+// The application-initiated actions the BFF passes to the kernel, and the outcomes it carries back
+// (TDD-identity-experience-001 §Step-Up). Anything else is ignored.
+const kernelActions = new Set(['CONFIGURE_TOTP']);
+const actionOutcomes = new Set(['success', 'cancelled']);
+
+export const kernelAction = (value: unknown): string | null =>
+  typeof value === 'string' && kernelActions.has(value) ? value : null;
+
+// withActionOutcome carries an allowlisted kc_action_status onto the address a sign-in returns to.
+export function withActionOutcome(returnTo: string, outcome: string | null): string {
+  if (outcome === null || !actionOutcomes.has(outcome)) {
+    return returnTo;
+  }
+  const url = new URL(returnTo, 'http://bff.invalid');
+  url.searchParams.set('kc_action_status', outcome);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
 // stepUpMaxAge reads a step-up's max_age: whole seconds from 0 to a day. Anything else is ignored
 // and the sign-in goes ahead as a plain one (TDD-identity-experience-001 §Step-Up).
 export function stepUpMaxAge(value: unknown): number | null {
@@ -87,7 +105,7 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     },
   );
 
-  app.get<{ Querystring: { return_to?: string; max_age?: string; acr_values?: string } }>(
+  app.get<{ Querystring: { return_to?: string; max_age?: string; acr_values?: string; kc_action?: string } }>(
     '/auth/login',
     async (request, reply) => {
       const binding = randomToken();
@@ -115,6 +133,7 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
         codeChallenge: await client.calculatePKCECodeChallenge(codeVerifier),
         maxAge,
         acrValues,
+        kcAction: kernelAction(request.query.kc_action),
       });
       setLoginCookie(reply, binding);
       return noStore(reply).redirect(location.href, 302);
@@ -145,9 +164,16 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     if (login === null || now() >= login.expiresAt) {
       return fail('the sign-in expired or was already completed');
     }
-    const returned = new URLSearchParams(queryOf(request)).get('state');
+    const callbackQuery = new URLSearchParams(queryOf(request));
+    const returned = callbackQuery.get('state');
     if (returned === null || !equalSecrets(returned, login.state)) {
       return fail('state mismatch');
+    }
+    // An application-initiated action the person cancelled may come back with no code: the session
+    // they had is unchanged, and the page is told the action did not happen.
+    const actionOutcome = callbackQuery.get('kc_action_status');
+    if (callbackQuery.get('code') === null && actionOutcome !== null) {
+      return reply.redirect(withActionOutcome(login.returnTo, actionOutcome), 302);
     }
 
     let grant;
@@ -183,7 +209,7 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     }
     const { cookie } = await sessions.start({ ...grant, identity });
     setSessionCookie(reply, cookie);
-    return reply.redirect(login.returnTo, 302);
+    return reply.redirect(withActionOutcome(login.returnTo, actionOutcome), 302);
   });
 
   // The display context the application renders, and the CSRF token it echoes. No token material,
