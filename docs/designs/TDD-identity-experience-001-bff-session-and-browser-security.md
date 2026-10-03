@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.9.1
+  version: 1.10.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -305,7 +305,7 @@ class.
 ### BFF Endpoints
 
 ```text
-GET   /auth/login            ?return_to=&max_age=
+GET   /auth/login            ?return_to=&max_age=&acr_values=
 GET   /auth/callback
 POST  /auth/logout
 POST  /auth/back-channel-logout
@@ -450,8 +450,23 @@ application, on that 401:
   [R2]. A sign-in already binds the callback to the browser and replaces the session identifier, so
   the step-up gets those properties without new code. `max_age` is an integer from 0 to 86400; any
   other value is ignored, and the sign-in goes ahead without it.
-- **`acr_values` is not sent.** The realm maps no level of authentication, so there is no stronger
-  class to ask for (`TDD-identity-control-005` §Step-Up).
+- **`acr_values` is sent (1.10.0).** `ADR-IAM-004` names the levels `aal1` and `aal2`, and the kernel
+  maps them (TDD-identity-kernel-001 §Authentication Levels).
+  - The application reads `acr_values` from the challenge beside `max_age`, and passes both to
+    `/auth/login`.
+  - The BFF accepts `aal1` or `aal2`, ignores any other value, sends the level in the authorization
+    request, and keeps it with the sign-in in flight.
+  - The callback refuses an ID token whose `acr` is below the level asked for, in STD-IAM-002 §3.2's
+    order. The kernel decides how a person reaches the level; the BFF checks that it was reached.
+- **The Admin Portal signs in at `aal2`.** Every route a provider uses requires it
+  (`TDD-identity-control-005` §Step-Up). So a sign-in that returns to the Portal, with no level of its
+  own, asks for `aal2`. A provider then meets the second factor once per sign-in rather than at the
+  first page (`ADR-IAM-004 §5.3`). A sign-in returning to the Developer Console or the account
+  application asks for no level. This is the BFF's rule, by where the sign-in returns, and the browser
+  cannot lower it.
+- **A read is challenged too.** A provider route answers a read below `aal2` with the challenge. The
+  read's error panel offers the same "sign in again to continue", so a page that loads data shows the
+  way forward rather than an error.
 - **The browser never decides the requirement.** The application reads `max_age` from the API's
   challenge, which the BFF passes through. A request that sets `max_age` itself only makes its own
   sign-in stricter.
@@ -596,6 +611,9 @@ the build emits styles and fonts as files served from this origin, never inline.
   `WWW-Authenticate` reaches the browser.
 - `/auth/login?max_age=N` sends `max_age`. A callback whose `auth_time` is older than `N` is
   refused. A malformed `max_age` is ignored.
+- `/auth/login?acr_values=aal2` sends it. A callback whose ID token `acr` is below it is refused. An
+  unknown level is ignored. A sign-in returning to the Admin Portal asks for `aal2` unless it names a
+  level; one returning to the Developer Console or the account application asks for none.
 - Measured time from Membership revocation to session destruction stays within the
   remaining access token lifetime of class `L0`.
 
