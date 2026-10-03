@@ -31,6 +31,9 @@ export interface LoginState {
   readonly codeVerifier: string;
   readonly returnTo: string;
   readonly expiresAt: Date;
+  // maxAge is a step-up's allowable time since the last authentication, in seconds; null for a
+  // plain sign-in (TDD-identity-experience-001 §Step-Up).
+  readonly maxAge: number | null;
 }
 
 // TokenUpdate is what a refresh writes back: the new tokens and what they assert.
@@ -64,6 +67,7 @@ interface LoginStateRow {
   code_verifier: Buffer;
   return_to: string;
   expires_at: Date;
+  max_age: number | null;
 }
 
 const sessionColumns =
@@ -82,10 +86,11 @@ export class SessionStore {
 
   async putLoginState(bindingHash: Buffer, login: LoginState): Promise<void> {
     await this.#pool.query(
-      `INSERT INTO login_states (binding_hash, state, nonce, code_verifier, return_to, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO login_states (binding_hash, state, nonce, code_verifier, return_to, expires_at, max_age)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (binding_hash) DO UPDATE SET state = EXCLUDED.state, nonce = EXCLUDED.nonce,
-         code_verifier = EXCLUDED.code_verifier, return_to = EXCLUDED.return_to, expires_at = EXCLUDED.expires_at`,
+         code_verifier = EXCLUDED.code_verifier, return_to = EXCLUDED.return_to, expires_at = EXCLUDED.expires_at,
+         max_age = EXCLUDED.max_age`,
       [
         bindingHash,
         login.state,
@@ -93,6 +98,7 @@ export class SessionStore {
         this.#sealer.seal(login.codeVerifier, bindingHash),
         login.returnTo,
         login.expiresAt,
+        login.maxAge,
       ],
     );
   }
@@ -100,7 +106,7 @@ export class SessionStore {
   // takeLoginState consumes the row: a callback is answered once, and a replayed one finds nothing.
   async takeLoginState(bindingHash: Buffer): Promise<LoginState | null> {
     const { rows } = await this.#pool.query<LoginStateRow>(
-      'DELETE FROM login_states WHERE binding_hash = $1 RETURNING state, nonce, code_verifier, return_to, expires_at',
+      'DELETE FROM login_states WHERE binding_hash = $1 RETURNING state, nonce, code_verifier, return_to, expires_at, max_age',
       [bindingHash],
     );
     const row = rows[0];
@@ -113,6 +119,7 @@ export class SessionStore {
       codeVerifier: this.#sealer.open(row.code_verifier, bindingHash),
       returnTo: row.return_to,
       expiresAt: row.expires_at,
+      maxAge: row.max_age,
     };
   }
 

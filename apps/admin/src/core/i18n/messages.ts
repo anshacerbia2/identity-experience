@@ -175,7 +175,7 @@ export const en = {
   'principals.eyebrow': 'Identities',
   'principals.title': 'Principals',
   'principals.lead':
-    'Create a person, and give a Principal whose Keycloak user is gone a user again. A workload is created on the Workloads page. There is no list of every Principal: search arrives with the investigation API, and a directory export is not administration.',
+    'Find a Principal and contain it, create a person, and give a Principal whose Keycloak user is gone a user again. A workload is created on the Workloads page. There is no list of every Principal: a search finds one, and a directory export is not administration.',
 
   'principals.create.open': 'Create a Principal',
   'principals.create.title': 'New Principal',
@@ -208,6 +208,88 @@ export const en = {
     'Relinked. The Principal is pending; the scheduled recovery gives it a Keycloak user.',
   'principals.sweep': 'Run the Principal sweep now',
   'principals.sweep.done': 'Sweep finished: {recovered, number} recovered, {dangling, number} dangling.',
+
+  'principals.search.title': 'Find a Principal',
+  'principals.search.description':
+    'By the beginning of a username or an email. Every search is recorded with its query, and nothing is listed until you search.',
+  'principals.search.label': 'Username or email',
+  'principals.search.submit': 'Search',
+  'principals.search.tooShort': 'Type at least three characters that are not wildcards.',
+  'principals.search.none': 'No Principal’s username or email begins with “{query}”.',
+  'principals.search.caption': 'Principals found',
+  'principals.search.column.username': 'Username',
+  'principals.search.column.email': 'Email',
+  'principals.search.column.type': 'Type',
+  'principals.search.column.state': 'State',
+  'principals.search.full': 'This page holds the first {count, number}. Narrow the query to find the rest.',
+  'principals.subjectType.human': 'Person',
+  'principals.subjectType.workload': 'Workload',
+  'principals.state.pending': 'Pending',
+  'principals.state.active': 'Active',
+  'principals.state.suspended': 'Suspended',
+  'principals.state.quarantined': 'Quarantined',
+  'principals.state.retired': 'Retired',
+
+  'principals.detail.state': 'State',
+  'principals.detail.principal': 'principal_id',
+  'principals.detail.created': 'Created',
+  'principals.detail.quarantined': 'Quarantined',
+  'principals.section.open': 'Show — this read is recorded',
+  'principals.sessions.title': 'Sessions',
+  'principals.sessions.none': 'No session is open.',
+  'principals.sessions.started': 'Started',
+  'principals.sessions.lastAccess': 'Last used',
+  'principals.sessions.clients': 'Clients',
+  'principals.authenticators.title': 'Authenticators',
+  'principals.authenticators.none': 'No authenticator is enrolled.',
+  'principals.authenticators.type': 'Type',
+  'principals.authenticators.label': 'Label',
+  'principals.authenticators.created': 'Enrolled',
+  'principals.authenticators.action': 'Action',
+  'principals.authenticators.lastFirstFactor': 'The last way to sign in: suspend instead.',
+  'principals.federation.title': 'Federation links',
+  'principals.federation.none': 'No identity provider is linked.',
+  'principals.federation.link': '{provider}: {user}',
+  'principals.findings.title': 'Findings',
+  'principals.findings.none': 'The reconciler has found nothing about this Principal.',
+  'principals.findings.open': 'Open: {class}, detected',
+  'principals.findings.resolved': 'Resolved ({resolution}): {class}, detected',
+
+  'principals.contain.title': 'Containment',
+  'principals.contain.description':
+    'Each command needs a reason and a recent sign-in, and is recorded with both. Each is reversible except a revoked authenticator, which the person enrolls again.',
+  'principals.contain.terminate': 'End every session',
+  'principals.contain.revoke': 'Revoke',
+  'principals.contain.suspend.title': 'Suspend this Principal',
+  'principals.contain.suspend.body':
+    'Sign-in stops and every session ends. Memberships and ownerships are kept. A token already issued lives out its lifetime, at most four minutes for the Identity Control API.',
+  'principals.contain.restore.title': 'Restore this Principal',
+  'principals.contain.restore.body':
+    'Sign-in works again. No session comes back: the person signs in afresh.',
+  'principals.contain.terminate.title': 'End every session',
+  'principals.contain.terminate.body':
+    'Every session ends, this person’s browsers included. The person can sign in again.',
+  'principals.contain.revoke.title': 'Revoke this {type}',
+  'principals.contain.revoke.body': 'The authenticator is deleted. The person enrolls it again to use it.',
+  'principals.contain.revoke.remaining':
+    '{count, plural, =0 {No other way to sign in remains.} one {One other way to sign in remains.} other {# other ways to sign in remain.}}',
+  'principals.contain.sending': 'Sending, and following it until Keycloak confirms…',
+  'principals.contain.done.suspend': 'Suspended. Sign-in is stopped and every session has ended.',
+  'principals.contain.done.restore': 'Restored. The person can sign in again.',
+  'principals.contain.done.terminate-all': 'Every session has ended.',
+  'principals.contain.done.revoke': 'The authenticator is revoked.',
+  'principals.contain.refused.lastAuthenticator':
+    'Refused: it is the last way to sign in. Suspend the Principal instead.',
+  'principals.contain.refused.other': 'Refused ({code}).',
+  'principals.contain.unresolved':
+    'Keycloak did not confirm it after every attempt. It is parked for an operator, and this Principal’s later commands wait behind it. Operation {id}.',
+  'principals.contain.running':
+    'Accepted and still running. Operation {id} finishes on its own; read this page again in a moment.',
+  'principals.contain.none.self':
+    'This is your own Principal. Containing yourself is refused; your own sessions are ended through self-service.',
+  'principals.contain.none.workload': 'A workload is contained on its own page.',
+  'principals.contain.none.workload.link': 'Workloads',
+  'principals.contain.none.state': 'Nothing is offered for a Principal that is {state}.',
 
   'shell.nav.workloads': 'Workloads',
 
@@ -528,7 +610,7 @@ export const id: Messages = {
   'principals.eyebrow': 'Identitas',
   'principals.title': 'Principal',
   'principals.lead':
-    'Buat Principal untuk orang, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Workload dibuat di halaman Workload. Tidak ada daftar semua Principal: pencarian datang bersama API investigasi, dan mengekspor direktori bukan administrasi.',
+    'Cari Principal dan tahan aksesnya, buat Principal untuk orang, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Workload dibuat di halaman Workload. Tidak ada daftar semua Principal: pencarian menemukan satu, dan mengekspor direktori bukan administrasi.',
 
   'principals.create.open': 'Buat Principal',
   'principals.create.title': 'Principal baru',
@@ -562,6 +644,89 @@ export const id: Messages = {
   'principals.sweep': 'Jalankan pembanding Principal sekarang',
   'principals.sweep.done':
     'Pembanding selesai: {recovered, number} dipulihkan, {dangling, number} kehilangan user.',
+
+  'principals.search.title': 'Cari Principal',
+  'principals.search.description':
+    'Dari awal username atau email. Setiap pencarian dicatat beserta kata kuncinya, dan tidak ada yang ditampilkan sebelum kamu mencari.',
+  'principals.search.label': 'Username atau email',
+  'principals.search.submit': 'Cari',
+  'principals.search.tooShort': 'Ketik minimal tiga karakter yang bukan wildcard.',
+  'principals.search.none': 'Tidak ada username atau email Principal yang diawali “{query}”.',
+  'principals.search.caption': 'Principal yang ditemukan',
+  'principals.search.column.username': 'Username',
+  'principals.search.column.email': 'Email',
+  'principals.search.column.type': 'Jenis',
+  'principals.search.column.state': 'Status',
+  'principals.search.full':
+    'Halaman ini memuat {count, number} pertama. Persempit kata kunci untuk menemukan sisanya.',
+  'principals.subjectType.human': 'Orang',
+  'principals.subjectType.workload': 'Workload',
+  'principals.state.pending': 'Tertunda',
+  'principals.state.active': 'Aktif',
+  'principals.state.suspended': 'Ditangguhkan',
+  'principals.state.quarantined': 'Dikarantina',
+  'principals.state.retired': 'Dipensiunkan',
+
+  'principals.detail.state': 'Status',
+  'principals.detail.principal': 'principal_id',
+  'principals.detail.created': 'Dibuat',
+  'principals.detail.quarantined': 'Dikarantina',
+  'principals.section.open': 'Tampilkan — pembacaan ini dicatat',
+  'principals.sessions.title': 'Sesi',
+  'principals.sessions.none': 'Tidak ada sesi yang terbuka.',
+  'principals.sessions.started': 'Mulai',
+  'principals.sessions.lastAccess': 'Terakhir dipakai',
+  'principals.sessions.clients': 'Client',
+  'principals.authenticators.title': 'Authenticator',
+  'principals.authenticators.none': 'Tidak ada authenticator yang terdaftar.',
+  'principals.authenticators.type': 'Jenis',
+  'principals.authenticators.label': 'Label',
+  'principals.authenticators.created': 'Didaftarkan',
+  'principals.authenticators.action': 'Aksi',
+  'principals.authenticators.lastFirstFactor': 'Cara login terakhir: tangguhkan saja.',
+  'principals.federation.title': 'Tautan federasi',
+  'principals.federation.none': 'Tidak ada identity provider yang tertaut.',
+  'principals.federation.link': '{provider}: {user}',
+  'principals.findings.title': 'Temuan',
+  'principals.findings.none': 'Reconciler tidak menemukan apa pun tentang Principal ini.',
+  'principals.findings.open': 'Terbuka: {class}, terdeteksi',
+  'principals.findings.resolved': 'Selesai ({resolution}): {class}, terdeteksi',
+
+  'principals.contain.title': 'Penahanan akses',
+  'principals.contain.description':
+    'Setiap perintah butuh alasan dan login yang baru, dan dicatat beserta keduanya. Semuanya bisa dibatalkan kecuali authenticator yang dicabut, yang didaftarkan ulang oleh orangnya.',
+  'principals.contain.terminate': 'Akhiri semua sesi',
+  'principals.contain.revoke': 'Cabut',
+  'principals.contain.suspend.title': 'Tangguhkan Principal ini',
+  'principals.contain.suspend.body':
+    'Login berhenti dan semua sesi berakhir. Membership dan kepemilikan tetap ada. Token yang sudah terbit tetap berlaku sampai habis, paling lama empat menit untuk Identity Control API.',
+  'principals.contain.restore.title': 'Pulihkan Principal ini',
+  'principals.contain.restore.body':
+    'Login bisa lagi. Tidak ada sesi yang kembali: orangnya login dari awal.',
+  'principals.contain.terminate.title': 'Akhiri semua sesi',
+  'principals.contain.terminate.body':
+    'Semua sesi berakhir, termasuk di browser orang ini. Orangnya bisa login lagi.',
+  'principals.contain.revoke.title': 'Cabut {type} ini',
+  'principals.contain.revoke.body': 'Authenticator dihapus. Orangnya mendaftarkannya lagi untuk memakainya.',
+  'principals.contain.revoke.remaining':
+    '{count, plural, =0 {Tidak ada cara login lain yang tersisa.} other {Tersisa # cara login lain.}}',
+  'principals.contain.sending': 'Mengirim, dan mengikutinya sampai Keycloak mengonfirmasi…',
+  'principals.contain.done.suspend': 'Ditangguhkan. Login dihentikan dan semua sesi sudah berakhir.',
+  'principals.contain.done.restore': 'Dipulihkan. Orangnya bisa login lagi.',
+  'principals.contain.done.terminate-all': 'Semua sesi sudah berakhir.',
+  'principals.contain.done.revoke': 'Authenticator sudah dicabut.',
+  'principals.contain.refused.lastAuthenticator':
+    'Ditolak: ini cara login terakhir. Tangguhkan Principal-nya saja.',
+  'principals.contain.refused.other': 'Ditolak ({code}).',
+  'principals.contain.unresolved':
+    'Keycloak tidak mengonfirmasi setelah semua percobaan. Perintah ini diparkir untuk operator, dan perintah berikutnya untuk Principal ini menunggu di belakangnya. Operasi {id}.',
+  'principals.contain.running':
+    'Diterima dan masih berjalan. Operasi {id} selesai sendiri; baca halaman ini lagi sebentar lagi.',
+  'principals.contain.none.self':
+    'Ini Principal-mu sendiri. Menahan akses diri sendiri ditolak; sesimu sendiri diakhiri lewat self-service.',
+  'principals.contain.none.workload': 'Workload ditahan aksesnya di halamannya sendiri.',
+  'principals.contain.none.workload.link': 'Workload',
+  'principals.contain.none.state': 'Tidak ada aksi untuk Principal yang berstatus {state}.',
 
   'shell.nav.workloads': 'Workload',
 

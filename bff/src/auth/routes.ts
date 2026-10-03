@@ -56,13 +56,23 @@ export function safeReturnTo(value: unknown, publicOrigin: string): string {
 
 const noStore = (reply: FastifyReply): FastifyReply => reply.header('cache-control', 'no-store');
 
+// stepUpMaxAge reads a step-up's max_age: whole seconds from 0 to a day. Anything else is ignored
+// and the sign-in goes ahead as a plain one (TDD-identity-experience-001 §Step-Up).
+export function stepUpMaxAge(value: unknown): number | null {
+  if (typeof value !== 'string' || !/^\d{1,5}$/.test(value)) {
+    return null;
+  }
+  const seconds = Number(value);
+  return seconds <= 86_400 ? seconds : null;
+}
+
 const queryOf = (request: FastifyRequest): string => {
   const index = request.url.indexOf('?');
   return index === -1 ? '' : request.url.slice(index);
 };
 
-// authRoutes are the BFF's own endpoints (TDD-identity-experience-001 §BFF Endpoints). Step-up and
-// the context switch arrive with the screens that need them.
+// authRoutes are the BFF's own endpoints (TDD-identity-experience-001 §BFF Endpoints). Step-up is a
+// sign-in with max_age; the context switch arrives with the screen that needs it.
 export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, done: () => void): void {
   const { publicOrigin, oidc, sessions, store, now } = options;
 
@@ -76,26 +86,32 @@ export function authRoutes(app: FastifyInstance, options: AuthRoutesOptions, don
     },
   );
 
-  app.get<{ Querystring: { return_to?: string } }>('/auth/login', async (request, reply) => {
-    const binding = randomToken();
-    const codeVerifier = client.randomPKCECodeVerifier();
-    const state = client.randomState();
-    const nonce = client.randomNonce();
-    await store.putLoginState(digest(binding), {
-      state,
-      nonce,
-      codeVerifier,
-      returnTo: safeReturnTo(request.query.return_to, publicOrigin),
-      expiresAt: new Date(now().getTime() + loginLifetimeSeconds * 1_000),
-    });
-    const location = oidc.authorizationUrl({
-      state,
-      nonce,
-      codeChallenge: await client.calculatePKCECodeChallenge(codeVerifier),
-    });
-    setLoginCookie(reply, binding);
-    return noStore(reply).redirect(location.href, 302);
-  });
+  app.get<{ Querystring: { return_to?: string; max_age?: string } }>(
+    '/auth/login',
+    async (request, reply) => {
+      const binding = randomToken();
+      const codeVerifier = client.randomPKCECodeVerifier();
+      const state = client.randomState();
+      const nonce = client.randomNonce();
+      const maxAge = stepUpMaxAge(request.query.max_age);
+      await store.putLoginState(digest(binding), {
+        state,
+        nonce,
+        codeVerifier,
+        returnTo: safeReturnTo(request.query.return_to, publicOrigin),
+        expiresAt: new Date(now().getTime() + loginLifetimeSeconds * 1_000),
+        maxAge,
+      });
+      const location = oidc.authorizationUrl({
+        state,
+        nonce,
+        codeChallenge: await client.calculatePKCECodeChallenge(codeVerifier),
+        maxAge,
+      });
+      setLoginCookie(reply, binding);
+      return noStore(reply).redirect(location.href, 302);
+    },
+  );
 
   app.get('/auth/callback', async (request, reply) => {
     clearLoginCookie(reply);

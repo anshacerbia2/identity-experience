@@ -15,7 +15,9 @@ export function createQueryClient(): QueryClient {
   const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({
       onError: (error) => {
-        if (error instanceof ApiError && error.status === 401) {
+        // A step-up challenge is not an ended session: the BFF kept it (TDD-identity-experience-001
+        // §Step-Up), so the shell must not show the user as signed out.
+        if (error instanceof ApiError && error.status === 401 && error.stepUpMaxAge === null) {
           void client.invalidateQueries({ queryKey: sessionQueryKey });
         }
       },

@@ -7,12 +7,12 @@ import { Message } from '@/core/i18n/Message';
 import { ApplicationDevelopers } from './ApplicationDevelopers';
 import { CreatePrincipalForm } from './CreatePrincipalForm';
 import { DanglingSection } from './DanglingSection';
+import { PrincipalSearch } from './PrincipalSearch';
 import styles from './PrincipalsPage.module.scss';
 
-// PrincipalsPage is what the Identity Control API offers for Principals today
-// (TDD-identity-experience-003 §Principal Provisioning and Portability): creating one, and
-// relinking one whose Keycloak user is gone. It lists no Principal population: search and a
-// Principal's security state wait for TDD-identity-control-005.
+// PrincipalsPage finds a Principal, creates one, and relinks one whose Keycloak user is gone
+// (TDD-identity-experience-003 §Principal Search and Security State, §Principal Provisioning and
+// Portability). It lists no Principal population: the search lists nothing until it is asked.
 export function PrincipalsPage(): ReactElement {
   const session = useSession();
   return (
@@ -30,6 +30,7 @@ export function PrincipalsPage(): ReactElement {
       </header>
       {session.data?.authenticated === true ? (
         <>
+          <PrincipalSearch />
           <CreatePrincipalForm />
           <DanglingSection />
           <ApplicationDevelopers />

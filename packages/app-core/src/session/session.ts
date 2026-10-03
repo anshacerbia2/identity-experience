@@ -42,6 +42,11 @@ export function useSession() {
 export const signInHref = (returnTo: string): string =>
   `/auth/login?return_to=${encodeURIComponent(returnTo)}`;
 
+// stepUpHref starts the sign-in a step-up challenge asks for: the same sign-in, with the max_age the
+// API stated, returning here (TDD-identity-experience-001 §Step-Up).
+export const stepUpHref = (returnTo: string, maxAge: number): string =>
+  `/auth/login?max_age=${String(maxAge)}&return_to=${encodeURIComponent(returnTo)}`;
+
 // useHere is the path a sign-in returns to: where the browser is, on this origin. The router's own
 // location leaves out the base path an application is served under (/developer/ for the Developer
 // Console), and a sign-in returning without it would land in another application.

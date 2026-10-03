@@ -11,7 +11,7 @@ import {
   type Harness,
 } from './support/harness.js';
 import { defaultUser } from './support/identity-provider.js';
-import { safeReturnTo } from '../src/auth/routes.js';
+import { safeReturnTo, stepUpMaxAge } from '../src/auth/routes.js';
 import { digest } from '../src/session/seal.js';
 
 // TDD-identity-experience-001 §Testing Strategy, against a real PostgreSQL session store and a
@@ -238,6 +238,13 @@ describe('sign-in', () => {
       }
     });
 
+    // A step-up asked for an authentication within max_age; an ID token whose auth_time is older
+    // does not satisfy it (OpenID Connect Core §3.1.2.1, TDD-identity-experience-001 §Step-Up).
+    it('a step-up whose authentication is older than its max_age', async () => {
+      harness.provider.tamper = { claims: { auth_time: Math.floor(Date.now() / 1000) - 600 } };
+      refused(await callbackWith(() => undefined, undefined, '/auth/login?max_age=60'));
+    });
+
     for (const [name, tamper] of [
       ['a mismatched nonce', { claims: { nonce: 'forged' } }],
       ['a wrong issuer', { claims: { iss: 'https://evil.example/realms/test' } }],
@@ -251,6 +258,43 @@ describe('sign-in', () => {
         refused(await callbackWith(() => undefined));
       });
     }
+  });
+});
+
+describe('step-up', () => {
+  it('sends max_age, and signs in when the authentication is recent', async () => {
+    const login = await harness.app.inject({
+      method: 'GET',
+      url: '/auth/login?max_age=300&return_to=/principals',
+    });
+    expect(new URL(String(login.headers.location)).searchParams.get('max_age')).toBe('300');
+    const { callback } = await signIn(harness, { returnTo: '/principals' });
+    expect(callback.headers.location).toBe('/principals');
+  });
+
+  it('ignores a malformed max_age and signs in as usual', async () => {
+    for (const value of ['-1', '1.5', 'abc', '86401', '999999']) {
+      const login = await harness.app.inject({ method: 'GET', url: `/auth/login?max_age=${value}` });
+      expect(new URL(String(login.headers.location)).searchParams.has('max_age')).toBe(false);
+    }
+    expect(stepUpMaxAge('0')).toBe(0);
+    expect(stepUpMaxAge('86400')).toBe(86_400);
+    expect(stepUpMaxAge(undefined)).toBeNull();
+  });
+
+  it('a step-up challenge from the API keeps the session and reaches the browser', async () => {
+    const { session } = await signIn(harness);
+    const challenge = 'Bearer error="insufficient_user_authentication", max_age=300';
+    harness.upstream.answer = {
+      status: 401,
+      headers: { 'content-type': 'application/problem+json', 'www-authenticate': challenge },
+      body: '{"type":"https://problems.scnehaux.com/authentication-required","status":401}',
+    };
+    const response = await mutate(session, '/api/v1/principals/p1:suspend');
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['www-authenticate']).toBe(challenge);
+    expect(response.headers['content-type']).toBe('application/problem+json');
+    expect((await sessionOf(harness, session)).authenticated).toBe(true);
   });
 });
 

@@ -100,6 +100,19 @@ export function apiProxy(app: FastifyInstance, options: ProxyOptions, done: () =
       return sendProblem(request, reply, 'dependencyUnavailable');
     }
 
+    // A step-up challenge says the authentication is too old for this command, not that the token
+    // is refused: the session is kept, and the challenge reaches the application, which offers a
+    // sign-in with its max_age (TDD-identity-experience-001 §Step-Up, RFC 9470).
+    const challenge = response.headers.get('www-authenticate') ?? '';
+    if (response.status === 401 && /error="insufficient_user_authentication"/.test(challenge)) {
+      reply.code(401).header('cache-control', 'no-store').header('www-authenticate', challenge);
+      const contentType = response.headers.get('content-type');
+      if (contentType !== null) {
+        reply.header('content-type', contentType);
+      }
+      return reply.send(Buffer.from(await response.arrayBuffer()));
+    }
+
     // The API refused the token: the third path by which a revocation reaches an open tab. The
     // session is ended, not retried.
     if (response.status === 401) {
