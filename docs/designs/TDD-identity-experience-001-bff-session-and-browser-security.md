@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.10.0
+  version: 1.11.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -305,7 +305,7 @@ class.
 ### BFF Endpoints
 
 ```text
-GET   /auth/login            ?return_to=&max_age=&acr_values=
+GET   /auth/login            ?return_to=&max_age=&acr_values=&kc_action=
 GET   /auth/callback
 POST  /auth/logout
 POST  /auth/back-channel-logout
@@ -464,6 +464,16 @@ application, on that 401:
   first page (`ADR-IAM-004 §5.3`). A sign-in returning to the Developer Console or the account
   application asks for no level. This is the BFF's rule, by where the sign-in returns, and the browser
   cannot lower it.
+- **An application-initiated action (1.11.0).** `/auth/login` passes `kc_action` to the kernel only
+  for an action on its allowlist, which today is `CONFIGURE_TOTP` alone. Any other value is ignored.
+  - The account application asks for the action after the Identity Control API authorized the
+    enrollment (`TDD-identity-control-005` §Enrollment and the Assurance Floor). The kernel performs
+    it on its own pages.
+  - Keycloak reports the action's outcome as `kc_action_status`, `success` or `cancelled`. It calls
+    `kc_action` and `kc_action_status` "a Keycloak proprietary mechanism unsupported by the OIDC
+    specification" [R6].
+  - The callback carries an allowlisted outcome onto the return address, so the page can say it.
+    The sign-in itself completes as any other, with a new session.
 - **A read is challenged too.** A provider route answers a read below `aal2` with the challenge. The
   read's error panel offers the same "sign in again to continue", so a page that loads data shows the
   way forward rather than an error.
@@ -611,6 +621,8 @@ the build emits styles and fonts as files served from this origin, never inline.
   `WWW-Authenticate` reaches the browser.
 - `/auth/login?max_age=N` sends `max_age`. A callback whose `auth_time` is older than `N` is
   refused. A malformed `max_age` is ignored.
+- `/auth/login?kc_action=CONFIGURE_TOTP` sends it, and any other action is not sent. The callback
+  carries `kc_action_status` `success` or `cancelled` onto the return address, and nothing else.
 - `/auth/login?acr_values=aal2` sends it. A callback whose ID token `acr` is below it is refused. An
   unknown level is ignored. A sign-in returning to the Admin Portal asks for `aal2` unless it names a
   level; one returning to the Developer Console or the account application asks for none.
@@ -721,3 +733,4 @@ outbox.
 | R3 | Sam Newman, *Backends For Frontends*, <https://samnewman.io/patterns/architectural/bff/>, accessed 2026-10-03: "'one experience, one BFF'. So if the iOS and Android experiences are very similar, then it is easier to justify having a single BFF"; "BFFs work best when aligned around team boundaries, so team structure should drive how many BFFs you have." |
 | R4 | IETF, *OAuth 2.0 for Browser-Based Applications*, draft-ietf-oauth-browser-based-apps-27, §6.1, <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-browser-based-apps>: "The BFF runs as a server-side component, but it is a component of the frontend application" (§6.1.3); "The BFF relies on browser cookies to keep track of the user's session, which is used to access the user's tokens" (§6.1.2.3); "This architecture is strongly recommended for business applications, sensitive applications, and applications that handle personal data" (§6.1.4.3). |
 | R5 | Duende Software, *BFF: Multiple Frontends*, <https://docs.duendesoftware.com/bff/fundamentals/multi-frontend/>, accessed 2026-10-03: frontends are "identified either via path based routing and/or host selection"; each can "Define its own Cookie settings"; "having a dedicated backend service for each frontend introduces quite a lot of operational overhead." |
+| R6 | Keycloak, *Server Administration Guide*, Application Initiated Actions, <https://www.keycloak.org/docs/latest/server_admin/index.html>, accessed 2026-10-03: AIA "is triggered by adding the kc_action parameter to the OIDC login URL"; a cancelled action returns "kc_action_status=cancelled"; "The kc_action and kc_action_status parameters are a Keycloak proprietary mechanism unsupported by the OIDC specification." |
