@@ -15,22 +15,24 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
       environment={<Message id="app.environment.development" />}
       nav={
         <nav className={navClasses.nav} aria-labelledby="primary-nav-label">
-          <p id="primary-nav-label" className={navClasses.section}>
-            <Message id="shell.nav.section.applications" />
-          </p>
-          <ul className={navClasses.list}>
-            <li>
-              <Link
-                to="/"
-                className={navClasses.item}
-                activeProps={{ 'aria-current': 'page' }}
-                activeOptions={{ exact: true }}
-              >
-                <Icon name="grid" />
-                <Message id="shell.nav.registrations" />
-              </Link>
-            </li>
-          </ul>
+          <div className={navClasses.group}>
+            <p id="primary-nav-label" className={navClasses.section}>
+              <Message id="shell.nav.section.applications" />
+            </p>
+            <ul className={navClasses.list}>
+              <li>
+                <Link
+                  to="/"
+                  className={navClasses.item}
+                  activeProps={{ 'aria-current': 'page' }}
+                  activeOptions={{ exact: true }}
+                >
+                  <Icon name="grid" />
+                  <Message id="shell.nav.registrations" />
+                </Link>
+              </li>
+            </ul>
+          </div>
         </nav>
       }
     >
