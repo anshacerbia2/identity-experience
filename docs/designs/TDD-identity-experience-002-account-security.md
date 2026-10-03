@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.1.0
+  version: 1.2.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-08-14
+  last_reviewed: 2026-10-03
   parent_sad: SAD-002
 ---
 
@@ -73,6 +73,73 @@ decision; each renders what the API returns and refuses what the API refuses.
 `TDD-identity-control-005` is the upstream contract for every route below. The BFF
 removes the `/api` prefix while proxying and changes no subject, guard, or result.
 
+### Delivery
+
+The account security experience is its own application, `apps/account`, built with Vite under
+the base path `/account/` and served by the Identity Experience BFF beside the Admin Portal and
+the Developer Console (`TDD-identity-experience-001` §Runtime). It uses the same session, CSRF
+token and `/api` proxy, so a person signed in to one is signed in to all three.
+
+**Why a separate application, not a section of the Admin Portal.**
+- **The containers are already separate.** SAD-002 §4.1 lists "Account Security Experience" and
+  "Identity Admin Portal" as different containers.
+- **The audiences are different.** The Portal is for the few providers who act on other people.
+  Account security is for every person, acting on themselves. A section of the Portal would send
+  the Portal's pages and navigation to every person's browser. It would also blur in the interface
+  the line the API draws between route class `self` and `providerOnly`
+  (`TDD-identity-control-005` §Self-Service as Built).
+- **Identity products separate these the same way.**
+  - Microsoft's My Account (`myaccount.microsoft.com`) is separate from the Entra admin center.
+  - Google Account (`myaccount.google.com`) is separate from the Google Admin console.
+  - Okta's End-User Dashboard is separate from its Admin Console.
+  - The kernel itself does this: Keycloak's Account Console is separate from its Admin Console.
+
+The three applications share what must not differ between them through `packages/app-core`:
+API access and its step-up handling, the session, the query client, preferences and the frame.
+Each application's pages, navigation and message catalogue are its own. A sign-in started from
+the account application returns to it, and one that does not complete lands on `/account/` with
+its marker.
+
+### As Built: Sessions and Authenticators (1.2.0)
+
+Built on `TDD-identity-control-005` slice 3a. Consents, enrollment and recovery are not built yet,
+and the page shows none of them:
+- Consents wait for the API's slice 3b.
+- Enrollment waits for slice 4.
+- Recovery waits for the kernel's recovery pages.
+
+**Sessions.**
+- Each row shows when the session started, when it was last used, and the applications it is signed
+  in to. The session the page was loaded from is marked "This browser".
+- The kernel holds no device class or location, so neither is shown (`TDD-identity-control-005`
+  §Read Authorization and Disclosure). Neither is an address, a user agent or an identifier
+  (§Device Presentation).
+- **Ending one session.** The row is ended at once, with no reason asked. The page says the
+  device's access ends within the access token's lifetime, at most four minutes, and not instantly
+  (`TDD-identity-control-005` 2.3.1).
+- **Ending every session.** The page asks for an explicit confirmation that this browser is signed
+  out too (§Terminating the Current Session).
+  - On success the application calls `POST /auth/logout`, which ends the BFF session, and shows
+    the signed-out page.
+  - Keycloak's session is already gone at that point, so the BFF's logout call to the kernel is
+    expected to fail. `TDD-identity-experience-001` already ends the BFF session regardless.
+
+**Authenticators.**
+- Each row shows type, label and enrollment date.
+- **Remove** is offered on every row. A step-up challenge offers a fresh sign-in, as everywhere
+  (`TDD-identity-experience-001` §Step-Up).
+- A refusal is the API's (`last_authenticator`). The page renders it as "This is your last way to
+  sign in", and does not compute it beforehand (§The Last Authenticator Guard). Enrolling a
+  replacement first is not possible yet, so the sentence says so.
+
+**Commands.** Every command carries an Idempotency-Key kept per distinct request, and no reason
+and no version: the API takes neither for a person's own commands. A `202` is followed at
+`GET /api/v1/me/security-operations/{operation_id}`.
+
+**Getting there.** The shared frame's account menu links to `/account/` from the Portal and the
+console. The account application links back to neither, because most of the people who use it
+hold no role there.
+
 ## Data Model
 
 This repository holds no security state. Its client model is a read projection of API
@@ -83,13 +150,14 @@ kernel and read through the Identity Control API.
 
 ```text
 GET   /api/v1/me/sessions
-POST  /api/v1/me/sessions/{session_id}:terminate
+POST  /api/v1/me/sessions/{security_ref}:terminate
 POST  /api/v1/me/sessions:terminate-all
 GET   /api/v1/me/authenticators
 POST  /api/v1/me/authenticators:enroll
-POST  /api/v1/me/authenticators/{authenticator_id}:remove
+POST  /api/v1/me/authenticators/{security_ref}:remove
 GET   /api/v1/me/consents
 POST  /api/v1/me/consents/{consent_id}:withdraw
+GET   /api/v1/me/security-operations/{operation_id}
 ```
 
 Every path is scoped to the authenticated Principal by the API, never by a parameter the
