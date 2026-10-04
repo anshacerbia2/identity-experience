@@ -19,7 +19,17 @@ export interface MyAuthenticator {
   readonly type: string;
   readonly label?: string;
   readonly created: string;
+  // A recovery-code set's unused codes and the count it began with (ADR-IAM-005 §5.4).
+  readonly remaining_codes?: number;
+  readonly total_codes?: number;
 }
+
+// usedRecoveryCodes reports whether a recovery-code set has been used: fewer codes remain than it
+// began with, so the person recovered with one and should take a new set.
+export const usedRecoveryCodes = (authenticator: MyAuthenticator): boolean =>
+  authenticator.remaining_codes !== undefined &&
+  authenticator.total_codes !== undefined &&
+  authenticator.remaining_codes < authenticator.total_codes;
 
 export type OperationState = 'pending' | 'retrying' | 'applied' | 'refused' | 'unresolved';
 
@@ -129,9 +139,9 @@ export const browser = {
 export const enrollHref = (action: string): string =>
   `/auth/login?${new URLSearchParams({ kc_action: action, return_to: '/account/' }).toString()}`;
 
-// The authenticator types a person may enroll: an authenticator app, or a security key used as a
-// second factor (TDD-identity-experience-002 1.4.0).
-export type EnrollType = 'totp' | 'webauthn';
+// The authenticator types a person may enroll: an authenticator app, a security key used as a
+// second factor (TDD-identity-experience-002 1.4.0), or a new set of recovery codes (1.5.0).
+export type EnrollType = 'totp' | 'webauthn' | 'recovery-codes';
 
 // useEnroll asks the API to authorize enrolling an authenticator, then goes to the kernel's page
 // that enrolls it (TDD-identity-control-005 §Enrollment and the Assurance Floor).

@@ -15,6 +15,7 @@ import {
   type MyAuthenticator,
   type Operation,
   type SelfCommandRequest,
+  usedRecoveryCodes,
 } from './security-api';
 import styles from './SecurityPage.module.scss';
 
@@ -310,6 +311,16 @@ function AddAuthenticator(): ReactElement {
         >
           <Message id="security.authenticators.addKey" />
         </Button>
+        <Button
+          variant="secondary"
+          icon={<Icon name="grid" />}
+          disabled={enroll.isPending}
+          onClick={() => {
+            enroll.mutate('recovery-codes');
+          }}
+        >
+          <Message id="security.authenticators.addCodes" />
+        </Button>
       </div>
     </div>
   );
@@ -355,7 +366,19 @@ function Authenticators(): ReactElement {
           {authenticators.data.map((authenticator) => (
             <Table.Row key={authenticator.security_ref}>
               <Table.Cell mono>{authenticator.type}</Table.Cell>
-              <Table.Cell>{authenticator.label ?? ''}</Table.Cell>
+              <Table.Cell>
+                {authenticator.label ?? ''}
+                {authenticator.remaining_codes === undefined ||
+                authenticator.total_codes === undefined ? null : (
+                  <>
+                    {authenticator.label === undefined ? '' : ' · '}
+                    <Message
+                      id="security.authenticators.codesLeft"
+                      values={{ remaining: authenticator.remaining_codes, total: authenticator.total_codes }}
+                    />
+                  </>
+                )}
+              </Table.Cell>
               <Table.Cell>
                 <FormattedDate value={authenticator.created} dateStyle="medium" />
               </Table.Cell>
@@ -389,6 +412,11 @@ function Authenticators(): ReactElement {
         </Panel.Description>
       </Panel.Header>
       <Panel.Body>
+        {authenticators.data?.some(usedRecoveryCodes) === true ? (
+          <p className={styles['quiet']} role="status">
+            <Message id="security.authenticators.codesUsed" />
+          </p>
+        ) : null}
         {body}
         {removing === null ? null : (
           <RemoveForm

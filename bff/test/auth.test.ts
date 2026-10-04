@@ -327,6 +327,7 @@ describe('step-up', () => {
     expect(await action('CONFIGURE_TOTP')).toBe('CONFIGURE_TOTP');
     expect(await action('webauthn-register')).toBe('webauthn-register');
     expect(await action('webauthn-register-passwordless')).toBeNull();
+    expect(await action('CONFIGURE_RECOVERY_AUTHN_CODES')).toBe('CONFIGURE_RECOVERY_AUTHN_CODES');
     expect(await action('UPDATE_PASSWORD')).toBeNull();
     expect(await action('delete_account')).toBeNull();
   });
