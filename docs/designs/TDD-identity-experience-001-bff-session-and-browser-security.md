@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.12.0
+  version: 1.13.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-03
+  last_reviewed: 2026-10-04
   parent_sad: SAD-002
 ---
 
@@ -464,9 +464,10 @@ application, on that 401:
   first page (`ADR-IAM-004 §5.3`). A sign-in returning to the Developer Console or the account
   application asks for no level. This is the BFF's rule, by where the sign-in returns, and the browser
   cannot lower it.
-- **An application-initiated action (1.11.0, 1.12.0).** `/auth/login` passes `kc_action` to the
-  kernel only for an action on its allowlist: `CONFIGURE_TOTP`, and since 1.12.0 `webauthn-register`
-  [R7]. Any other value is ignored, `webauthn-register-passwordless` included, because no realm flow
+- **An application-initiated action (1.11.0, 1.12.0, 1.13.0).** `/auth/login` passes `kc_action` to
+  the kernel only for an action on its allowlist: `CONFIGURE_TOTP`, since 1.12.0 `webauthn-register`
+  [R7], and since 1.13.0 `CONFIGURE_RECOVERY_AUTHN_CODES`, a new set of recovery codes
+  (`ADR-IAM-005 §5.3`). Any other value is ignored, `webauthn-register-passwordless` included, because no realm flow
   admits a passkey as a first factor (`TDD-identity-control-005` 2.7.0).
   - The account application asks for the action after the Identity Control API authorized the
     enrollment (`TDD-identity-control-005` §Enrollment and the Assurance Floor). The kernel performs
@@ -623,8 +624,8 @@ the build emits styles and fonts as files served from this origin, never inline.
   `WWW-Authenticate` reaches the browser.
 - `/auth/login?max_age=N` sends `max_age`. A callback whose `auth_time` is older than `N` is
   refused. A malformed `max_age` is ignored.
-- `/auth/login?kc_action=CONFIGURE_TOTP` and `?kc_action=webauthn-register` send it, and any other
-  action is not sent. The callback
+- `/auth/login?kc_action=CONFIGURE_TOTP`, `?kc_action=webauthn-register` and
+  `?kc_action=CONFIGURE_RECOVERY_AUTHN_CODES` send it, and any other action is not sent. The callback
   carries `kc_action_status` `success` or `cancelled` onto the return address, and nothing else.
 - `/auth/login?acr_values=aal2` sends it. A callback whose ID token `acr` is below it is refused. An
   unknown level is ignored. A sign-in returning to the Admin Portal asks for `aal2` unless it names a
