@@ -54,6 +54,10 @@ export const en = {
   'security.authenticators.removed': 'Removed.',
   'security.authenticators.add': 'Add an authenticator app',
   'security.authenticators.addKey': 'Add a security key',
+  'security.authenticators.addCodes': 'Get new recovery codes',
+  'security.authenticators.codesLeft': '{remaining} of {total} codes left',
+  'security.authenticators.codesUsed':
+    'A recovery code was used to sign in. Get a new set of codes, and add another authenticator if one was lost.',
   'security.authenticators.enrolled': 'The authenticator is added. It now works at sign-in.',
   'security.authenticators.enrollCancelled': 'Nothing was added: the setup was cancelled.',
   'security.authenticators.last': 'Refused: this is your last way to sign in.',
@@ -111,6 +115,10 @@ export const id: Messages = {
   'security.authenticators.removed': 'Dihapus.',
   'security.authenticators.add': 'Tambah aplikasi authenticator',
   'security.authenticators.addKey': 'Tambah security key',
+  'security.authenticators.addCodes': 'Buat recovery code baru',
+  'security.authenticators.codesLeft': '{remaining} dari {total} kode tersisa',
+  'security.authenticators.codesUsed':
+    'Sebuah recovery code dipakai untuk login. Buat set kode baru, dan tambahkan authenticator lain kalau ada yang hilang.',
   'security.authenticators.enrolled': 'Authenticator ditambahkan. Sekarang berlaku saat login.',
   'security.authenticators.enrollCancelled': 'Tidak ada yang ditambahkan: pengaturannya dibatalkan.',
   'security.authenticators.last': 'Ditolak: ini cara login terakhirmu.',

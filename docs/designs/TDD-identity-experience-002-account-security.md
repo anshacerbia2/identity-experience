@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.4.0
+  version: 1.5.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-03
+  last_reviewed: 2026-10-04
   parent_sad: SAD-002
 ---
 
@@ -154,6 +154,20 @@ shows neither. Enrollment followed in 1.3.0 (below):
 - **What it is used for.** A key added here is a second factor beside the password, which the
   kernel's level 2 accepts in place of a code (TDD-identity-kernel-001 1.11.0). A passkey that
   replaces the password is not offered.
+
+**Recovery codes (1.5.0).** Built on `ADR-IAM-005` and `TDD-identity-control-005` 2.8.0.
+- **Where they come from.** The kernel issues a set of codes with the first authenticator app.
+  "Get new recovery codes" asks the API to authorize `{"type":"recovery-codes"}`. The API names
+  `CONFIGURE_RECOVERY_AUTHN_CODES`, and the kernel's page shows a new set that replaces the old one.
+  This application never sees a code.
+- **The row.** A set is listed with the authenticators, with how many of its codes remain:
+  "11 of 12 codes left", from the API's `remaining_codes` and `total_codes`.
+- **A used set.** When fewer codes remain than the set began with, the person has signed in with
+  one. The page says so above the list, and asks for a new set and, if a factor was lost, another
+  authenticator (`ADR-IAM-005 §5.4`). The kernel replaces a used code only when the whole set is
+  used, so this sentence is the prompt to replace it sooner.
+- **Removing a set** is offered like any row, and the API never refuses it for the floor: codes are
+  recovery, not a factor a provider keeps.
 
 This is the enrollment step §The Last Authenticator Guard makes the safe order: enroll a
 replacement, then remove the old one.

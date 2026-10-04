@@ -25,7 +25,12 @@ const operation = (state: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
-function api(command?: (sent: Sent) => Response | undefined) {
+function api(
+  command?: (sent: Sent) => Response | undefined,
+  authenticators: readonly Record<string, unknown>[] = [
+    { security_ref: 'k1.pw', type: 'password', created: '2026-10-01T08:00:00Z' },
+  ],
+) {
   let signedOut = false;
   const stub = stubFetch((url, sent) => {
     if (url.pathname === '/auth/session') {
@@ -59,9 +64,7 @@ function api(command?: (sent: Sent) => Response | undefined) {
           ],
         });
       case '/api/v1/me/authenticators':
-        return json({
-          authenticators: [{ security_ref: 'k1.pw', type: 'password', created: '2026-10-01T08:00:00Z' }],
-        });
+        return json({ authenticators });
       default:
         return undefined;
     }
@@ -195,6 +198,38 @@ describe('enrolling an authenticator app', () => {
     });
     const [request] = posts(sent);
     expect(request?.body).toEqual({ type: 'webauthn' });
+  });
+
+  it('gets a new set of recovery codes, and says when a code of the set was used', async () => {
+    const { browser } = await import('./security-api');
+    const assign = vi.spyOn(browser, 'assign').mockImplementation(() => undefined);
+    const { sent } = api(
+      (request) =>
+        request.url.pathname === '/api/v1/me/authenticators:enroll'
+          ? json({ action: 'CONFIGURE_RECOVERY_AUTHN_CODES' })
+          : undefined,
+      [
+        { security_ref: 'k1.pw', type: 'password', created: '2026-10-01T08:00:00Z' },
+        {
+          security_ref: 'k1.codes',
+          type: 'recovery-authn-codes',
+          created: '2026-10-04T00:00:00Z',
+          remaining_codes: 11,
+          total_codes: 12,
+        },
+      ],
+    );
+    renderApp('/account/');
+    expect(await screen.findByText('11 of 12 codes left')).toBeTruthy();
+    expect(screen.getByText(/A recovery code was used to sign in/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Get new recovery codes' }));
+    await waitFor(() => {
+      expect(assign).toHaveBeenCalledWith(
+        '/auth/login?kc_action=CONFIGURE_RECOVERY_AUTHN_CODES&return_to=%2Faccount%2F',
+      );
+    });
+    const [request] = posts(sent);
+    expect(request?.body).toEqual({ type: 'recovery-codes' });
   });
 
   it('offers the step-up its level needs, and goes nowhere', async () => {
