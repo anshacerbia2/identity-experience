@@ -429,6 +429,79 @@ function FindingsSection({ principalId }: { readonly principalId: string }): Rea
   );
 }
 
+// The Principal's sign-ins, failures and admin changes, from the kernel event record (TDD-identity-control-005
+// 2.9.0): what an investigator read in the kernel's Admin Console before, here, recorded as a read.
+function EventsSection({ principalId }: { readonly principalId: string }): ReactElement {
+  const [open, setOpen] = useState(false);
+  const events = useSecuritySection(principalId, 'events', open);
+  return (
+    <Section
+      title="principals.events.title"
+      open={open}
+      onOpen={() => {
+        setOpen(true);
+      }}
+    >
+      {events.isPending ? (
+        <div aria-busy="true" />
+      ) : events.isError ? (
+        <ApiErrorPanel error={events.error} onRetry={() => void events.refetch()} />
+      ) : events.data.length === 0 ? (
+        <p className={styles['quiet']}>
+          <Message id="principals.events.none" />
+        </p>
+      ) : (
+        <Table.Root caption={<Message id="principals.events.title" />} captionHidden>
+          <Table.Head>
+            <Table.Row>
+              <Table.HeaderCell>
+                <Message id="principals.events.when" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.events.event" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.events.outcome" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.events.where" />
+              </Table.HeaderCell>
+            </Table.Row>
+          </Table.Head>
+          <Table.Body>
+            {events.data.map((event, index) => (
+              <Table.Row key={`${event.occurred_at}-${String(index)}`}>
+                <Table.Cell>
+                  <FormattedDate value={event.occurred_at} dateStyle="medium" timeStyle="medium" />
+                </Table.Cell>
+                <Table.Cell mono>
+                  {event.type}{' '}
+                  <Message
+                    id={event.role === 'actor' ? 'principals.events.asActor' : 'principals.events.asSubject'}
+                  />
+                </Table.Cell>
+                <Table.Cell>
+                  <StatusPill tone={event.outcome === 'failure' ? 'danger' : 'success'}>
+                    <Message
+                      id={
+                        event.outcome === 'failure'
+                          ? 'principals.events.failure'
+                          : 'principals.events.success'
+                      }
+                    />
+                  </StatusPill>
+                  {event.error === undefined ? null : <span className={styles['quiet']}> {event.error}</span>}
+                </Table.Cell>
+                <Table.Cell mono>{event.resource_type ?? event.client_id ?? ''}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      )}
+    </Section>
+  );
+}
+
 function Containment({
   principal,
   operator,
@@ -592,6 +665,7 @@ export function PrincipalDetailPage({ principalId }: { readonly principalId: str
           <AuthenticatorsSection principal={principal.data} operator={operator} />
           <FederationSection principalId={principalId} />
           <FindingsSection principalId={principalId} />
+          <EventsSection principalId={principalId} />
         </>
       )}
     </div>
