@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.18.0
+  version: 1.19.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-03
+  last_reviewed: 2026-10-05
   parent_sad: SAD-002
 ---
 
@@ -29,7 +29,7 @@ it inherits the obligation to be safer than the console rather than merely prett
 **In scope**
 
 - Principal search, and why search is itself a privileged operation.
-- Security state inspection: sessions, authenticators, federation links, findings.
+- Security state inspection: sessions, authenticators, federation links, findings, events.
 - Containment: suspension, session termination, authenticator revocation.
 - Reason and evidence capture on every privileged action.
 - The self-action boundary.
@@ -129,6 +129,7 @@ GET   /api/v1/principals/{principal_id}/sessions
 GET   /api/v1/principals/{principal_id}/authenticators
 GET   /api/v1/principals/{principal_id}/federation-links
 GET   /api/v1/principals/{principal_id}/findings
+GET   /api/v1/principals/{principal_id}/events
 POST  /api/v1/principals/{principal_id}:suspend
 POST  /api/v1/principals/{principal_id}:restore
 POST  /api/v1/principals/{principal_id}/sessions:terminate-all
@@ -136,9 +137,14 @@ POST  /api/v1/principals/{principal_id}/authenticators/{security_ref}:revoke
 GET   /api/v1/security-operations/{operation_id}
 ```
 
-`GET …/events` follows when the Audit API exists. Until then `TDD-identity-control-005` keeps the
-evidence in its insert-only `identity.privileged_access`, and the `EvidencePanel` is absent rather
-than empty.
+`GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
+Principal's hundred most recent sign-ins, failures and admin changes, each with when, the event, its
+outcome and error code, and the client or resource type, and no IP address, session or kernel
+identifier. The page shows them in an **Events** section that is read only when opened, like every
+other section, because the API records the read. It is what an investigator read in the kernel's
+Admin Console before, which is no longer an operating surface (ADR-IAM-001 §5.8). The evidence of
+administrators' own reads stays in `identity.privileged_access`, and the `EvidencePanel` for it is
+absent rather than empty until the Audit API exists.
 
 Every mutation carries an idempotency key, an optimistic version, a reason, and a
 correlation identifier. The reason is a required field on the request, not a prompt

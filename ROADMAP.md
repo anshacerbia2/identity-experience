@@ -205,6 +205,12 @@ with its document and owners, for a provider other than the requester to approve
 **Exit:** no administrative control is available in the interface that the Control API
 would refuse, and no control the API permits is hidden without a stated reason.
 
+✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
+has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
+changes from the kernel event record, each with its outcome and error code and the client or
+resource type, and no address, session or kernel identifier. With it, seeing who signed in and who
+failed no longer needs the kernel's Admin Console (ADR-IAM-001 §5.8).
+
 ## Depends on
 
 | Repository             | What this needs from it                                                                   |

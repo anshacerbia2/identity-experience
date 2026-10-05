@@ -81,6 +81,28 @@ function api(options: {
             { security_ref: 'k1.otp', type: 'otp', label: 'phone', created: '2026-10-02T08:00:00Z' },
           ],
         });
+      case `/api/v1/principals/${subject}/events`:
+        return json({
+          events: [
+            {
+              occurred_at: '2026-10-03T08:05:00Z',
+              kind: 'user',
+              role: 'subject',
+              type: 'LOGIN_ERROR',
+              outcome: 'failure',
+              error: 'invalid_user_credentials',
+              client_id: 'identity-experience-bff',
+            },
+            {
+              occurred_at: '2026-10-03T08:00:00Z',
+              kind: 'admin',
+              role: 'actor',
+              type: 'UPDATE',
+              outcome: 'success',
+              resource_type: 'USER',
+            },
+          ],
+        });
       case '/api/v1/security-operations/0192f0e0-9999-7000-8000-000000000001':
         return json(operation('applied'));
       default:
@@ -147,6 +169,23 @@ describe('PrincipalDetailPage', () => {
     expect(reads(requests)).toEqual([
       `/api/v1/principals/${subject}`,
       `/api/v1/principals/${subject}/sessions`,
+    ]);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('reads the events only when opened, with each one’s outcome and no address', async () => {
+    const { requests } = api({});
+    const { container } = renderApp(`/principals/${subject}`);
+    expect(await screen.findByRole('heading', { name: 'alice' })).toBeInTheDocument();
+    const shows = screen.getAllByRole('button', { name: 'Show — this read is recorded' });
+    await userEvent.click(shows[shows.length - 1] as HTMLElement);
+    expect(await screen.findByText('invalid_user_credentials')).toBeInTheDocument();
+    expect(screen.getByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('Succeeded')).toBeInTheDocument();
+    expect(screen.getByText('USER')).toBeInTheDocument();
+    expect(reads(requests)).toEqual([
+      `/api/v1/principals/${subject}`,
+      `/api/v1/principals/${subject}/events`,
     ]);
     expect(await axe(container)).toHaveNoViolations();
   });

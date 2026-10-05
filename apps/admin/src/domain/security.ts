@@ -45,6 +45,19 @@ export interface FederationLink {
   readonly user_name: string;
 }
 
+// KernelEvent is one event from the kernel event record (TDD-identity-control-005 2.9.0): a sign-in the
+// Principal was the subject of, or an admin change it made. No IP address, session or kernel identifier.
+export interface KernelEvent {
+  readonly occurred_at: string;
+  readonly kind: 'user' | 'admin';
+  readonly role: 'subject' | 'actor';
+  readonly type: string;
+  readonly outcome: 'success' | 'failure';
+  readonly error?: string;
+  readonly client_id?: string;
+  readonly resource_type?: string;
+}
+
 export interface Finding {
   readonly finding_id: string;
   readonly class: string;

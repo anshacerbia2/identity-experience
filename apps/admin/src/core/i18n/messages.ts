@@ -254,6 +254,16 @@ export const en = {
   'principals.findings.none': 'The reconciler has found nothing about this Principal.',
   'principals.findings.open': 'Open: {class}, detected',
   'principals.findings.resolved': 'Resolved ({resolution}): {class}, detected',
+  'principals.events.title': 'Events',
+  'principals.events.none': 'The record holds no event for this Principal yet.',
+  'principals.events.when': 'When',
+  'principals.events.event': 'Event',
+  'principals.events.outcome': 'Outcome',
+  'principals.events.where': 'Client or resource',
+  'principals.events.asSubject': '(as subject)',
+  'principals.events.asActor': '(as actor)',
+  'principals.events.success': 'Succeeded',
+  'principals.events.failure': 'Failed',
 
   'principals.contain.title': 'Containment',
   'principals.contain.description':
@@ -693,6 +703,16 @@ export const id: Messages = {
   'principals.findings.none': 'Reconciler tidak menemukan apa pun tentang Principal ini.',
   'principals.findings.open': 'Terbuka: {class}, terdeteksi',
   'principals.findings.resolved': 'Selesai ({resolution}): {class}, terdeteksi',
+  'principals.events.title': 'Event',
+  'principals.events.none': 'Catatan belum memuat event untuk Principal ini.',
+  'principals.events.when': 'Waktu',
+  'principals.events.event': 'Event',
+  'principals.events.outcome': 'Hasil',
+  'principals.events.where': 'Client atau resource',
+  'principals.events.asSubject': '(sebagai subjek)',
+  'principals.events.asActor': '(sebagai pelaku)',
+  'principals.events.success': 'Berhasil',
+  'principals.events.failure': 'Gagal',
 
   'principals.contain.title': 'Penahanan akses',
   'principals.contain.description':

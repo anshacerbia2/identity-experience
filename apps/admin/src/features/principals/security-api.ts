@@ -9,6 +9,7 @@ import {
   type Authenticator,
   type FederationLink,
   type Finding,
+  type KernelEvent,
   type PrincipalDetail,
   type PrincipalSummary,
   type SecurityOperation,
@@ -53,13 +54,14 @@ export function usePrincipalDetail(id: string) {
   });
 }
 
-type Section = 'sessions' | 'authenticators' | 'federation-links' | 'findings';
+type Section = 'sessions' | 'authenticators' | 'federation-links' | 'findings' | 'events';
 
 interface SectionBodies {
   readonly sessions: readonly SecuritySession[];
   readonly authenticators: readonly Authenticator[];
   readonly 'federation-links': readonly FederationLink[];
   readonly findings: readonly Finding[];
+  readonly events: readonly KernelEvent[];
 }
 
 const sectionKey: Readonly<Record<Section, string>> = {
@@ -67,6 +69,7 @@ const sectionKey: Readonly<Record<Section, string>> = {
   authenticators: 'authenticators',
   'federation-links': 'federation_links',
   findings: 'findings',
+  events: 'events',
 };
 
 // useSecuritySection reads one section once it is opened. The security_refs an authenticators read
