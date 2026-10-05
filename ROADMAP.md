@@ -101,6 +101,14 @@ registered, or it is disabled with every session it holds.
 asserted by scanning every endpoint; a cross-site form post carrying the session cookie
 is rejected.
 
+✅ **The BFF's client is a registration** (TDD-001 1.14.0). It is confidential and `privileged` in the
+`provider-scope` form (TDD-identity-control-003 1.29.0), never `internal`, because the Admin Portal's
+calls need `acr` and `auth_time`. A new server registers it through identity-control. The client
+`deploy/dev/create-bff-client.sh` made on the development server is adopted by identity-control's
+`scripts/dev-adopt-bff.ps1`, a plan first and the adoption with `-Apply`, which converges its token
+format and scopes. Until then the sweep reports it `unmanaged`. The script's header now says it is
+superseded.
+
 ## Week 2 · Revocation reaching the browser
 
 **Done early, with sign-in:** the back-channel logout receiver, a 401 from the Identity Control
