@@ -33,10 +33,11 @@
 # kernel's set-client-key.sh instead (README.md). identity-control's create-kernel-clients.sh and
 # dev-keycloak.ps1 are never run for this.
 #
-# Not yet a registration. identity-control registers public and resource clients through its API;
-# confidential registration needs client key registration, which is not built. Until it is, this
-# client is created here, as identity-control's own clients are, with its key from the start.
-# ROADMAP.md records that it must be registered before unmanaged clients start being disabled.
+# Superseded. identity-control registers confidential clients with their keys now
+# (TDD-identity-control-003), so a new server registers the BFF through POST /v1/registrations as
+# privileged, provider-scope. A client this script already made is adopted with identity-control's
+# scripts/dev-adopt-bff.ps1, a plan first (TDD-identity-experience-001 1.14.0). Do not run this for a
+# client that exists; it refuses, and the adoption is the way forward.
 set -euo pipefail
 
 if [ "$#" -ne 2 ] || [ ! -r "$1" ] || [ ! -r "$2" ]; then

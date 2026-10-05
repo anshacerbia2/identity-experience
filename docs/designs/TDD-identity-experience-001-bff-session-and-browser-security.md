@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.13.0
+  version: 1.14.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-04
+  last_reviewed: 2026-10-05
   parent_sad: SAD-002
 ---
 
@@ -77,10 +77,18 @@ the public key. STD-IAM-001 §3.2 prohibits any public browser application from 
 a key.
 
 The key's `kid` is its RFC 7638 thumbprint, which the BFF computes from the key itself, so the
-key file is the only configuration it needs. On the development server,
-`deploy/dev/create-bff-client.sh` creates `identity-experience-bff` directly, with the developer's
-public key, because Identity Control cannot register a confidential client yet. The client has no
-secret there either: STD-IAM-001 §3.2 allows none in any shared environment.
+key file is the only configuration it needs. The client has no secret: STD-IAM-001 §3.2 allows none
+in any shared environment.
+
+**The BFF's client is a registration** (1.14.0), confidential and `privileged` in the
+`provider-scope` form (TDD-identity-control-003 1.29.0). It is not `internal`: the Admin Portal's
+calls are provider routes, which need the `acr` and `auth_time` of `scnehaux-provider`
+(STD-IAM-002 §3.1.1). A new server registers it with `POST /v1/registrations`, holding the
+developer's public key and `identity-control-api` in its audience. On the development server,
+`deploy/dev/create-bff-client.sh` created it before Identity Control could register a confidential
+client. That client is adopted, a plan first, by identity-control's `scripts/dev-adopt-bff.ps1`
+(its `deploy/dev/README.md` §Adopting the BFF). Until it is, the registration sweep reports it
+`unmanaged`, and the server cannot disable unmanaged clients without disabling the BFF.
 
 This experience is `privileged` in the audience taxonomy of STD-IAM-002 §3.1, so its
 access tokens take lifetime class `L0`: a four-minute lifetime derived from a
