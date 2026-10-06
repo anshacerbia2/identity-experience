@@ -47,7 +47,20 @@ export const securityKeys = {
   all: ['me'] as const,
   sessions: ['me', 'sessions'] as const,
   authenticators: ['me', 'authenticators'] as const,
+  addresses: ['me', 'notification-addresses'] as const,
 };
+
+// A person's notification address (TDD-identity-control-008 1.2.0): where they are told when their
+// account changes. A pending one waits for the code sent to it.
+export interface NotificationAddress {
+  readonly address_id: string;
+  readonly channel: string;
+  readonly address: string;
+  readonly origin: 'creation' | 'added';
+  readonly state: 'pending' | 'active';
+  readonly added_at: string;
+  readonly verified_at?: string;
+}
 
 export function useMySessions() {
   return useQuery({
@@ -154,5 +167,59 @@ export function useEnroll() {
     onSuccess: ({ action }) => {
       browser.assign(enrollHref(action));
     },
+  });
+}
+
+export function useMyAddresses() {
+  return useQuery({
+    queryKey: securityKeys.addresses,
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly notification_addresses: readonly NotificationAddress[] | null }>(
+          '/v1/me/notification-addresses',
+          signal,
+        )
+      ).notification_addresses ?? [],
+  });
+}
+
+export type AddressCommand =
+  | { readonly action: 'add'; readonly address: string; readonly idempotencyKey: string }
+  | { readonly action: 'verify'; readonly addressId: string; readonly code: string }
+  | { readonly action: 'remove'; readonly addressId: string };
+
+// useAddressCommand adds, proves or removes one of the person's own notification addresses. Adding
+// and removing need a recent sign-in, which the API asks for with a step-up challenge.
+export function useAddressCommand() {
+  const queryClient = useQueryClient();
+  const session = useSession();
+  const token = session.data?.authenticated === true ? session.data.csrfToken : '';
+  return useMutation({
+    mutationFn: async (command: AddressCommand) => {
+      switch (command.action) {
+        case 'add':
+          await apiPost<unknown>(
+            '/v1/me/notification-addresses',
+            { address: command.address },
+            { csrfToken: token, headers: { 'idempotency-key': command.idempotencyKey } },
+          );
+          return;
+        case 'verify':
+          await apiPost<unknown>(
+            `/v1/me/notification-addresses/${encodeURIComponent(command.addressId)}:verify`,
+            { code: command.code },
+            { csrfToken: token },
+          );
+          return;
+        case 'remove':
+          await apiPost<unknown>(
+            `/v1/me/notification-addresses/${encodeURIComponent(command.addressId)}:remove`,
+            {},
+            { csrfToken: token },
+          );
+          return;
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: securityKeys.addresses }),
   });
 }

@@ -119,5 +119,9 @@ export async function apiPost<T>(path: ApiPath, body: unknown, options: PostOpti
   if (!response.ok) {
     throw await toError(response);
   }
+  // A command that answers nothing, such as proving or removing a notification address, is done.
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return (await response.json()) as T;
 }

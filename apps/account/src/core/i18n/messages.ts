@@ -63,6 +63,26 @@ export const en = {
   'security.authenticators.last': 'Refused: this is your last way to sign in.',
   'security.authenticators.floor':
     'Refused: as a provider you keep a second factor. Add another authenticator app or security key first, then remove this one.',
+
+  'security.addresses.title': 'Where you are told',
+  'security.addresses.description':
+    'When an authenticator is added or removed, recovery codes are issued or used, or an address changes, every address here is told. Keep at least two, so a change still reaches you if one is lost. Adding or removing one needs a recent sign-in.',
+  'security.addresses.address': 'Address',
+  'security.addresses.state': 'State',
+  'security.addresses.active': 'In use',
+  'security.addresses.pending': 'Waiting for its code',
+  'security.addresses.code': 'Code sent to it',
+  'security.addresses.verify': 'Confirm',
+  'security.addresses.remove': 'Remove',
+  'security.addresses.new': 'Another email address',
+  'security.addresses.add': 'Add',
+  'security.addresses.addSecond':
+    'You have one address in use. Add a second, so a change to your account still reaches you if you lose access to the first.',
+  'security.addresses.sent':
+    'A code was sent to that address. Enter it next to the address to start using it.',
+  'security.addresses.proven':
+    'Confirmed. That address is now told about every change, and your other addresses were told it was added.',
+  'security.addresses.removed': 'Removed. Every address you held, that one included, was told.',
 };
 
 export type MessageKey = keyof typeof en;
@@ -124,6 +144,26 @@ export const id: Messages = {
   'security.authenticators.last': 'Ditolak: ini cara login terakhirmu.',
   'security.authenticators.floor':
     'Ditolak: sebagai provider kamu wajib punya faktor kedua. Tambahkan aplikasi authenticator atau security key lain dulu, lalu hapus yang ini.',
+
+  'security.addresses.title': 'Tempat kamu diberi tahu',
+  'security.addresses.description':
+    'Setiap kali authenticator ditambah atau dihapus, kode pemulihan diterbitkan atau dipakai, atau alamat berubah, semua alamat di sini diberi tahu. Simpan minimal dua, supaya perubahan tetap sampai kalau satu hilang. Menambah atau menghapus butuh login yang baru.',
+  'security.addresses.address': 'Alamat',
+  'security.addresses.state': 'Status',
+  'security.addresses.active': 'Dipakai',
+  'security.addresses.pending': 'Menunggu kodenya',
+  'security.addresses.code': 'Kode yang dikirim ke sana',
+  'security.addresses.verify': 'Konfirmasi',
+  'security.addresses.remove': 'Hapus',
+  'security.addresses.new': 'Alamat email lain',
+  'security.addresses.add': 'Tambah',
+  'security.addresses.addSecond':
+    'Kamu baru punya satu alamat yang dipakai. Tambahkan alamat kedua, supaya perubahan di akunmu tetap sampai kalau kamu kehilangan akses ke yang pertama.',
+  'security.addresses.sent':
+    'Kode sudah dikirim ke alamat itu. Masukkan di samping alamatnya untuk mulai memakainya.',
+  'security.addresses.proven':
+    'Terkonfirmasi. Alamat itu sekarang diberi tahu setiap ada perubahan, dan alamatmu yang lain sudah diberi tahu bahwa alamat ini ditambahkan.',
+  'security.addresses.removed': 'Dihapus. Semua alamatmu, termasuk yang dihapus, sudah diberi tahu.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

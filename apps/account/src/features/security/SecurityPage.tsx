@@ -3,12 +3,15 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { SignInRequired, useSession, useSignOut } from '@identity-experience/app-core/session';
-import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
+import type { MessageKey } from '@/core/i18n/messages';
 
 import {
+  useAddressCommand,
   useEnroll,
+  useMyAddresses,
   useMyAuthenticators,
   useMySessions,
   useSelfCommand,
@@ -437,6 +440,163 @@ function Authenticators(): ReactElement {
   );
 }
 
+// NotificationAddresses is where a person is told when their account changes (ADR-IAM-007 §5.2,
+// TDD-identity-experience-002 1.6.0). Adding and removing ask for a recent sign-in, which the API
+// asks for itself; an added address is pending until the code sent to it is entered here.
+function NotificationAddresses(): ReactElement {
+  const addresses = useMyAddresses();
+  const command = useAddressCommand();
+  const idempotencyKey = useIdempotencyKey();
+  const [address, setAddress] = useState('');
+  const [codes, setCodes] = useState<Readonly<Record<string, string>>>({});
+  const [done, setDone] = useState<MessageKey | null>(null);
+  const run = (request: Parameters<typeof command.mutate>[0], outcome: MessageKey, after?: () => void) => {
+    setDone(null);
+    command.mutate(request, {
+      onSuccess: () => {
+        setDone(outcome);
+        after?.();
+      },
+    });
+  };
+  let body: ReactElement;
+  if (addresses.isPending) {
+    body = <div aria-busy="true" />;
+  } else if (addresses.isError) {
+    body = <ApiErrorPanel error={addresses.error} onRetry={() => void addresses.refetch()} />;
+  } else {
+    body = (
+      <Table.Root caption={<Message id="security.addresses.title" />} captionHidden>
+        <Table.Head>
+          <Table.Row>
+            <Table.HeaderCell>
+              <Message id="security.addresses.address" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="security.addresses.state" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="security.column.action" />
+            </Table.HeaderCell>
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          {addresses.data.map((held) => (
+            <Table.Row key={held.address_id}>
+              <Table.Cell mono>{held.address}</Table.Cell>
+              <Table.Cell>
+                {held.state === 'active' ? (
+                  <StatusPill tone="success">
+                    <Message id="security.addresses.active" />
+                  </StatusPill>
+                ) : (
+                  <StatusPill tone="warning">
+                    <Message id="security.addresses.pending" />
+                  </StatusPill>
+                )}
+              </Table.Cell>
+              <Table.Cell>
+                <div className={styles['actions']}>
+                  {held.state === 'pending' ? (
+                    <form
+                      className={styles['inline']}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        run(
+                          {
+                            action: 'verify',
+                            addressId: held.address_id,
+                            code: codes[held.address_id] ?? '',
+                          },
+                          'security.addresses.proven',
+                        );
+                      }}
+                    >
+                      <TextField
+                        label={<Message id="security.addresses.code" />}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        value={codes[held.address_id] ?? ''}
+                        onChange={(event) => {
+                          setCodes({ ...codes, [held.address_id]: event.target.value });
+                        }}
+                      />
+                      <Button type="submit" size="sm" disabled={command.isPending}>
+                        <Message id="security.addresses.verify" />
+                      </Button>
+                    </form>
+                  ) : null}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={command.isPending}
+                    onClick={() => {
+                      run({ action: 'remove', addressId: held.address_id }, 'security.addresses.removed');
+                    }}
+                  >
+                    <Message id="security.addresses.remove" />
+                  </Button>
+                </div>
+              </Table.Cell>
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    );
+  }
+  return (
+    <Panel.Root>
+      <Panel.Header>
+        <Panel.Title>
+          <Message id="security.addresses.title" />
+        </Panel.Title>
+        <Panel.Description>
+          <Message id="security.addresses.description" />
+        </Panel.Description>
+      </Panel.Header>
+      <Panel.Body>
+        {body}
+        {addresses.data !== undefined &&
+        addresses.data.filter((held) => held.state === 'active').length < 2 ? (
+          <p className={styles['quiet']} role="status">
+            <Message id="security.addresses.addSecond" />
+          </p>
+        ) : null}
+        <form
+          className={styles['inline']}
+          onSubmit={(event) => {
+            event.preventDefault();
+            const request = { action: 'add' as const, address: address.trim() };
+            run({ ...request, idempotencyKey: idempotencyKey(request) }, 'security.addresses.sent', () => {
+              setAddress('');
+            });
+          }}
+        >
+          <TextField
+            label={<Message id="security.addresses.new" />}
+            type="email"
+            autoComplete="email"
+            value={address}
+            onChange={(event) => {
+              setAddress(event.target.value);
+            }}
+          />
+          <Button type="submit" disabled={command.isPending || address.trim() === ''}>
+            <Message id="security.addresses.add" />
+          </Button>
+        </form>
+        {command.isError ? <MutationError error={command.error} /> : null}
+        {done === null ? null : (
+          <p className={styles['success']} role="status">
+            <Icon name="check" />
+            <Message id={done} />
+          </p>
+        )}
+      </Panel.Body>
+    </Panel.Root>
+  );
+}
+
 // SecurityPage is a person's own account security (TDD-identity-experience-002 §As Built): their
 // sessions and their authenticators. Consents, enrollment and recovery are not offered yet.
 export function SecurityPage(): ReactElement {
@@ -458,6 +618,7 @@ export function SecurityPage(): ReactElement {
         <>
           <Sessions />
           <Authenticators />
+          <NotificationAddresses />
         </>
       ) : session.isPending ? null : (
         <SignInRequired />

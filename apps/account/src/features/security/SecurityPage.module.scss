@@ -55,6 +55,13 @@
     gap: var(--ds-spacing-sm);
   }
 
+  .inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--ds-spacing-sm);
+  }
+
   .confirm {
     display: flex;
     flex-direction: column;
