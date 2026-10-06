@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.5.0
+  version: 1.6.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-04
+  last_reviewed: 2026-10-07
   parent_sad: SAD-002
 ---
 
@@ -172,6 +172,22 @@ shows neither. Enrollment followed in 1.3.0 (below):
 This is the enrollment step §The Last Authenticator Guard makes the safe order: enroll a
 replacement, then remove the old one.
 
+**Where you are told (1.6.0).** Built on `ADR-IAM-007 §5.2` and `TDD-identity-control-008` 1.2.0.
+- **The list.** The person's notification addresses, in use or waiting for their code. Every change
+  to the account is told to each address in use. While only one is in use, the page asks for a
+  second (NIST SP 800-63B-4 §4.6: "CSPs SHALL support at least two notification addresses").
+- **Adding.** An email and an Idempotency-Key. The API asks for a recent `aal2` with a step-up
+  challenge, which the page answers with the same "Sign in again" link a removal shows. The new
+  address is pending, and the API sends its code to that address alone.
+- **Proving.** The code is typed next to the pending address. No step-up is asked: the code is the
+  proof, and the person may read it on another device. A wrong or expired code is the API's
+  refusal, shown as it is.
+- **Removing.** Each address has Remove. It asks for a recent `aal2`. The API tells every address
+  held before, the removed one included, and refuses to remove the last one in use. The page shows
+  that refusal rather than deciding it.
+- **What this application never sees** is the code itself: it is typed by the person and checked by
+  the API.
+
 **Commands.** Every command carries an Idempotency-Key kept per distinct request, and no reason
 and no version: the API takes neither for a person's own commands. A `202` is followed at
 `GET /api/v1/me/security-operations/{operation_id}`.
@@ -198,6 +214,10 @@ POST  /api/v1/me/authenticators/{security_ref}:remove
 GET   /api/v1/me/consents
 POST  /api/v1/me/consents/{consent_id}:withdraw
 GET   /api/v1/me/security-operations/{operation_id}
+GET   /api/v1/me/notification-addresses
+POST  /api/v1/me/notification-addresses
+POST  /api/v1/me/notification-addresses/{address_id}:verify
+POST  /api/v1/me/notification-addresses/{address_id}:remove
 ```
 
 Every path is scoped to the authenticated Principal by the API, never by a parameter the

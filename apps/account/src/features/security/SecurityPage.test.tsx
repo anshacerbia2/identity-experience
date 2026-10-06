@@ -30,6 +30,16 @@ function api(
   authenticators: readonly Record<string, unknown>[] = [
     { security_ref: 'k1.pw', type: 'password', created: '2026-10-01T08:00:00Z' },
   ],
+  addresses: readonly Record<string, unknown>[] = [
+    {
+      address_id: '01a0da74-0000-7000-8000-000000000001',
+      channel: 'email',
+      address: 'ada@example.com',
+      origin: 'creation',
+      state: 'active',
+      added_at: '2026-10-01T08:00:00Z',
+    },
+  ],
 ) {
   let signedOut = false;
   const stub = stubFetch((url, sent) => {
@@ -65,6 +75,8 @@ function api(
         });
       case '/api/v1/me/authenticators':
         return json({ authenticators });
+      case '/api/v1/me/notification-addresses':
+        return json({ notification_addresses: addresses });
       default:
         return undefined;
     }
@@ -251,5 +263,94 @@ describe('enrolling an authenticator app', () => {
     const link = await screen.findByRole('link', { name: 'Sign in again to continue' });
     expect(link.getAttribute('href')).toMatch(/max_age=300&acr_values=aal2&return_to=/);
     expect(assign).not.toHaveBeenCalled();
+  });
+});
+
+// TDD-identity-experience-002 1.6.0: where a person is told (ADR-IAM-007 §5.2).
+describe('notification addresses', () => {
+  const pending = {
+    address_id: '01a0da74-0000-7000-8000-000000000002',
+    channel: 'email',
+    address: 'ada.backup@example.com',
+    origin: 'added',
+    state: 'pending',
+    added_at: '2026-10-03T08:00:00Z',
+  };
+
+  it('lists the addresses and asks for a second while there is one', async () => {
+    api();
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    expect(within(table).getByText('ada@example.com')).toBeInTheDocument();
+    expect(within(table).getByText('In use')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Add a second, so a change to your account still reaches you/),
+    ).toBeInTheDocument();
+  });
+
+  it('adds an address with an Idempotency-Key and says a code was sent', async () => {
+    const stub = api(() => json({ notification_address: pending }, 201));
+    renderApp('/account/');
+    await screen.findByRole('table', { name: 'Where you are told' });
+    await userEvent.type(screen.getByLabelText('Another email address'), 'ada.backup@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await screen.findByText(/A code was sent to that address/);
+    const [add] = posts(stub.sent);
+    expect(add?.url.pathname).toBe('/api/v1/me/notification-addresses');
+    expect(add?.body).toEqual({ address: 'ada.backup@example.com' });
+    expect(add?.headers['idempotency-key']).toMatch(/.+/);
+    expect(add?.headers['x-csrf-token']).toBe(csrfToken);
+  });
+
+  it('proves a pending address with the code typed next to it', async () => {
+    const stub = api(() => new Response(null, { status: 204 }), undefined, [
+      {
+        address_id: '01a0da74-0000-7000-8000-000000000001',
+        channel: 'email',
+        address: 'ada@example.com',
+        origin: 'creation',
+        state: 'active',
+        added_at: '2026-10-01T08:00:00Z',
+      },
+      pending,
+    ]);
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    expect(within(table).getByText('Waiting for its code')).toBeInTheDocument();
+    await userEvent.type(within(table).getByLabelText('Code sent to it'), '12345678');
+    await userEvent.click(within(table).getByRole('button', { name: 'Confirm' }));
+    await screen.findByText(/Confirmed. That address is now told about every change/);
+    const [verify] = posts(stub.sent);
+    expect(verify?.url.pathname).toBe(`/api/v1/me/notification-addresses/${pending.address_id}:verify`);
+    expect(verify?.body).toEqual({ code: '12345678' });
+  });
+
+  it('renders the refusal to remove the last address, and the step-up a removal needs', async () => {
+    api(
+      () =>
+        new Response(
+          JSON.stringify({ type: 'https://problems.scnehaux.com/authentication-required', status: 401 }),
+          {
+            status: 401,
+            headers: {
+              'content-type': 'application/problem+json',
+              'www-authenticate':
+                'Bearer error="insufficient_user_authentication", acr_values="aal2", max_age=300',
+            },
+          },
+        ),
+    );
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    await userEvent.click(within(table).getByRole('button', { name: 'Remove' }));
+    const link = await screen.findByRole('link', { name: 'Sign in again to continue' });
+    expect(link.getAttribute('href')).toMatch(/^\/auth\/login\?max_age=300&acr_values=aal2&return_to=/);
+  });
+
+  it('has no axe violations with a pending address', async () => {
+    api(undefined, undefined, [pending]);
+    const { container } = renderApp('/account/');
+    await screen.findByRole('table', { name: 'Where you are told' });
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
