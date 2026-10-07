@@ -69,11 +69,9 @@ and a dependency audit.
 
 **Done, sign-in:** every item below, against a PostgreSQL session store and a PS256-signing
 stand-in for the realm, in CI. The admin shell signs in, shows who is signed in, and signs out.
-**Next:** signing in against the real realm. `deploy/dev/create-bff-client.sh` creates the
-confidential client `identity-experience-bff` on the dev server, once, and `scripts/dev-local.ps1`
-runs the BFF on a developer's machine against it, with no Docker. The laptop side is verified up to
-the authorization request: the issuer matches, the realm publishes a PS256 key, and the token
-endpoint answers.
+✅ **Done, the real realm:** `scripts/dev-local.ps1` runs the BFF on a developer's machine, with no
+Docker, against the development kernel's realm, as the registered client `identity-experience-bff`
+(below, "The BFF's client is a registration"). Week 4 started with that first real sign-in.
 
 ✅ **The BFF authenticates with its own key** (TDD-001 1.4.0, `ADR-IAM-001 §5.12`). It signs a
 PS256 client assertion with its private key, through `openid-client`'s `PrivateKeyJwt` for the token
@@ -101,6 +99,13 @@ the development server (below, "The BFF's client is a registration").
 asserted by scanning every endpoint; a cross-site form post carrying the session cookie
 is rejected.
 
+✅ **Met** (TDD-001 1.16.0). `bff/test/containment.test.ts` scans every route on its success and
+refusal paths, more than thirty responses, for every token the stand-in kernel issued, any JSON Web
+Token, the client private key, the session key and the authorization code. `scripts/check-dist.mjs`
+fails the build on a JSON Web Token, private key or client secret in any application's bundle.
+`bff/test/auth.test.ts` "refuses a cross-site form post carrying the session cookie" sends one with a
+foreign `Origin`, and nothing reaches the API.
+
 ✅ **The BFF's client is a registration** (TDD-001 1.14.0). It is confidential and `privileged` in the
 `provider-scope` form (TDD-identity-control-003 1.29.0), never `internal`, because the Admin Portal's
 calls need `acr` and `auth_time`. A new server registers it through identity-control. The client
@@ -126,13 +131,25 @@ The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
 
 - Back-channel logout receiver, destroying the matching session and no other
 - 401 from the Identity Control API destroying the session
-- Front-channel logout and global sign-out
+- Front-channel logout and global sign-out. Global sign-out is built: sign-out ends the Keycloak
+  session server-side, and the account application's "Sign out everywhere" ends every one.
+  **Front-channel logout is an open decision**, not built: TDD-001 names it in `LogoutController` and
+  specifies no endpoint for it, and its own `frame-ancestors 'none'` refuses the frame OpenID Connect
+  Front-Channel Logout 1.0 renders the logout URI in.
 - Step-up: reading the requirement from the API, driving the ceremony, never granting
   assurance locally
 
 **Exit:** measured time from Membership revocation to session destruction stays within
 the remaining access token lifetime of class `L0`; a lost back-channel notification does
 not extend it, because the refresh path bounds it independently.
+
+**Half met** (TDD-001 1.16.0). The bound is asserted: `bff/test/containment.test.ts` removes the
+kernel session at five points in a token's life, delivers no back-channel logout, and the session ends
+no later than the expiry of the token it held. The measurement is not: timing a real Membership
+revocation needs organization-control, identity-control and the kernel together with this BFF, which
+no job of this repository runs. It belongs in a stack-level proof. Note also that no repository
+registers the BFF's back-channel logout URL on a server yet, so today every server relies on the
+refresh path (`docs/runbooks/back-channel-logout-failure.md`).
 
 ## Week 3 · Account security
 
@@ -156,8 +173,18 @@ A provider's refused removal of their last second factor is shown with its sente
 - Consent inventory and withdrawal
 - Recovery entry points, handing off to the kernel-rendered pages
 
+✅ **Authenticator replacement** is enrollment, then removal (TDD-002 1.7.0). The last-authenticator
+refusal says so, and the ways to add one are beside it (`SecurityPage.test.tsx`).
+
 **Exit:** every destructive action is reauthorized by the Identity Control API and
 carries an idempotency key, an optimistic version, and a reason.
+
+**Not met as written, by the API's design.** Every action is reauthorized by the Identity Control
+API, and the BFF decides nothing. Ending a session, signing out everywhere and removing an
+authenticator carry an Idempotency-Key, asserted in `SecurityPage.test.tsx`. None carries a version
+or a reason, and removing a notification address carries no key: identity-control's `/v1/me`
+commands take none of them (TDD-002 §Commands, `TDD-identity-control-005`). Meeting it needs either
+identity-control to accept them, or the owner to restate the exit for a person's own commands.
 
 ## Week 4 · Administration and developer console
 
@@ -171,8 +198,9 @@ grant a drift exception. Each registration also lists its drift exceptions, in f
 - The Principals page searches by the beginning of a username or email and lists nothing until asked.
 - A Principal's page reads its summary, then sessions, authenticators, federation links and findings, each only when opened.
 - It suspends, restores, ends every session and revokes an authenticator only where the API accepts it, never on the operator's own Principal. The last first factor is never offered for revocation.
-- Each command follows a `202` to its final state. **Next:** connecting the laptop BFF to identity-control so
-  these screens read real data.
+- Each command follows a `202` to its final state. The laptop BFF reaches identity-control at
+  `IDENTITY_CONTROL_BASE_URL` (`scripts/dev-local.ps1`, `http://127.0.0.1:8097` by default), so these
+  screens read real data wherever identity-control listens there.
 
 The Developer Console started (TDD-004 1.3.0 §Delivery, §Ownership): `apps/developer`, served by
 the same BFF under `/developer/` with the same session (TDD-001 1.6.0), lists the registrations the
@@ -195,7 +223,11 @@ it, and the form offers only what a developer may register. In production the sa
 the client, naming at least two owners (TDD-004 1.7.0, identity-control#39): the console lists the
 person's requests and withdraws an open one, and the portal's Approvals page lists every request
 with its document and owners, for a provider other than the requester to approve or reject
-(TDD-003 1.15.0). **Next:** audience and lifetime-class changes.
+(TDD-003 1.15.0). ✅ Audience changes followed identity-control's `audience` kind (TDD-004 1.8.0
+§Audience Changes, TDD-003 1.20.0): an owner or a provider proposes the whole next audience with a
+reason, a workload's page offers its audience alone, and the approval queue shows each change by its
+kind. Lifetime-class changes are not offered: identity-control does not accept them, and they wait on
+an owner decision there.
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration
@@ -204,6 +236,20 @@ with its document and owners, for a provider other than the requester to approve
 
 **Exit:** no administrative control is available in the interface that the Control API
 would refuse, and no control the API permits is hidden without a stated reason.
+
+**Not met.** The first half holds where tested: each control is offered from the state the API
+accepts it in (lifecycle, keys, changes, findings, workloads, a Principal's containment). The second
+does not. Checked against identity-control's routes on 2026-10-07, the API permits these and no screen
+offers them, with no reason stated here or in a TDD:
+
+- granting and revoking a registration's owners (`POST /v1/registrations/{id}/owners`, `…/owners/{principal_id}:revoke`);
+- the unresolved security operations and their redrive (`GET /v1/security-operations:unresolved`,
+  `POST /v1/security-operations/{operation_id}:redrive`);
+- workload review and rebuild, the workload sweep, and the orphaned, unused and review-overdue lists;
+- the unmapped Principals list (`GET /v1/principals:unmapped`) and the kernel event sweep
+  (`POST /v1/kernel-events:sweep`).
+
+Each needs a screen or a stated reason in TDD-003.
 
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
@@ -246,8 +292,23 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
+✅ **Met.** All four are approved, at 1.16.0, 1.7.0, 1.20.0 and 1.8.0.
+
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,
 measured revocation-to-session-destruction inside the class `L0` bound, WCAG 2.2 AA
 conformance evidence, and runbooks written for session-store outage, back-channel
 logout failure, client key rotation, and suspected session fixation.
+
+Where the production gate stands:
+
+- ✅ Token containment: `bff/test/containment.test.ts` and `scripts/check-dist.mjs` (Week 1 exit).
+- ✅ The three forgery defences, each refusing on its own with the other two right
+  (`bff/test/containment.test.ts`). `SameSite` is asserted as the attribute set; its enforcement is the
+  browser's and is not exercised without a real browser.
+- Measured revocation: the bound is asserted, the measurement is not (Week 2 exit).
+- WCAG 2.2 AA: automated evidence only. axe runs against every page's rendered DOM in the component
+  tests (jsdom). It cannot check colour contrast or layout in jsdom, and no automated check covers
+  keyboard order, focus, zoom or a screen reader. A manual audit against WCAG 2.2 AA remains, and no
+  browser test runs in CI (`@playwright/test` is a dependency of `apps/admin` and is not used).
+- ✅ Runbooks: `docs/runbooks/`.

@@ -134,8 +134,10 @@ describe('SecurityPage', () => {
     });
   });
 
-  it('renders the API’s refusal of the last way to sign in rather than deciding it', async () => {
-    api(() =>
+  // Replacement is enrollment, then removal (TDD-identity-experience-002 §The Last Authenticator
+  // Guard): the refusal says so, and the ways to add one are on the same page.
+  it('renders the API’s refusal of the last way to sign in rather than deciding it, and the way to replace it', async () => {
+    const { sent } = api(() =>
       json(
         operation('refused', { operation_type: 'authenticator.remove', result_code: 'last_authenticator' }),
       ),
@@ -147,7 +149,18 @@ describe('SecurityPage', () => {
       .getByRole('heading', { name: 'Remove this password' })
       .closest('section') as HTMLElement;
     await userEvent.click(within(form).getByRole('button', { name: 'Remove' }));
-    expect(await screen.findByText('Refused: this is your last way to sign in.')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Refused: this is your last way to sign in. To replace it, add another one first, then remove this one.',
+      ),
+    ).toBeInTheDocument();
+    for (const name of ['Add an authenticator app', 'Add a security key']) {
+      expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    }
+    const [command] = posts(sent);
+    expect(command?.url.pathname).toMatch(/^\/api\/v1\/me\/authenticators\/.+:remove$/);
+    expect(command?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(command?.headers['x-csrf-token']).toBe(csrfToken);
   });
 
   it('offers a fresh sign-in when removing needs a recent one', async () => {
