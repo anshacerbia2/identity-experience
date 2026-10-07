@@ -18,10 +18,12 @@ import { ApiError } from '../api/api-client';
 import { ApiErrorPanel } from '../api/ApiErrorPanel';
 import { MutationError } from '../api/MutationError';
 import {
-  changeable,
+  changeKinds,
   changeValues,
+  hasAudience,
+  hasRedirectUris,
+  lineEntries,
   openChange,
-  redirectLines,
   setDiff,
   type ChangeDecision,
   type ChangeKind,
@@ -118,6 +120,9 @@ export function ChangeCard({
         <div className={styles['stack']}>
           <span className={styles['quiet']}>
             <CoreMessage id="changes.card.reason" values={{ reason: change.proposal_reason }} />
+          </span>
+          <span className={styles['quiet']}>
+            <CoreMessage id={kindLabel[change.kind]} />
           </span>
           <ChangeDiffList change={change} />
           {change.state === 'proposed' && change.approval_required ? (
@@ -276,24 +281,64 @@ export function ChangeActions({
   );
 }
 
+// What a proposal form says for each kind: its title, its field, and why the API refuses an entry.
+const proposeCopy: Readonly<
+  Record<
+    ChangeKind,
+    {
+      readonly title: CoreMessageKey;
+      readonly body: CoreMessageKey;
+      readonly field: CoreMessageKey;
+      readonly rulesTitle: CoreMessageKey;
+      readonly rules: readonly CoreMessageKey[];
+    }
+  >
+> = {
+  redirect_uris: {
+    title: 'changes.propose.title',
+    body: 'changes.propose.body',
+    field: 'changes.propose.field',
+    rulesTitle: 'changes.rules.title',
+    rules: ['changes.rules.wildcard', 'changes.rules.https', 'changes.rules.exact'],
+  },
+  audience: {
+    title: 'changes.propose.title.audience',
+    body: 'changes.propose.body.audience',
+    field: 'changes.propose.field.audience',
+    rulesTitle: 'changes.rules.title.audience',
+    rules: ['changes.rules.audience.remove', 'changes.rules.audience.add', 'changes.rules.audience.entry'],
+  },
+};
+
+const registered = (registration: Registration, kind: ChangeKind): readonly string[] =>
+  kind === 'audience' ? registration.audience : registration.redirect_uris;
+
+// ProposeForm proposes the whole next set of one kind, against the version shown, with a reason.
+// Nothing is judged here beyond splitting the lines: the API's sentence names the rule
+// (TDD-identity-experience-004 §Validation Parity). Redirect URIs need at least one; an audience may
+// be empty, a client whose tokens name no resource.
 function ProposeForm({
   registration,
+  kind,
   onDone,
   onCancel,
 }: {
   readonly registration: Registration;
+  readonly kind: ChangeKind;
   readonly onDone: (outcome: RegistrationChange) => void;
   readonly onCancel: () => void;
 }): ReactElement {
   const t = useCoreMessage();
   const propose = useProposeChange(registration.registration_id);
-  const form = useForm<{ uris: string; reason: string }>({
-    defaultValues: { uris: registration.redirect_uris.join('\n'), reason: '' },
+  const copy = proposeCopy[kind];
+  const form = useForm<{ values: string; reason: string }>({
+    defaultValues: { values: registered(registration, kind).join('\n'), reason: '' },
   });
   const submit = form.handleSubmit((values) => {
     propose.mutate(
       {
-        redirectUris: redirectLines(values.uris),
+        kind,
+        values: lineEntries(values.values),
         expectedVersion: registration.version,
         reason: values.reason,
       },
@@ -305,21 +350,22 @@ function ProposeForm({
     <Panel.Root elevation="floating">
       <Panel.Header>
         <Panel.Title>
-          <CoreMessage id="changes.propose.title" />
+          <CoreMessage id={copy.title} />
         </Panel.Title>
         <Panel.Description>
-          <CoreMessage id="changes.propose.body" />
+          <CoreMessage id={copy.body} />
         </Panel.Description>
       </Panel.Header>
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
         <TextAreaField
-          {...form.register('uris', {
-            validate: (value) => redirectLines(value).length > 0 || t('changes.propose.empty'),
+          {...form.register('values', {
+            validate: (value) =>
+              kind === 'audience' || lineEntries(value).length > 0 || t('changes.propose.empty'),
           })}
-          label={<CoreMessage id="changes.propose.field" />}
-          error={form.formState.errors.uris?.message}
+          label={<CoreMessage id={copy.field} />}
+          error={form.formState.errors.values?.message}
           spellCheck={false}
-          required
+          required={kind === 'redirect_uris'}
         />
         <ReasonField
           registration={form.register('reason', reasonRules)}
@@ -327,18 +373,14 @@ function ProposeForm({
         />
         <div className={styles['stack']}>
           <span className={styles['quiet']}>
-            <CoreMessage id="changes.rules.title" />
+            <CoreMessage id={copy.rulesTitle} />
           </span>
           <ul className={styles['rules']}>
-            <li>
-              <CoreMessage id="changes.rules.wildcard" />
-            </li>
-            <li>
-              <CoreMessage id="changes.rules.https" />
-            </li>
-            <li>
-              <CoreMessage id="changes.rules.exact" />
-            </li>
+            {copy.rules.map((rule) => (
+              <li key={rule}>
+                <CoreMessage id={rule} />
+              </li>
+            ))}
           </ul>
         </div>
         {conflict ? (
@@ -421,10 +463,18 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
   );
 }
 
-type Notice = 'applied' | 'proposed' | 'approved' | 'rejected' | 'withdrawn' | 'superseded';
+type Notice =
+  | 'applied.redirect_uris'
+  | 'applied.audience'
+  | 'proposed'
+  | 'approved'
+  | 'rejected'
+  | 'withdrawn'
+  | 'superseded';
 
 const noticeCopy: Readonly<Record<Notice, CoreMessageKey>> = {
-  applied: 'changes.done.applied',
+  'applied.redirect_uris': 'changes.done.applied',
+  'applied.audience': 'changes.done.applied.audience',
   proposed: 'changes.done.proposed',
   approved: 'changes.done.approved',
   rejected: 'changes.done.rejected',
@@ -439,24 +489,63 @@ const decided = (decision: ChangeDecision, outcome: RegistrationChange): Notice 
   return decision === 'reject' ? 'rejected' : 'withdrawn';
 };
 
-// RedirectUriChanges is a registration's redirect URIs and the changes to them (ADR-IAM-003 §5.2,
-// TDD-identity-experience-004 §Redirect URI Changes): the registered set, a proposal of the next
-// one, the open change with its before and after, and the changes decided. provider adds approve
-// and reject on a change the signed-in provider did not propose.
-export function RedirectUriChanges({
+const openCopy: Readonly<Record<ChangeKind, CoreMessageKey>> = {
+  redirect_uris: 'changes.propose.open',
+  audience: 'changes.propose.open.audience',
+};
+
+// Registered shows one kind's set as it stands, and says so when an audience names no resource.
+function Registered({
+  label,
+  values,
+  empty,
+}: {
+  readonly label: CoreMessageKey;
+  readonly values: readonly string[];
+  readonly empty?: CoreMessageKey;
+}): ReactElement {
+  return (
+    <div className={styles['stack']}>
+      <span className={styles['quiet']}>
+        <CoreMessage id={label} />
+      </span>
+      {values.length === 0 && empty !== undefined ? (
+        <span className={styles['quiet']}>
+          <CoreMessage id={empty} />
+        </span>
+      ) : (
+        <ul className={styles['values']}>
+          {values.map((value) => (
+            <li key={value}>{value}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// RegistrationChanges is a registration's redirect URIs and audience, and the changes to them
+// (ADR-IAM-003 §5.2, TDD-identity-experience-004 §Redirect URI Changes and §Audience Changes): the
+// registered sets, a proposal of the next one of either kind, the open change with its before and
+// after, and the changes decided. The API holds one open change per registration, of either kind,
+// so nothing is proposed while one is open. provider adds approve and reject on a change the
+// signed-in provider did not propose.
+export function RegistrationChanges({
   registration,
   provider = false,
 }: {
   readonly registration: Registration;
   readonly provider?: boolean;
 }): ReactElement | null {
-  const hasRedirects = registration.profile === 'public' || registration.profile === 'confidential';
-  const changes = useChanges(registration.registration_id, hasRedirects);
-  const [proposing, setProposing] = useState(false);
+  const redirects = hasRedirectUris(registration);
+  const audience = hasAudience(registration);
+  const changes = useChanges(registration.registration_id, audience);
+  const [proposing, setProposing] = useState<ChangeKind | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  if (!hasRedirects) {
+  if (!audience) {
     return null;
   }
+  const kinds = changeKinds(registration);
 
   let body: ReactElement;
   if (changes.isPending) {
@@ -485,30 +574,35 @@ export function RedirectUriChanges({
             />
           </ChangeCard>
         )}
-        {open === undefined && changeable(registration) && !proposing ? (
+        {open === undefined && kinds.length > 0 && proposing === null ? (
           <div className={styles['formActions']}>
-            <Button
-              variant="secondary"
-              icon={<Icon name="shield" />}
-              aria-expanded={false}
-              onClick={() => {
-                setProposing(true);
-                setNotice(null);
-              }}
-            >
-              <CoreMessage id="changes.propose.open" />
-            </Button>
+            {kinds.map((kind) => (
+              <Button
+                key={kind}
+                variant="secondary"
+                icon={<Icon name="shield" />}
+                aria-expanded={false}
+                onClick={() => {
+                  setProposing(kind);
+                  setNotice(null);
+                }}
+              >
+                <CoreMessage id={openCopy[kind]} />
+              </Button>
+            ))}
           </div>
         ) : null}
-        {proposing && open === undefined ? (
+        {proposing !== null && open === undefined ? (
           <ProposeForm
+            key={proposing}
             registration={registration}
+            kind={proposing}
             onDone={(outcome) => {
-              setProposing(false);
-              setNotice(outcome.state === 'applied' ? 'applied' : 'proposed');
+              setProposing(null);
+              setNotice(outcome.state === 'applied' ? `applied.${outcome.kind}` : 'proposed');
             }}
             onCancel={() => {
-              setProposing(false);
+              setProposing(null);
             }}
           />
         ) : null}
@@ -520,19 +614,17 @@ export function RedirectUriChanges({
   return (
     <section className={styles['section']} aria-labelledby="changes-title">
       <h2 id="changes-title" className={styles['sectionTitle']}>
-        <CoreMessage id="changes.title" />
+        <CoreMessage id={redirects ? 'changes.title' : 'changes.title.audience'} />
       </h2>
       <p className={styles['quiet']}>
-        <CoreMessage id="changes.description" />
+        <CoreMessage id={redirects ? 'changes.description' : 'changes.description.audience'} />
       </p>
-      <span className={styles['quiet']}>
-        <CoreMessage id="changes.current" />
-      </span>
-      <ul className={styles['values']}>
-        {registration.redirect_uris.map((uri) => (
-          <li key={uri}>{uri}</li>
-        ))}
-      </ul>
+      {redirects ? <Registered label="changes.current" values={registration.redirect_uris} /> : null}
+      <Registered
+        label="changes.current.audience"
+        values={registration.audience}
+        empty="changes.current.audience.none"
+      />
       {notice === null ? null : (
         <p className={notice === 'superseded' ? styles['quiet'] : styles['success']} role="status">
           <Icon name={notice === 'superseded' ? 'alert' : 'check'} />

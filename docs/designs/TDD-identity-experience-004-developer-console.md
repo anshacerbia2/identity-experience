@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.7.1
+  version: 1.8.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-03
+  last_reviewed: 2026-10-07
   parent_sad: SAD-002
 ---
 
@@ -117,7 +117,7 @@ GET   /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys/{key_id}:revoke   owner of {id}, with a reason
 GET   /api/v1/registrations/{id}/owners                 owner of {id}
-POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason
+POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason; redirect URIs or audience
 GET   /api/v1/registrations/{id}/changes                owner of {id}
 POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
 GET   /api/v1/registrations:standing                    any signed-in person: its own standing
@@ -251,8 +251,7 @@ on an active public or confidential registration:
 
 The API returns redirect URI changes and audience changes in one list, each with a `kind`, and
 leaves the other kind's before and after `null`. The page reads the pair its kind names, so an
-audience change in the history does not break the page. Proposing an audience change from the
-console is not built yet.
+audience change in the history does not break the page. Proposing one is §Audience Changes (1.8.0).
 
 The console sends the whole set rather than an edit, because the API pins a change to the set it
 replaces, and the approver sees both. Nothing is validated in the browser beyond splitting the
@@ -263,6 +262,44 @@ rather than per refusal.
 A provider sees the same changes on the Admin Portal's registration page, with approve and reject
 for a change it did not propose, and every open change in the portal's approval queue
 (`TDD-identity-experience-003` §Change Approval).
+
+### Audience Changes
+
+**Added in 1.8.0**, on `TDD-identity-control-003` §Registration Changes (its 1.26.0). A client's
+audience is the set of resources whose `client_key` its access tokens name in `aud`. It changes by the
+same recorded change as its redirect URIs, of kind `audience`.
+
+```text
+on an active public, confidential or workload registration:
+    show the registered audience, or say that its tokens name no resource
+    propose the whole next audience, one resource client_key per line, with a reason, against the
+        version shown; an empty set is a change to no resource, sent as []
+    a change names one kind: the body carries audience or redirect_uris, never both
+    the API holds one open change per registration, of either kind: while one is open, neither
+        proposal is offered
+    the API validates; a refusal is shown in its own words, beside why each rule exists
+    outside production it applies at once; in production it waits for a provider other than the
+        proposer, and the page says so
+    the open change is shown as the resources it adds, removes and keeps, labelled as an audience
+a resource registration has no audience: nothing is offered on it
+```
+
+- **Why the audience is governed.** A token that names a resource can be presented to it, and RFC 8707
+  gives the audience its point: "An audience-restricted access token that is legitimately presented to
+  a resource cannot then be taken by that resource and presented elsewhere for illegitimate access to
+  other resources" [R1]. So adding a resource is the resource owners' decision as much as the client's.
+  The API admits an owner's addition only of a resource it owns, and a provider's of any registered
+  resource. Removing is never restricted: a narrower audience only takes access away
+  (`TDD-identity-control-003` §Registration Changes).
+- **A list typed, not a picker.** The form is one `client_key` per line, the registered set filled in.
+  A picker would have to list what the person may add, which is a rule of the API's: an owner's own
+  resources, or for a provider every resource, which only the provider's paged list holds. The API
+  names a refused entry, and §Validation Parity holds.
+- **Lifetime-class changes are not offered.** The API does not accept them yet
+  (`TDD-identity-control-003` §Registration Changes), and nothing here asks for one.
+
+The Admin Portal shows the same panel, as for redirect URIs (`TDD-identity-experience-003` §Change
+Approval). On a workload registration, which has no redirect URIs, the panel is the audience alone.
 
 ### Lifetime Class as an Interval
 
@@ -362,6 +399,11 @@ hand-maintained documentation always does.
 - A redirect URI proposal sends the whole set, the version read and the reason. An applied change
   and a waiting one read differently, and a waiting one is withdrawn by its proposer with a reason.
 - A version conflict reads the registration again; a refusal shows the API's sentence.
+- An audience proposal sends the whole set, `[]` included, the version read and the reason, and never
+  `redirect_uris` with it. An owner's refused addition shows the API's sentence. An open audience
+  change is labelled as one, and no second proposal of either kind is offered while it is open. A
+  workload's owner is offered an audience change and no redirect URIs; a resource, and a client that
+  is not active, are offered none (1.8.0, `apps/developer/src/features/registrations/RegistrationPage.test.tsx`).
 - The console offers no approval: approving is a provider's, in the Admin Portal.
 - "Register a client" is offered only to an application developer outside production. The form
   offers no workload profile and no privileged class, and its audience lists only the person's
@@ -456,3 +498,9 @@ and registration approval backlog.
 | Conforms to | STD-IAM-002 §3.3 — every protected resource carries exactly one lifetime class |
 | Conforms to | `TDD-identity-experience-001` — BFF session and containment |
 | Depends on | `identity-control` — validation, key registration and rotation, and approval |
+
+## References
+
+| Ref | Source |
+| :-- | :-- |
+| R1 | IETF RFC 8707, *Resource Indicators for OAuth 2.0*, §3, <https://www.rfc-editor.org/rfc/rfc8707>, accessed 2026-10-07: "An audience-restricted access token that is legitimately presented to a resource cannot then be taken by that resource and presented elsewhere for illegitimate access to other resources." |

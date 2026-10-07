@@ -106,6 +106,39 @@ describe('the approval queue', () => {
     expect(command?.headers['x-administrative-reason']).toBe('Checked the new host belongs to us');
   });
 
+  // An audience change waits in the same queue (TDD-identity-control-003 §Registration Changes): it
+  // reads as one, with the resources it adds and removes, and is approved as any other.
+  it('shows an audience change by its kind, and approves it with a reason', async () => {
+    const audience = change({
+      change_id: 'c-3',
+      kind: 'audience',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+      previous_audience: ['identity-control'],
+      audience: ['identity-control-api'],
+    });
+    const { sent } = api([audience], () => json({ ...audience, state: 'applied', decided_by: me }));
+    const { container } = renderApp('/changes');
+
+    expect(await screen.findByText('identity-control-api')).toBeInTheDocument();
+    expect(screen.getByText('Audience')).toBeInTheDocument();
+    expect(screen.getByText('identity-control')).toBeInTheDocument();
+    expect(screen.getByText('Added')).toBeInTheDocument();
+    expect(screen.getByText('Removed')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Approve' }));
+    await user.type(screen.getByLabelText(/Reason/), 'The Admin API client leaves aud');
+    const submit = screen
+      .getAllByRole('button', { name: 'Approve' })
+      .find((button) => button.getAttribute('type') === 'submit');
+    await user.click(submit as HTMLElement);
+
+    expect(await screen.findByRole('status')).toHaveTextContent('approved and applied');
+    expect(posts(sent)[0]?.url.pathname).toBe('/api/v1/registrations/r-billing/changes/c-3:approve');
+  });
+
   it('says nothing was applied when the change was superseded', async () => {
     api([change({})], () => json(change({ state: 'superseded', decided_by: me })));
     renderApp('/changes');

@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.19.0
+  version: 1.20.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-05
+  last_reviewed: 2026-10-07
   parent_sad: SAD-002
 ---
 
@@ -366,20 +366,22 @@ changes the summary, the counts, and the findings.
 
 ### Change Approval
 
-A production registration's redirect URI change waits until a provider other than its proposer
-approves it (`ADR-IAM-003 §5.2`, `TDD-identity-control-003` §Registration Changes). The portal is
-where a provider does that.
+A production registration's redirect URI change, or audience change (1.20.0), waits until a provider
+other than its proposer approves it (`ADR-IAM-003 §5.2`, `TDD-identity-control-003` §Registration
+Changes). The portal is where a provider does that.
 
 ```text
 approval queue (GET /v1/registrations:changes), oldest first:
-    each change: its client, linked to its registration; the redirect URIs before and after;
-        who proposed it, why, and how long it has waited
+    each change: its client, linked to its registration; its kind, redirect URIs or audience; the
+        values before and after; who proposed it, why, and how long it has waited
     approve or reject, each with a reason, for a change the signed-in provider did not propose
     a change the provider proposed shows that another provider decides it, and offers nothing
     a superseded change is reported as such: the registration moved since, and it is proposed again
 
 registration page:
     the same changes panel the Developer Console shows, with approve and reject added
+    a provider proposes either kind there too, and adds any registered resource to an audience;
+        a workload's panel is its audience alone (`TDD-identity-experience-004` §Audience Changes)
 
 registration requests (GET /v1/registration-requests), on the same page, oldest first:
     each request: its client_key, profile, audience class, lifetime class, redirect URIs and
@@ -650,6 +652,8 @@ again and shows the user signed out rather than a page of errors.
 - Approve and reject send the reason; on one's own proposal neither is offered.
 - An approval answered as superseded says the registration moved since, and nothing was applied.
 - A registration's page shows its changes and decides them as the queue does.
+- An audience change is shown by its kind, with the resources it adds and removes, and is approved
+  as any other. A provider proposes a workload's audience from its page (1.20.0).
 - Registration requests are listed with their document and owners; approving one links to the
   registration it created, and neither decision is offered on one's own request.
 

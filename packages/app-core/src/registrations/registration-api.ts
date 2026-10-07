@@ -5,6 +5,7 @@ import type { PublicJwk } from '../domain/public-key';
 import { normalizeReason } from '../domain/reason';
 import type {
   ChangeDecision,
+  ChangeKind,
   ClientKey,
   LifecycleAction,
   Owner,
@@ -146,23 +147,30 @@ export function useChangeQueue() {
   });
 }
 
-// useProposeChange proposes the next set of redirect URIs, against the version the caller read.
+// useProposeChange proposes the next set of redirect URIs, or the next audience, against the
+// version the caller read. The body names one kind and never both: the API refuses a change to both
+// (TDD-identity-control-003 §Registration Changes). An audience of [] is sent as [], a change to no
+// resource, which the API keeps distinct from an absent one.
 export function useProposeChange(registrationId: string) {
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({
-      redirectUris,
+      kind,
+      values,
       expectedVersion,
       reason,
     }: {
-      readonly redirectUris: readonly string[];
+      readonly kind: ChangeKind;
+      readonly values: readonly string[];
       readonly expectedVersion: number;
       readonly reason: string;
     }) =>
       apiPost<RegistrationChange>(
         `${registrationPath(registrationId)}/changes`,
-        { redirect_uris: redirectUris, expected_version: expectedVersion },
+        kind === 'audience'
+          ? { audience: values, expected_version: expectedVersion }
+          : { redirect_uris: values, expected_version: expectedVersion },
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),

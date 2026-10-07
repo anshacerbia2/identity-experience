@@ -368,3 +368,73 @@ describe('RegistrationDetailPage', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+// A provider changes a client's audience from its page (TDD-identity-experience-003 §Change
+// Approval, TDD-identity-control-003 §Registration Changes): a workload holds no redirect URIs, so
+// only the audience is offered, and a provider may add any registered resource.
+describe('RegistrationDetailPage audience changes', () => {
+  it('offers a provider an audience change on a workload, and sends the whole next set', async () => {
+    const job = registration('r-job', 'nightly-job', {
+      profile: 'workload',
+      redirect_uris: [],
+      audience: ['identity-control'],
+      version: 5,
+    });
+    const { sent } = stubFetch((url, request) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (request.method === 'POST' && url.pathname === '/api/v1/registrations/r-job/changes') {
+        return json(
+          {
+            change_id: 'c-9',
+            registration_id: 'r-job',
+            client_key: 'nightly-job',
+            base_version: 5,
+            kind: 'audience',
+            previous_redirect_uris: null,
+            redirect_uris: null,
+            previous_audience: ['identity-control'],
+            audience: ['identity-control-api'],
+            approval_required: true,
+            proposed_by: signedIn.principalId,
+            proposal_reason: 'Move to the resource registration',
+            proposed_at: '2026-10-07T09:00:00Z',
+            state: 'proposed',
+            decided_by: null,
+            decided_at: null,
+          },
+          201,
+        );
+      }
+      if (url.pathname === '/api/v1/registrations/r-job') {
+        return json(job);
+      }
+      if (url.pathname === '/api/v1/registrations/r-job/changes') {
+        return json({ changes: null });
+      }
+      if (url.pathname === '/api/v1/registrations/r-job/findings') {
+        return json({ findings: [] });
+      }
+      return undefined;
+    });
+    renderApp('/registrations/r-job');
+
+    const section = (await screen.findByRole('heading', { name: 'Audience' })).closest(
+      'section',
+    ) as HTMLElement;
+    expect(within(section).queryByRole('button', { name: 'Propose redirect URIs' })).not.toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(await within(section).findByRole('button', { name: 'Propose an audience' }));
+    const field = within(section).getByLabelText(/Resources, one client_key per line/);
+    await user.clear(field);
+    await user.type(field, 'identity-control-api');
+    await user.type(within(section).getByLabelText(/Reason/), 'Move to the resource registration');
+    await user.click(within(section).getByRole('button', { name: 'Propose' }));
+
+    expect(await within(section).findByRole('status')).toHaveTextContent('The change is proposed.');
+    const command = sent.find((request) => request.method === 'POST');
+    expect(command?.body).toEqual({ audience: ['identity-control-api'], expected_version: 5 });
+    expect(command?.headers['x-administrative-reason']).toBe('Move to the resource registration');
+  });
+});

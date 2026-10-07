@@ -258,9 +258,9 @@ describe('the owner’s registration page', () => {
     const { sent } = api(billing, () => json(change({ state: 'applied', approval_required: false }), 201));
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs');
+    const changes = await section('Redirect URIs and audience');
     const user = userEvent.setup();
-    await user.click(await within(changes).findByRole('button', { name: 'Propose a change' }));
+    await user.click(await within(changes).findByRole('button', { name: 'Propose redirect URIs' }));
     const field = within(changes).getByLabelText(/Redirect URIs, one per line/);
     await user.type(field, '\n\n  https://pay.example.com/callback  ');
     await user.type(within(changes).getByLabelText(/Reason/), 'Payments move to their own host');
@@ -284,9 +284,9 @@ describe('the owner’s registration page', () => {
     );
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs');
+    const changes = await section('Redirect URIs and audience');
     const user = userEvent.setup();
-    await user.click(await within(changes).findByRole('button', { name: 'Propose a change' }));
+    await user.click(await within(changes).findByRole('button', { name: 'Propose redirect URIs' }));
     await user.type(
       within(changes).getByLabelText(/Redirect URIs, one per line/),
       '\nhttps://pay.example.com/callback',
@@ -313,13 +313,14 @@ describe('the owner’s registration page', () => {
     ]);
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs');
+    const changes = await section('Redirect URIs and audience');
     expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
     expect(within(changes).getByText('Added')).toBeInTheDocument();
     expect(within(changes).getByText('Kept')).toBeInTheDocument();
     expect(within(changes).getByText(/A provider other than its proposer approves it/)).toBeInTheDocument();
     expect(within(changes).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
-    expect(within(changes).queryByRole('button', { name: 'Propose a change' })).not.toBeInTheDocument();
+    expect(within(changes).queryByRole('button', { name: 'Propose redirect URIs' })).not.toBeInTheDocument();
+    expect(within(changes).queryByRole('button', { name: 'Propose an audience' })).not.toBeInTheDocument();
     const history = within(changes).getByRole('table', { name: 'Decided changes' });
     expect(history).toHaveTextContent('Rejected');
     expect(history).toHaveTextContent('Use the existing host');
@@ -335,5 +336,131 @@ describe('the owner’s registration page', () => {
     expect(await within(changes).findByRole('status')).toHaveTextContent('The change is withdrawn.');
     const [command] = posts(sent);
     expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes/c-1:withdraw`);
+  });
+  // TDD-identity-experience-004 §Audience Changes, on TDD-identity-control-003 §Registration Changes.
+  describe('audience changes', () => {
+    const audienceChange = (overrides: Partial<RegistrationChange> = {}): RegistrationChange =>
+      change({
+        kind: 'audience',
+        previous_redirect_uris: null,
+        redirect_uris: null,
+        previous_audience: ['billing-api'],
+        audience: ['billing-api', 'ledger-api'],
+        ...overrides,
+      });
+
+    it('shows the registered audience, and proposes the whole next one with the version read and a reason', async () => {
+      const { sent } = api(billing, () =>
+        json(audienceChange({ state: 'applied', approval_required: false }), 201),
+      );
+      const { container } = renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Redirect URIs and audience');
+      expect(within(changes).getByText('Audience registered now')).toBeInTheDocument();
+      expect(within(changes).getByText('billing-api')).toBeInTheDocument();
+      const user = userEvent.setup();
+      await user.click(await within(changes).findByRole('button', { name: 'Propose an audience' }));
+      const field = within(changes).getByLabelText(/Resources, one client_key per line/);
+      expect(field).toHaveValue('billing-api');
+      await user.type(field, '\n\n  ledger-api  ');
+      await user.type(within(changes).getByLabelText(/Reason/), 'Billing reads the ledger');
+      expect(within(changes).getByText(/Removing a resource is always allowed/)).toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('status')).toHaveTextContent('The audience is changed.');
+      const [command] = posts(sent);
+      expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes`);
+      // One kind per change, never both: the API refuses a body naming redirect_uris and audience.
+      expect(command?.body).toEqual({ audience: ['billing-api', 'ledger-api'], expected_version: 3 });
+      expect(command?.headers['x-administrative-reason']).toBe('Billing reads the ledger');
+      expect(command?.headers['x-csrf-token']).toBe(csrfToken);
+    });
+
+    it('sends an emptied audience as [], a change to no resource', async () => {
+      const { sent } = api(billing, () =>
+        json(audienceChange({ audience: [], state: 'proposed', approval_required: true }), 201),
+      );
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Redirect URIs and audience');
+      const user = userEvent.setup();
+      await user.click(await within(changes).findByRole('button', { name: 'Propose an audience' }));
+      await user.clear(within(changes).getByLabelText(/Resources, one client_key per line/));
+      await user.type(within(changes).getByLabelText(/Reason/), 'Billing no longer calls the API');
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('status')).toHaveTextContent(
+        'The change is proposed. It waits for a provider other than you.',
+      );
+      expect(posts(sent)[0]?.body).toEqual({ audience: [], expected_version: 3 });
+    });
+
+    it('shows the API’s refusal of a resource the owner does not own in its own words', async () => {
+      api(
+        billing,
+        () =>
+          new Response(
+            JSON.stringify({
+              type: 'https://problems.scnehaux.com/forbidden',
+              title: 'The operation is forbidden',
+              status: 403,
+              detail: 'An owner adds to an audience only resources it owns',
+            }),
+            { status: 403, headers: { 'content-type': 'application/problem+json' } },
+          ),
+      );
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Redirect URIs and audience');
+      const user = userEvent.setup();
+      await user.click(await within(changes).findByRole('button', { name: 'Propose an audience' }));
+      await user.type(within(changes).getByLabelText(/Resources, one client_key per line/), '\norders-api');
+      await user.type(within(changes).getByLabelText(/Reason/), 'Billing reads orders');
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('alert')).toHaveTextContent(
+        'An owner adds to an audience only resources it owns',
+      );
+    });
+
+    it('labels an open audience change by its kind and offers no second proposal', async () => {
+      api(billing, undefined, [audienceChange()]);
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Redirect URIs and audience');
+      expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
+      expect(within(changes).getByText('Audience')).toBeInTheDocument();
+      expect(within(changes).getByText('ledger-api')).toBeInTheDocument();
+      expect(within(changes).getByText('Added')).toBeInTheDocument();
+      for (const name of ['Propose redirect URIs', 'Propose an audience']) {
+        expect(within(changes).queryByRole('button', { name })).not.toBeInTheDocument();
+      }
+    });
+
+    it('offers a workload’s owner an audience change and no redirect URIs', async () => {
+      api({ ...billing, profile: 'workload', redirect_uris: [] });
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Audience');
+      expect(await within(changes).findByRole('button', { name: 'Propose an audience' })).toBeInTheDocument();
+      expect(
+        within(changes).queryByRole('button', { name: 'Propose redirect URIs' }),
+      ).not.toBeInTheDocument();
+      expect(within(changes).queryByText('Redirect URIs registered now')).not.toBeInTheDocument();
+    });
+
+    it('offers no change on a suspended client, and has no section for a resource', async () => {
+      api({ ...billing, state: 'suspended' });
+      const { unmount } = renderApp(`/developer/registrations/${id}`);
+      const changes = await section('Redirect URIs and audience');
+      expect(within(changes).queryByRole('button', { name: 'Propose an audience' })).not.toBeInTheDocument();
+      unmount();
+
+      api({ ...billing, profile: 'resource', audience: [], redirect_uris: [] });
+      renderApp(`/developer/registrations/${id}`);
+      expect(await screen.findByRole('heading', { name: 'billing-web' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /audience/i })).not.toBeInTheDocument();
+    });
   });
 });

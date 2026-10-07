@@ -12,7 +12,7 @@ import {
 import {
   ClientKeys,
   LifecycleActions,
-  RedirectUriChanges,
+  RegistrationChanges,
   RegistrationDetails,
   useRegistration,
 } from '@identity-experience/app-core/registrations';
@@ -209,7 +209,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
       </header>
       <RegistrationDetails registration={found} />
       <LifecycleActions registration={found} />
-      <RedirectUriChanges registration={found} provider />
+      <RegistrationChanges registration={found} provider />
       <ClientKeys registration={found} />
       <Findings registrationId={registrationId} operable={found.state === 'active'} />
       <DriftExceptions registrationId={registrationId} grantable={found.state === 'active'} />
