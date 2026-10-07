@@ -36,6 +36,10 @@ export interface Config {
   // identityControlBaseUrl is the Identity Control API the proxy forwards to.
   readonly identityControlBaseUrl: string;
   readonly upstreamTimeoutMs: number;
+  // tenantSignIn lets a sign-in ask for one Tenant (ADR-IAM-008). Off here: every client this BFF
+  // signs in with is registered for the provider-scope form, and the Identity Control API takes no
+  // Tenant.
+  readonly tenantSignIn: boolean;
 
   readonly databaseUrl: string;
 }
@@ -233,6 +237,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     session: { idleMs, absoluteMs, refreshSkewMs, key },
     identityControlBaseUrl: identityControlBaseUrl.replace(/\/+$/, ''),
     upstreamTimeoutMs,
+    tenantSignIn: false,
     databaseUrl,
   };
 }

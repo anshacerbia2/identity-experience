@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.14.0
+  version: 1.15.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-05
+  last_reviewed: 2026-10-07
   parent_sad: SAD-002
 ---
 
@@ -213,6 +213,13 @@ privileged provider-scope profile the Identity Control API accepts (STD-IAM-002 
 access token, which carries no personal data (STD-IAM-002 §3.2). The session's display name is read
 from the ID token alone, `name` first and `preferred_username` second.
 
+**A Tenant sign-in asks for `openid scnehaux-privileged organization:<tenant_id> scnehaux-profile`
+instead (1.15.0, ADR-IAM-008 §5.2).** It is the tenant-scoped form: the same claims, and the
+`tenant_id` the kernel issues only for a member (ADR-IAM-006 §5.2). Each sign-in names exactly one
+form, never both and never a second Tenant. Only an application whose client is registered for the
+`per-sign-in` form can ask for one (STD-IAM-002 1.7.0 §3.1.1). This BFF's clients are
+provider-scope, so it keeps tenant sign-in off (§Context Switch).
+
 The kernel refuses a sign-in that asks for a scope the client does not hold. identity-control
 registers a confidential client with `scnehaux-profile` as an optional scope
 (TDD-identity-control-003 §Profiles); a BFF client adopted before that holds it once an operator
@@ -230,6 +237,7 @@ tokens               access and refresh token, sealed; never serialized to the b
 access_expires_at    when the access token lapses, for refresh
 acr                  authentication context reached
 auth_time            when authentication occurred
+tenant_id            the Tenant the tokens were issued for; null for the provider-scope form (1.15.0)
 csrf_token           per-session value, delivered to the browser and echoed in a header
 created_at
 last_seen_at
@@ -247,11 +255,13 @@ as a cookie. The tokens are sealed with AES-256-GCM under
 `IDENTITY_EXPERIENCE_SESSION_KEY`, which the database never sees, with the row's key as
 associated data, so a sealed value moved to another row does not open. The ID token is
 validated at sign-in and not kept: nothing after sign-in needs it, and a session holds
-no credential it does not use. The active Tenant (`tenant_id`) arrives with the context
-switch; the provider-scope sessions built first carry none, per STD-IAM-002 §3.1.
+no credential it does not use. The active Tenant (`tenant_id`) is the one the sign-in asked for and
+the ID token confirmed (§Context Switch); a provider-scope session holds none, per STD-IAM-002
+§3.1.1.
 
 A sign-in in flight is a second table, `login_states`: the binding's digest, `state`,
-`nonce`, the sealed PKCE verifier, `return_to` and an expiry.
+`nonce`, the sealed PKCE verifier, `return_to`, an expiry, and what the callback holds the ID token
+to: `max_age`, `acr_values` and `tenant_id`.
 
 The store is server-side and shared across BFF replicas so a session survives a
 replica restart and a load-balancer decision. It is PostgreSQL: a database of the BFF's own,
@@ -313,18 +323,17 @@ class.
 ### BFF Endpoints
 
 ```text
-GET   /auth/login            ?return_to=&max_age=&acr_values=&kc_action=
+GET   /auth/login            ?return_to=&max_age=&acr_values=&kc_action=&tenant=
 GET   /auth/callback
 POST  /auth/logout
 POST  /auth/back-channel-logout
 GET   /auth/session
-POST  /auth/context
 ALL   /api/*
 ```
 
 `GET /auth/session` returns the current display context: principal identifier, display
-name, active tenant once the context switch exists, assurance level, expiry hints, and
-the session's CSRF token. It returns no token and no credential. With no valid session it
+name, the active Tenant (`tenantId`, null for the provider-scope form), assurance level, expiry
+hints, and the session's CSRF token. It returns no token and no credential. With no valid session it
 answers `{"authenticated": false}`.
 
 `POST /auth/logout` ends the BFF session and the Keycloak session, both server-side: the
@@ -347,8 +356,10 @@ and `If-None-Match` pass, never `Authorization` or `Cookie`, and no upstream `Se
 comes back. A path that would resolve outside `/v1/` — a dot-segment, or an encoded slash
 or backslash in any segment — is refused before any session is read.
 
-`POST /auth/context` is built with the screen that needs it. Step-up has no endpoint of its own:
-it is a sign-in with `max_age` (§Step-Up).
+Neither step-up nor the context switch has an endpoint of its own. Step-up is a sign-in with
+`max_age` (§Step-Up), and a context switch is a sign-in with `tenant` (§Context Switch). 1.15.0
+drops the `POST /auth/context` this design reserved, because a switch needs a navigation to the
+kernel anyway.
 
 Errors are RFC 7807 problem documents per STD-GLB-001, with the problem types of
 `foundation-platform`'s registry. `foundation-platform` is a Go module, so the BFF writes
@@ -497,14 +508,33 @@ application, on that 401:
 
 ### Context Switch
 
-Switching the active Tenant issues a new token carrying exactly one context, per
-STD-IAM-002 §3.2. The BFF performs a fresh authorization request on the existing
-Keycloak SSO session — a redirect round trip, not a credential prompt — and replaces
-the tokens in the server-side session. The previously issued token is left unchanged
-and expires on its own schedule.
+**The active Tenant is chosen per sign-in (1.15.0, ADR-IAM-006 §5.2, ADR-IAM-008).**
+`GET /auth/login?tenant=<tenant_id>` asks for the tenant-scoped form for that Tenant. A sign-in
+without `tenant` asks for the provider-scope form. The flow:
 
-A switch to a Tenant for which no active Membership exists is refused by the Control
-API, and the BFF surfaces the refusal rather than retrying.
+1. **The identifier is a selector, never authority.** It must be a lowercase UUID, the form the
+   Organization Control API issues. Anything else is refused at `/auth/login`, not dropped, because
+   dropping it would sign the operator in to the provider-scope form instead of the Tenant they
+   chose. An application whose client holds one form keeps tenant sign-in off, and refuses any
+   `tenant`.
+2. **The kernel admits only a member.** It refuses `organization:<tenant_id>` for anyone else
+   (ADR-IAM-006 §5.2).
+3. **The callback holds the ID token to the request,** as it holds `acr` to the level asked for:
+   - a Tenant sign-in whose ID token names another Tenant, or none, is refused;
+   - a provider sign-in whose ID token names one is refused.
+
+   This is the check Auth0 asks of a client on its organization claim [R8].
+4. **The session holds the Tenant the ID token confirmed.** `GET /auth/session` shows it.
+5. **Switching is a new sign-in,** a redirect round trip on the existing Keycloak SSO session, not a
+   credential prompt. Like every sign-in it issues a new session and ends the one before. The
+   previously issued tokens are discarded with it.
+
+**A refresh keeps the Tenant** (ADR-IAM-006 §5.2). A refresh whose ID token names another Tenant,
+or none, is treated as a refused refresh: the session ends (§Refresh). A Membership removed or a
+Tenant disabled makes the kernel refuse the refresh outright.
+
+A Tenant the operator does not administer is still refused by the Control API, which checks
+current state on every request. The BFF surfaces the refusal rather than retrying.
 
 ### What the BFF Must Not Do
 
@@ -513,8 +543,8 @@ API, and the BFF surfaces the refusal rather than retrying.
 - It holds no business state and no domain logic.
 - It never returns an access token, refresh token, ID token, client private key, or client
   secret to the browser, on any endpoint, including diagnostics.
-- It never accepts a Tenant identifier from the browser as authority; a requested
-  context is validated against the session and the API.
+- It never accepts a Tenant identifier from the browser as authority. A requested Tenant only
+  selects what the sign-in asks for, and the session holds the one the ID token confirmed.
 
 STD-IAM-001 §3.9 states the reason directly: UI authorization is defence in depth and
 user-experience control only.
@@ -612,6 +642,17 @@ the build emits styles and fonts as files served from this origin, never inline.
 - A sign-in started from the Developer Console that does not complete lands on
   `/developer/` with its marker; one with no pre-session in this browser lands on `/`.
 - A redirect URI not exactly registered is refused by Keycloak.
+- **Tenant sign-in (1.15.0, `bff/test/tenant.test.ts`):**
+  - a sign-in asks for exactly one form: `scnehaux-privileged organization:<tenant_id>` for the Tenant
+    named, `scnehaux-provider` otherwise;
+  - the session holds the Tenant the ID token confirmed;
+  - a malformed or unbounded Tenant (`*`, two identifiers, uppercase) is refused before the kernel is
+    asked;
+  - a Tenant sign-in whose ID token names another Tenant, or none, is refused, and so is a provider
+    sign-in whose ID token names one;
+  - switching Tenant replaces the session;
+  - a refresh that returns another Tenant ends the session;
+  - with tenant sign-in off, any `tenant` is refused.
 
 ### Cross-Site Request Forgery
 
@@ -720,6 +761,7 @@ failure, client key rotation, and suspected session fixation.
 | Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication by `private_key_jwt` |
 | Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys |
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
+| Governed by | ADR-IAM-006 §5.2, ADR-IAM-008 — the Tenant chosen per sign-in, one form per sign-in, checked on the callback (1.15.0) |
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |
 | Depends on | `identity-kernel` — hosted login, realm configuration, back-channel logout registration |
@@ -747,3 +789,4 @@ outbox.
 | R5 | Duende Software, *BFF: Multiple Frontends*, <https://docs.duendesoftware.com/bff/fundamentals/multi-frontend/>, accessed 2026-10-03: frontends are "identified either via path based routing and/or host selection"; each can "Define its own Cookie settings"; "having a dedicated backend service for each frontend introduces quite a lot of operational overhead." |
 | R6 | Keycloak, *Server Administration Guide*, Application Initiated Actions, <https://www.keycloak.org/docs/latest/server_admin/index.html>, accessed 2026-10-03: AIA "is triggered by adding the kc_action parameter to the OIDC login URL"; a cancelled action returns "kc_action_status=cancelled"; "The kc_action and kc_action_status parameters are a Keycloak proprietary mechanism unsupported by the OIDC specification." |
 | R7 | Keycloak 26.7.5, *Server Administration Guide*, Registering WebAuthn credentials using AIA, source `docs/documentation/server_admin/topics/authentication/webauthn.adoc` at tag 26.7.5, accessed 2026-10-03: "The actions *Webauthn Register* (`kc_action=webauthn-register`) and *Webauthn Register Passwordless* (`kc_action=webauthn-register-passwordless`) are available for the applications if enabled in the Required actions tab." identity-kernel's compat suite proves `webauthn-register` on the pinned kernel (TDD-identity-kernel-001 1.11.0). |
+| R8 | Auth0, *Custom development* for Organizations, <https://auth0.com/docs/manage-users/organizations/custom-development>, accessed 2026-10-07: "on callback, ensure that the organization returned in the ID token is the same one that was sent in the /authorize request by validating the org_id claim in the same way that other claims like exp and nonce are validated." |
