@@ -224,6 +224,14 @@ baseline is a fresh authorization request on the existing SSO session — a redi
 round trip, not a credential prompt. If Standard Token Exchange proves viable without
 an extension, only the BFF's switch handler changes.
 
+✅ The BFF pattern can ask for one Tenant per sign-in (TDD-identity-experience-001 1.15.0,
+ADR-IAM-008). `GET /auth/login?tenant=<tenant_id>` asks for
+`scnehaux-privileged organization:<tenant_id>`. The callback refuses an ID token naming another
+Tenant, or none, and refuses a provider sign-in that names one. The session holds the confirmed
+Tenant, and a refresh returning another ends it. This application's clients are provider-scope, so
+tenant sign-in stays off here. organization-experience, registered for the `per-sign-in` form,
+turns it on through the same files (`bff/conformance.json`).
+
 ## Not this repository
 
 Recorded so scope creep is visible rather than convenient:

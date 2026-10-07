@@ -75,7 +75,14 @@ export async function buildServer(
   });
 
   await app.register(fastifyCookie);
-  await app.register(authRoutes, { publicOrigin: config.publicOrigin, oidc, sessions, store, now });
+  await app.register(authRoutes, {
+    publicOrigin: config.publicOrigin,
+    oidc,
+    sessions,
+    store,
+    now,
+    tenantSignIn: config.tenantSignIn,
+  });
   await app.register(apiProxy, {
     publicOrigin: config.publicOrigin,
     sessions,

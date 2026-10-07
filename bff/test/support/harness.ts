@@ -60,11 +60,12 @@ export function testConfig(overrides: Partial<Config> & Pick<Config, 'oidc' | 'd
     session: { idleMs: minutes(30), absoluteMs: minutes(8 * 60), refreshSkewMs: 30_000, key: sessionKey },
     identityControlBaseUrl: 'http://127.0.0.1:9',
     upstreamTimeoutMs: 5_000,
+    tenantSignIn: false,
     ...overrides,
   };
 }
 
-export async function startHarness(): Promise<Harness> {
+export async function startHarness(overrides: Partial<Config> = {}): Promise<Harness> {
   const provider = new IdentityProvider();
   const upstream = new Upstream();
   await Promise.all([provider.start(), upstream.start()]);
@@ -81,6 +82,7 @@ export async function startHarness(): Promise<Harness> {
       },
       identityControlBaseUrl: upstream.baseUrl,
       databaseUrl: database.url,
+      ...overrides,
     }),
     { now: clock.now },
   );
@@ -104,11 +106,18 @@ export const cookieValue = (response: LightMyRequestResponse, name: string): str
 // cookie and the responses along the way.
 export async function signIn(
   harness: Harness,
-  options: { user?: User; returnTo?: string } = {},
+  options: { user?: User; returnTo?: string; tenant?: string } = {},
 ): Promise<{ session: string; login: LightMyRequestResponse; callback: LightMyRequestResponse }> {
+  const params = new URLSearchParams();
+  if (options.returnTo !== undefined) {
+    params.set('return_to', options.returnTo);
+  }
+  if (options.tenant !== undefined) {
+    params.set('tenant', options.tenant);
+  }
   const login = await harness.app.inject({
     method: 'GET',
-    url: `/auth/login${options.returnTo === undefined ? '' : `?return_to=${encodeURIComponent(options.returnTo)}`}`,
+    url: `/auth/login${params.size === 0 ? '' : `?${params.toString()}`}`,
   });
   const binding = cookieValue(login, '__Host-ident_login');
   const location = login.headers.location;
@@ -133,6 +142,7 @@ export interface SessionView {
   readonly csrfToken?: string;
   readonly principalId?: string;
   readonly displayName?: string;
+  readonly tenantId?: string | null;
 }
 
 export async function sessionOf(harness: Harness, session: string): Promise<SessionView> {
