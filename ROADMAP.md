@@ -82,11 +82,11 @@ endpoint and `jose` for the logout endpoint. The key is made on the developer's 
 The stand-in kernel in the tests refuses a secret, a replayed assertion, and a key other than the
 registered one.
 
-**Owed to identity-control.** `identity-experience-bff` is created by a script, not registered.
-identity-control's registration API builds public and resource clients only. A confidential client
-needs client key registration, which is designed (TDD-identity-control-003 §Client Key Records) and
-not built. Before identity-control starts disabling unmanaged clients, this client must be
-registered, or it is disabled with every session it holds.
+~~**Owed to identity-control.**~~ ✅ Paid. When this was written, `identity-experience-bff` was
+created by a script and identity-control could not register a confidential client. identity-control
+now registers confidential clients by public key (its ROADMAP: "Client key registration",
+TDD-identity-control-003 §Client Key Records), and this BFF's client is a registration, adopted on
+the development server (below, "The BFF's client is a registration").
 
 - Authorization code exchange with PKCE `S256`, confidential client authentication
 - `state` and `nonce` generated, stashed, and validated on return
