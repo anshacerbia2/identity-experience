@@ -133,17 +133,9 @@ node scripts/new-client-key.mjs     # keys/identity-experience-bff.pem stays her
 ```
 
 Send `keys/identity-experience-bff.jwk.json`, the public half, to whoever operates the server. It is
-not secret. They install it once, depending on whether the client exists yet:
-
-```sh
-# the client does not exist yet
-deploy/dev/create-bff-client.sh /path/to/identity-control/deploy/dev/.env /path/to/identity-experience-bff.jwk.json
-# the client exists, for example created with a secret before keys: give it the key instead
-/path/to/identity-kernel/deploy/dev/set-client-key.sh scnehaux identity-experience-bff /path/to/identity-experience-bff.jwk.json
-```
-
-`set-client-key.sh` also regenerates the client's old secret without printing it, so a secret that
-was ever exposed stops working. Then, on this machine, copy `.env.example` to `.env` (delete any
+not secret. They register the client through identity-control with it, or adopt the client an older
+server already has; [`deploy/dev/README.md`](deploy/dev/README.md) gives each case, and how a second
+device's key is added. Then, on this machine, copy `.env.example` to `.env` (delete any
 `IDENTITY_EXPERIENCE_CLIENT_SECRET` line an older `.env` has), and:
 
 ```powershell
