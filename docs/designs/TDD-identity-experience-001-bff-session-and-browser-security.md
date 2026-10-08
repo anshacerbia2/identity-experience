@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.16.0
+  version: 1.17.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-07
+  last_reviewed: 2026-10-08
   parent_sad: SAD-002
 ---
 
@@ -154,8 +154,9 @@ logged, not shown, because it may describe what an attacker presented.
 A callback that could not reach Keycloak is not a refusal. That means no connection, a
 timeout, or a 5xx from the token or key endpoint. It lands on `?sign-in=unavailable`, at the
 same root,
-is logged as an outage, and the application says Keycloak could not be reached and that
-trying again may work. The first failed sign-in against the development kernel was
+is logged as an outage, and the application says the sign-in service could not be reached and that
+trying again may work. A session store that does not answer during `/auth/login` or the callback
+lands the same way (1.17.0, §Session-Store Outage). The first failed sign-in against the development kernel was
 exactly this: the dev tunnel dropped the connection while the BFF fetched the realm's
 keys, and the user was told it had been refused. Refresh classifies the same way (see
 §Refresh). A token that fails validation is a refusal on either path, never an outage.
@@ -255,7 +256,22 @@ as a cookie. The tokens are sealed with AES-256-GCM under
 `IDENTITY_EXPERIENCE_SESSION_KEY`, which the database never sees, with the row's key as
 associated data, so a sealed value moved to another row does not open. The ID token is
 validated at sign-in and not kept: nothing after sign-in needs it, and a session holds
-no credential it does not use. The active Tenant (`tenant_id`) is the one the sign-in asked for and
+no credential it does not use.
+
+**A row that does not open is no session (1.17.0).** AES-GCM refuses a sealed value altered, moved to
+another row, or sealed under another key, and the BFF cannot tell these apart. All three mean the
+row's tokens cannot be used, so the request has no valid credential: the BFF answers as it does for
+no session at all, `401` with the cookie cleared, `{"authenticated": false}` from `/auth/session`, and
+a sign-in that starts again (RFC 9110 §15.5.2 [R10]). A sign-in in flight whose verifier does not open
+is one that cannot complete, and lands on `?sign-in=failed`. Before 1.17.0 the error reached the
+error handler and every open session answered `500` after `IDENTITY_EXPERIENCE_SESSION_KEY` changed.
+The row is not deleted: a replica configured with a wrong key would otherwise delete the sessions every
+other replica reads. It lapses at its expiry and the purge removes it. A key changed on purpose is
+changed with the tables emptied (`docs/runbooks/suspected-session-fixation.md`), which makes the
+sign-out final; putting the old key back would otherwise open the rows again. The BFF holds one key
+and no key ring, so changing it always signs everyone out.
+
+The active Tenant (`tenant_id`) is the one the sign-in asked for and
 the ID token confirmed (§Context Switch); a provider-scope session holds none, per STD-IAM-002
 §3.1.1.
 
@@ -415,6 +431,48 @@ The failure branch is an enforcement mechanism, not an error path. When a Member
 is revoked, `identity-control` removes the Keycloak session; the next refresh from
 this BFF fails, and the session is destroyed. That is the second of the four
 revocation mechanisms reaching a browser tab.
+
+### Session-Store Outage
+
+Every signed-in request reads the session store. A store that does not answer is an outage, and the
+BFF answers it as it answers an identity kernel that does not answer: the session is kept, and the
+browser is told to try again (1.17.0).
+
+```text
+the store classifies what the driver throws:
+    no connection, a dropped one, a pool timeout                      outage
+    a server error of SQLSTATE class 08, 53, 57 or 58                  outage
+    any other server error (42P01 no table, 28P01 refused login, …)   fault, 500
+on an outage:
+    /api/*, /auth/session, /auth/logout     503 dependency-unavailable; the cookie is not cleared
+    /auth/login, /auth/callback             302 to ?sign-in=unavailable at the application's root
+    /auth/back-channel-logout               400, no body
+```
+
+- **Why 503.** RFC 9110 §15.6.4 defines it for a server "currently unable to handle the request due to
+  a temporary overload or scheduled maintenance, which will likely be alleviated after some delay"
+  [R9]. A store outage is that. `500` says the server met "an unexpected condition" and gives the
+  browser no reason to try again; before 1.17.0 every store failure answered it. STD-GLB-005 permits
+  retrying a `503` and forbids retrying a `4xx`, so the class matters to a caller.
+- **No `Retry-After`.** RFC 9110 makes it optional ("MAY"), and its value states "how long the service
+  is expected to be unavailable" [R9]. The BFF does not know. STD-GLB-005 requires one only on a shed
+  or rate-limited request, which this is not, and the kernel outage path sends none either.
+- **The class, not the code.** PostgreSQL's appendix: "the first two characters of an error code
+  denote a class of errors … an application that does not recognize the specific error code might
+  still be able to infer what to do from the error class" [R11]. Classes 08 connection exception, 53
+  insufficient resources, 57 operator intervention and 58 system error are the server unable to work
+  now. A missing table or a refused login is the deployment's fault and stays `500`, so an empty
+  database is not mistaken for a passing outage.
+- **Sign-in is a navigation.** A `503` problem document would render as text in the browser, so
+  `/auth/login` and the callback land where the application offers to try again, as for the kernel.
+- **Back-channel logout answers `400`.** OpenID Connect Back-Channel Logout 1.0 §2.8: "If the logout
+  request was invalid or the logout failed, the RP MUST respond with HTTP 400 Bad Request" [R12]. The
+  refresh path ends the session within one access token lifetime once the store answers.
+- **Sign-out keeps the cookie** when the row could not be deleted, so the same sign-out can be repeated.
+- **A path that does not answer it itself**, such as the proxy ending a session after the API's `401`,
+  reaches the error handler, which answers the same `503`.
+
+`docs/runbooks/session-store-outage.md` is the operator's side.
 
 ### How a Revocation Reaches an Open Tab
 
@@ -697,6 +755,21 @@ the build emits styles and fonts as files served from this origin, never inline.
   not:** timing a real Membership revocation through organization-control, identity-control and the
   kernel to this BFF needs those services together, which only a stack-level job can run.
 
+### Session-Store Outage
+
+**As built (1.17.0), `bff/test/store-outage.test.ts`**, with the store cut off by a TCP link the test
+controls between the BFF and PostgreSQL:
+
+- An API call, a state-changing one included, answers `503 dependency-unavailable`, reaches nothing
+  upstream and keeps the cookie; the same call succeeds once the store answers.
+- `/auth/session` answers `503`, and the session is still signed in afterwards.
+- `/auth/login` and a callback land on `?sign-in=unavailable`, and set no session cookie.
+- A sign-out answers `503`, keeps the cookie, and succeeds when repeated.
+- A back-channel logout answers `400`, and the session outlives it.
+- Served under another session key, a session answers `401` and its cookie is cleared, reads as
+  `{"authenticated": false}`, answers a sign-out `401`, and its holder signs in again; a sign-in
+  started under the old key lands on `?sign-in=failed`.
+
 ### Session Lifetime
 
 - Idle beyond `SESSION_IDLE` invalidates the session.
@@ -779,6 +852,7 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
 | Governed by | ADR-IAM-006 §5.2, ADR-IAM-008 — the Tenant chosen per sign-in, one form per sign-in, checked on the callback (1.15.0) |
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |
+| Conforms to | STD-GLB-005 §Retry and Exponential Backoff Policy — a store outage answers 503, which a caller may retry; a refusal answers 4xx, which it may not (1.17.0) |
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |
 | Depends on | `identity-kernel` — hosted login, realm configuration, back-channel logout registration |
 | Depends on | `identity-control` — the Identity Control API, which reauthorizes every command |
@@ -806,3 +880,7 @@ outbox.
 | R6 | Keycloak, *Server Administration Guide*, Application Initiated Actions, <https://www.keycloak.org/docs/latest/server_admin/index.html>, accessed 2026-10-03: AIA "is triggered by adding the kc_action parameter to the OIDC login URL"; a cancelled action returns "kc_action_status=cancelled"; "The kc_action and kc_action_status parameters are a Keycloak proprietary mechanism unsupported by the OIDC specification." |
 | R7 | Keycloak 26.7.5, *Server Administration Guide*, Registering WebAuthn credentials using AIA, source `docs/documentation/server_admin/topics/authentication/webauthn.adoc` at tag 26.7.5, accessed 2026-10-03: "The actions *Webauthn Register* (`kc_action=webauthn-register`) and *Webauthn Register Passwordless* (`kc_action=webauthn-register-passwordless`) are available for the applications if enabled in the Required actions tab." identity-kernel's compat suite proves `webauthn-register` on the pinned kernel (TDD-identity-kernel-001 1.11.0). |
 | R8 | Auth0, *Custom development* for Organizations, <https://auth0.com/docs/manage-users/organizations/custom-development>, accessed 2026-10-07: "on callback, ensure that the organization returned in the ID token is the same one that was sent in the /authorize request by validating the org_id claim in the same way that other claims like exp and nonce are validated." |
+| R9 | IETF RFC 9110, *HTTP Semantics*, §15.6.4 and §10.2.3, <https://www.rfc-editor.org/rfc/rfc9110#section-15.6.4>, accessed 2026-10-08: "The 503 (Service Unavailable) status code indicates that the server is currently unable to handle the request due to a temporary overload or scheduled maintenance, which will likely be alleviated after some delay. The server MAY send a Retry-After header field (Section 10.2.3) to suggest an appropriate amount of time for the client to wait before retrying the request." §10.2.3: "When sent with a 503 (Service Unavailable) response, Retry-After indicates how long the service is expected to be unavailable to the client." §15.6.1: "The 500 (Internal Server Error) status code indicates that the server encountered an unexpected condition that prevented it from fulfilling the request." |
+| R10 | IETF RFC 9110, *HTTP Semantics*, §15.5.2, <https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2>, accessed 2026-10-08: "The 401 (Unauthorized) status code indicates that the request has not been applied because it lacks valid authentication credentials for the target resource." |
+| R11 | PostgreSQL 17 Documentation, *Appendix A. PostgreSQL Error Codes*, <https://www.postgresql.org/docs/17/errcodes-appendix.html>, accessed 2026-10-08: "According to the standard, the first two characters of an error code denote a class of errors, while the last three characters indicate a specific condition within that class. Thus, an application that does not recognize the specific error code might still be able to infer what to do from the error class." Classes "08 — Connection Exception", "53 — Insufficient Resources", "57 — Operator Intervention", "58 — System Error (errors external to PostgreSQL itself)". |
+| R12 | OpenID Foundation, *OpenID Connect Back-Channel Logout 1.0*, §2.8, <https://openid.net/specs/openid-connect-backchannel-1_0.html>, accessed 2026-10-08: "If the logout request was invalid or the logout failed, the RP MUST respond with HTTP 400 Bad Request." |

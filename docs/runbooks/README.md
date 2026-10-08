@@ -5,7 +5,7 @@ says what the BFF does in the failure, as the code does it today, how to see it,
 
 | Runbook | Starts from |
 | :-- | :-- |
-| [Session-store outage](session-store-outage.md) | `session store connection failed` or `request failed` errors; every signed-in request answers 500 |
+| [Session-store outage](session-store-outage.md) | `session store connection failed` or `session store unavailable` errors; every signed-in request answers 503 |
 | [Back-channel logout failure](back-channel-logout-failure.md) | A Keycloak session removed with no `back-channel logout` line, or `back-channel logout refused` warnings |
 | [Client key rotation](client-key-rotation.md) | A planned rotation, a key expiry warning, or a key that has leaked |
 | [Suspected session fixation](suspected-session-fixation.md) | A report or a signal that someone acts in another person's session |

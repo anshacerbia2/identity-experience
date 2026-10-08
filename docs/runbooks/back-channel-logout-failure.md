@@ -32,7 +32,8 @@ a person removed because of a compromise it may not be, and step 5 closes it by 
 - A refused token answers `400` and logs `back-channel logout refused` with the reason in `err`.
   §2.8: "If the logout request was invalid or the logout failed, the RP MUST respond with HTTP 400 Bad
   Request" [R1].
-- A store failure answers `500` ([session-store outage](session-store-outage.md)).
+- A store that does not answer is a logout that failed, and answers `400` too. It logs
+  `back-channel logout could not reach the session store` ([session-store outage](session-store-outage.md)).
 - The route answers on any host name, because Keycloak reaches the BFF on an internal address
   (`bff/src/http/canonical-host.ts`), and it carries no CSRF check: no browser is involved.
 

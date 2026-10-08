@@ -74,9 +74,10 @@ the session store holds, sealed.
 ## The session key is not this key
 
 `IDENTITY_EXPERIENCE_SESSION_KEY` seals the tokens in the session store. It is not a client key, and it
-is not rotated by this runbook. Changing it makes every stored session unreadable: each request that
-presents one fails with `500` until the row is gone. Rotate it only together with emptying the store,
-as [suspected session fixation](suspected-session-fixation.md) describes.
+is not rotated by this runbook. Changing it makes every stored session unreadable: each person is
+signed out at their next request and signs in again, and nothing answers `500`
+([session-store outage](session-store-outage.md) §Not the store). Rotate it together with emptying the
+store, as [suspected session fixation](suspected-session-fixation.md) describes.
 
 ## References
 
