@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 
 import type { ApplicationDeveloper } from '@/domain/principal';
 import { json, renderApp, stubFetch, type Sent } from '@/test/render-app';
@@ -74,13 +75,14 @@ describe('application developers', () => {
         active: false,
       }),
     ]);
-    renderApp('/principals');
+    const { container } = renderApp('/principals');
 
     const developers = await section();
     const table = await within(developers).findByRole('table', { name: 'Application developer grants' });
     expect(within(table).getAllByRole('row')).toHaveLength(3);
     expect(table).toHaveTextContent('Left the team');
     expect(within(table).getAllByRole('button', { name: /^Revoke / })).toHaveLength(1);
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('grants the standing to a principal_id with a reason', async () => {

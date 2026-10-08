@@ -60,7 +60,8 @@ export const en = {
     'A recovery code was used to sign in. Get a new set of codes, and add another authenticator if one was lost.',
   'security.authenticators.enrolled': 'The authenticator is added. It now works at sign-in.',
   'security.authenticators.enrollCancelled': 'Nothing was added: the setup was cancelled.',
-  'security.authenticators.last': 'Refused: this is your last way to sign in.',
+  'security.authenticators.last':
+    'Refused: this is your last way to sign in. To replace it, add another one first, then remove this one.',
   'security.authenticators.floor':
     'Refused: as a provider you keep a second factor. Add another authenticator app or security key first, then remove this one.',
 
@@ -141,7 +142,8 @@ export const id: Messages = {
     'Sebuah recovery code dipakai untuk login. Buat set kode baru, dan tambahkan authenticator lain kalau ada yang hilang.',
   'security.authenticators.enrolled': 'Authenticator ditambahkan. Sekarang berlaku saat login.',
   'security.authenticators.enrollCancelled': 'Tidak ada yang ditambahkan: pengaturannya dibatalkan.',
-  'security.authenticators.last': 'Ditolak: ini cara login terakhirmu.',
+  'security.authenticators.last':
+    'Ditolak: ini cara login terakhirmu. Untuk menggantinya, tambahkan yang lain dulu, lalu hapus yang ini.',
   'security.authenticators.floor':
     'Ditolak: sebagai provider kamu wajib punya faktor kedua. Tambahkan aplikasi authenticator atau security key lain dulu, lalu hapus yang ini.',
 

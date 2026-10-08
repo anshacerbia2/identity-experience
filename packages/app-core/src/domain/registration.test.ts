@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   changeable,
+  changeKinds,
   convergenceSeconds,
   daysLeft,
   lifecycleActions,
@@ -142,6 +143,24 @@ describe('redirect URI changes', () => {
     expect(changeable({ profile: 'confidential', state: 'suspended' })).toBe(false);
     expect(changeable({ profile: 'workload', state: 'active' })).toBe(false);
     expect(changeable({ profile: 'resource', state: 'active' })).toBe(false);
+  });
+});
+
+describe('audience changes', () => {
+  // TDD-identity-control-003 §Registration Changes: an audience change is accepted on an active
+  // public, confidential or workload client; a resource has no audience.
+  it('offers an audience change on every active client, and nothing on a resource', () => {
+    expect(changeKinds({ profile: 'public', state: 'active' })).toEqual(['redirect_uris', 'audience']);
+    expect(changeKinds({ profile: 'confidential', state: 'active' })).toEqual(['redirect_uris', 'audience']);
+    expect(changeKinds({ profile: 'workload', state: 'active' })).toEqual(['audience']);
+    expect(changeKinds({ profile: 'resource', state: 'active' })).toEqual([]);
+  });
+
+  it('offers nothing on a registration that is not active', () => {
+    for (const state of ['pending', 'suspended', 'retired'] as const) {
+      expect(changeKinds({ profile: 'confidential', state })).toEqual([]);
+      expect(changeKinds({ profile: 'workload', state })).toEqual([]);
+    }
   });
 });
 

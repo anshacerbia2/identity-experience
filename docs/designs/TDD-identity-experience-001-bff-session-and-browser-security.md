@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.15.0
+  version: 1.16.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -617,7 +617,12 @@ the build emits styles and fonts as files served from this origin, never inline.
 
 - No response body, header, or client-side bundle contains an access token, refresh
   token, ID token, client secret, or private key, asserted by scanning every endpoint
-  response and the built artifact.
+  response and the built artifact. **As built (1.16.0):** `bff/test/containment.test.ts` drives
+  every route on its success and refusal paths, more than thirty responses, through a refresh, a
+  step-up, both back-channel logout answers and sign-out, and scans each one's headers and body for
+  every token the stand-in kernel issued, any JSON Web Token at all, the client private key's members,
+  the session key, the authorization code and the logout tokens. `scripts/check-dist.mjs` scans each
+  built application for a JSON Web Token, a private key and a client secret, and fails the build.
 - The token and logout requests carry a PS256 assertion signed by the registered key,
   each with a fresh `jti`, and no `client_secret` and no `Authorization: Basic` header,
   asserted against the identity provider mock.
@@ -660,6 +665,11 @@ the build emits styles and fonts as files served from this origin, never inline.
 - A state-changing request with no `Origin` is rejected.
 - A state-changing request with a missing or wrong CSRF token is rejected.
 - A cross-site form post carrying the session cookie is rejected.
+- **Each defence refuses on its own (1.16.0, `bff/test/containment.test.ts`).** With the other two
+  right, a foreign `Origin` is refused, a wrong token is refused, and a request without the cookie, as
+  a browser sends a cross-site post under `SameSite=Lax`, finds no session. The control case with all
+  three passes. The browser's enforcement of `SameSite` is asserted only as the attribute set: proving
+  it needs a real browser, which this repository's tests do not run.
 
 ### Revocation
 
@@ -680,7 +690,12 @@ the build emits styles and fonts as files served from this origin, never inline.
   unknown level is ignored. A sign-in returning to the Admin Portal asks for `aal2` unless it names a
   level; one returning to the Developer Console or the account application asks for none.
 - Measured time from Membership revocation to session destruction stays within the
-  remaining access token lifetime of class `L0`.
+  remaining access token lifetime of class `L0`. **The bound is asserted (1.16.0):**
+  `bff/test/containment.test.ts` removes the kernel session at several points in a token's life, with
+  no back-channel logout delivered, and an active tab's session ends no later than the expiry of the
+  token it held at removal. An idle tab's first request after it is refused. **The measurement is
+  not:** timing a real Membership revocation through organization-control, identity-control and the
+  kernel to this BFF needs those services together, which only a stack-level job can run.
 
 ### Session Lifetime
 
@@ -748,7 +763,8 @@ by itself a defect. It is correlated against revocation events before being trea
 as an incident.
 
 Runbooks required before production: session-store outage, back-channel logout
-failure, client key rotation, and suspected session fixation.
+failure, client key rotation, and suspected session fixation. They are written (1.16.0), in
+`docs/runbooks/`, from the code as built.
 
 ## Traceability
 

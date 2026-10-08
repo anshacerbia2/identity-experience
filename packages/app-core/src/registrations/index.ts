@@ -1,7 +1,7 @@
 export { ClientKeys } from './ClientKeys';
 export { profileLabel, stateLabel, stateTone } from './labels';
 export { LifecycleActions } from './LifecycleActions';
-export { ChangeActions, ChangeCard, RedirectUriChanges } from './RedirectUriChanges';
+export { ChangeActions, ChangeCard, RegistrationChanges } from './RegistrationChanges';
 export {
   registrationKeys,
   useChangeQueue,

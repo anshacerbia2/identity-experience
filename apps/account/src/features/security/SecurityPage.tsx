@@ -598,7 +598,9 @@ function NotificationAddresses(): ReactElement {
 }
 
 // SecurityPage is a person's own account security (TDD-identity-experience-002 §As Built): their
-// sessions and their authenticators. Consents, enrollment and recovery are not offered yet.
+// sessions; their authenticators, with enrollment handed to the kernel's pages and recovery codes
+// among them; and the addresses they are told at. Consents are not offered yet: they wait for the
+// API's slice 3b.
 export function SecurityPage(): ReactElement {
   const session = useSession();
   return (

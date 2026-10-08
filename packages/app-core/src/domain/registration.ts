@@ -309,19 +309,43 @@ export function changeValues(change: RegistrationChange): {
 
 export type ChangeDecision = 'approve' | 'reject' | 'withdraw';
 
-// changeable is whether a registration's redirect URIs can be changed now: only an active public or
-// confidential client has them. The API refuses the rest; this keeps the form from being offered.
-export const changeable = (registration: Pick<Registration, 'profile' | 'state'>): boolean =>
-  registration.state === 'active' &&
-  (registration.profile === 'public' || registration.profile === 'confidential');
+// hasRedirectUris is whether a registration's profile carries redirect URIs: a public or
+// confidential client. hasAudience is whether it carries an audience: every profile but a resource,
+// which is an audience itself (TDD-identity-control-003 §Registration Changes).
+export const hasRedirectUris = (registration: Pick<Registration, 'profile'>): boolean =>
+  registration.profile === 'public' || registration.profile === 'confidential';
 
-// redirectLines reads a set typed one URI per line. Blank lines and surrounding spaces are not URIs;
-// everything else is the API's to judge.
-export const redirectLines = (text: string): string[] =>
+export const hasAudience = (registration: Pick<Registration, 'profile'>): boolean =>
+  registration.profile !== 'resource';
+
+// changeKinds are the changes the API accepts for a registration as it stands: only an active one
+// is changed, and only in what its profile carries. The API refuses the rest; this keeps a form
+// from being offered.
+export function changeKinds(registration: Pick<Registration, 'profile' | 'state'>): readonly ChangeKind[] {
+  if (registration.state !== 'active') {
+    return [];
+  }
+  return [
+    ...(hasRedirectUris(registration) ? (['redirect_uris'] as const) : []),
+    ...(hasAudience(registration) ? (['audience'] as const) : []),
+  ];
+}
+
+// changeable is whether a registration's redirect URIs can be changed now.
+export const changeable = (registration: Pick<Registration, 'profile' | 'state'>): boolean =>
+  changeKinds(registration).includes('redirect_uris');
+
+// lineEntries reads a set typed one entry per line. Blank lines and surrounding spaces are not
+// entries; everything else is the API's to judge. An empty set is a set: an audience of no
+// resource is a change the API accepts.
+export const lineEntries = (text: string): string[] =>
   text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== '');
+
+// redirectLines reads redirect URIs typed one per line.
+export const redirectLines = lineEntries;
 
 export interface SetDiff {
   readonly added: readonly string[];

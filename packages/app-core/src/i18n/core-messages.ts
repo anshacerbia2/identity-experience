@@ -140,13 +140,23 @@ export const coreEn = {
   'owners.you': 'You',
   'owners.empty': 'No one owns this registration.',
 
-  'changes.title': 'Redirect URIs',
+  'changes.title': 'Redirect URIs and audience',
+  'changes.title.audience': 'Audience',
   'changes.description':
-    'Where an authorization code may be delivered. A change names the whole next set. Outside production it applies at once; in production a provider other than its proposer approves it.',
-  'changes.current': 'Registered now',
+    'Where an authorization code may be delivered, and which resources accept this client’s tokens. A change names the whole next set. Outside production it applies at once; in production a provider other than its proposer approves it.',
+  'changes.description.audience':
+    'Which resources accept this client’s tokens. A change names the whole next set. Outside production it applies at once; in production a provider other than its proposer approves it.',
+  'changes.current': 'Redirect URIs registered now',
+  'changes.current.audience': 'Audience registered now',
+  'changes.current.audience.none': 'No resource: this client’s tokens name no audience.',
   'changes.you': 'you',
-  'changes.propose.open': 'Propose a change',
+  'changes.propose.open': 'Propose redirect URIs',
+  'changes.propose.open.audience': 'Propose an audience',
   'changes.propose.title': 'Propose the next redirect URIs',
+  'changes.propose.title.audience': 'Propose the next audience',
+  'changes.propose.body.audience':
+    'Write the whole set, one resource client_key per line, or leave it empty for no resource. The Identity Control API checks each entry, and the change is recorded against the version you read.',
+  'changes.propose.field.audience': 'Resources, one client_key per line',
   'changes.propose.body':
     'Write the whole set, one URI per line. The Identity Control API checks each one, and the change is recorded against the version you read.',
   'changes.propose.field': 'Redirect URIs, one per line',
@@ -159,6 +169,13 @@ export const coreEn = {
     'https only, except http on localhost for local development: a code sent in the clear can be read on the way.',
   'changes.rules.exact':
     'No fragment and no ../ in the path: the URI is matched exactly, and only this one is accepted.',
+  'changes.rules.title.audience': 'Why an audience entry is refused',
+  'changes.rules.audience.remove':
+    'Removing a resource is always allowed: a narrower audience only takes access away.',
+  'changes.rules.audience.add':
+    'An owner adds only resources it owns, and a provider any registered resource: a token that names a resource can be presented to it, so its owners decide which clients name it.',
+  'changes.rules.audience.entry':
+    'Each entry is an active resource’s client_key, named once, and never this client itself.',
   'changes.versionConflict':
     'The registration changed since you read it. It has been read again: check it, and propose once more.',
   'changes.card.proposed': 'Proposed by',
@@ -184,6 +201,7 @@ export const coreEn = {
   'changes.decide.withdraw.title': 'Withdraw this change',
   'changes.decide.withdraw.body': 'Nothing changes, and another change can be proposed.',
   'changes.done.applied': 'The redirect URIs are changed.',
+  'changes.done.applied.audience': 'The audience is changed.',
   'changes.done.proposed': 'The change is proposed. It waits for a provider other than you.',
   'changes.done.approved': 'The change is approved and applied.',
   'changes.done.rejected': 'The change is rejected.',
@@ -337,13 +355,23 @@ export const coreId: CoreMessages = {
   'owners.you': 'Kamu',
   'owners.empty': 'Belum ada yang memiliki registrasi ini.',
 
-  'changes.title': 'Redirect URI',
+  'changes.title': 'Redirect URI dan audiens',
+  'changes.title.audience': 'Audiens',
   'changes.description':
-    'Tempat authorization code boleh dikirim. Perubahan menyebut seluruh set berikutnya. Di luar production langsung berlaku; di production harus disetujui provider lain, bukan pengusulnya.',
-  'changes.current': 'Terdaftar sekarang',
+    'Tempat authorization code boleh dikirim, dan resource mana yang menerima token client ini. Perubahan menyebut seluruh set berikutnya. Di luar production langsung berlaku; di production harus disetujui provider lain, bukan pengusulnya.',
+  'changes.description.audience':
+    'Resource mana yang menerima token client ini. Perubahan menyebut seluruh set berikutnya. Di luar production langsung berlaku; di production harus disetujui provider lain, bukan pengusulnya.',
+  'changes.current': 'Redirect URI terdaftar sekarang',
+  'changes.current.audience': 'Audiens terdaftar sekarang',
+  'changes.current.audience.none': 'Tidak ada resource: token client ini tidak menyebut audiens.',
   'changes.you': 'kamu',
-  'changes.propose.open': 'Usulkan perubahan',
+  'changes.propose.open': 'Usulkan redirect URI',
+  'changes.propose.open.audience': 'Usulkan audiens',
   'changes.propose.title': 'Usulkan redirect URI berikutnya',
+  'changes.propose.title.audience': 'Usulkan audiens berikutnya',
+  'changes.propose.body.audience':
+    'Tulis seluruh set, satu client_key resource per baris, atau kosongkan untuk tanpa resource. Identity Control API memeriksa tiap entri, dan perubahan dicatat terhadap versi yang kamu baca.',
+  'changes.propose.field.audience': 'Resource, satu client_key per baris',
   'changes.propose.body':
     'Tulis seluruh set, satu URI per baris. Identity Control API memeriksa tiap URI, dan perubahan dicatat terhadap versi yang kamu baca.',
   'changes.propose.field': 'Redirect URI, satu per baris',
@@ -356,6 +384,13 @@ export const coreId: CoreMessages = {
     'Hanya https, kecuali http di localhost untuk pengembangan lokal: code yang dikirim tanpa enkripsi bisa dibaca di jalan.',
   'changes.rules.exact':
     'Tanpa fragment dan tanpa ../ di path: URI dicocokkan persis, dan hanya URI ini yang diterima.',
+  'changes.rules.title.audience': 'Kenapa entri audiens ditolak',
+  'changes.rules.audience.remove':
+    'Menghapus resource selalu boleh: audiens yang lebih sempit hanya mengurangi akses.',
+  'changes.rules.audience.add':
+    'Owner hanya menambah resource miliknya, dan provider resource terdaftar mana pun: token yang menyebut sebuah resource bisa diserahkan ke resource itu, jadi pemiliknya yang menentukan client mana yang menyebutnya.',
+  'changes.rules.audience.entry':
+    'Tiap entri adalah client_key resource yang aktif, disebut sekali, dan bukan client ini sendiri.',
   'changes.versionConflict':
     'Registrasi berubah sejak kamu membacanya. Sudah dibaca ulang: periksa, lalu usulkan sekali lagi.',
   'changes.card.proposed': 'Diusulkan oleh',
@@ -381,6 +416,7 @@ export const coreId: CoreMessages = {
   'changes.decide.withdraw.title': 'Tarik perubahan ini',
   'changes.decide.withdraw.body': 'Tidak ada yang berubah, dan perubahan lain bisa diusulkan.',
   'changes.done.applied': 'Redirect URI sudah diubah.',
+  'changes.done.applied.audience': 'Audiens sudah diubah.',
   'changes.done.proposed': 'Perubahan sudah diusulkan. Menunggu provider selain kamu.',
   'changes.done.approved': 'Perubahan disetujui dan diterapkan.',
   'changes.done.rejected': 'Perubahan ditolak.',

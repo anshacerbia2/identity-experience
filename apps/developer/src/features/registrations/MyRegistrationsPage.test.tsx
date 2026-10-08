@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { axe } from 'vitest-axe';
 
 import { json, renderApp, stubFetch } from '@/test/render-app';
 
@@ -42,7 +43,7 @@ describe('My registrations', () => {
       if (url.pathname === '/api/v1/registrations:mine') return json({ registrations: [registration] });
       return undefined;
     });
-    renderApp('/developer/');
+    const { container } = renderApp('/developer/');
 
     const table = await screen.findByRole('table', { name: 'Registrations you own' });
     const row = within(table).getByRole('row', { name: /billing-web/ });
@@ -50,6 +51,7 @@ describe('My registrations', () => {
     expect(row).toHaveTextContent('Active');
     // The provider-only list is never asked for: this console is the owner's.
     expect(requests.map((url) => url.pathname)).not.toContain('/api/v1/registrations');
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('says how ownership is granted when the person owns nothing, including an empty answer of null', async () => {
@@ -58,10 +60,11 @@ describe('My registrations', () => {
       if (url.pathname === '/api/v1/registrations:mine') return json({ registrations: null });
       return undefined;
     });
-    renderApp('/developer/');
+    const { container } = renderApp('/developer/');
 
     expect(await screen.findByText('You own no registration yet')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('states a failed read with its reference and offers to try again', async () => {

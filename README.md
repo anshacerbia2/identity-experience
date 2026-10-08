@@ -96,6 +96,7 @@ Source code
 | `packages/ui/`       | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)                                                    |
 | `bff/`               | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications                                                 |
 | `docs/designs/`      | Technical Design Documents                                                                                                                           |
+| `docs/runbooks/`     | The BFF's runbooks: session-store outage, back-channel logout failure, client key rotation, suspected session fixation                               |
 
 Inside an application, `src/` follows the four layers of STD-GLB-FE-001 §3, and
 `.dependency-cruiser.cjs` enforces them. `domain/` is pure TypeScript. `core/` holds the

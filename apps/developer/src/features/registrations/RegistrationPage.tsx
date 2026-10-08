@@ -5,7 +5,7 @@ import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import {
   ClientKeys,
   LifecycleActions,
-  RedirectUriChanges,
+  RegistrationChanges,
   RegistrationDetails,
   RegistrationOwners,
   stateLabel,
@@ -46,7 +46,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
         </StatusPill>
       </header>
       <RegistrationDetails registration={found} />
-      <RedirectUriChanges registration={found} />
+      <RegistrationChanges registration={found} />
       <ClientKeys registration={found} />
       <LifecycleActions registration={found} owner />
       <RegistrationOwners registrationId={registrationId} />
@@ -55,9 +55,9 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
 }
 
 // RegistrationPage is one registration as its owner acts on it (ADR-IAM-003,
-// TDD-identity-experience-004 §Ownership): its record, its redirect URI changes, its keys rotated
-// and revoked, its suspension and restoration, and who else owns it. Nothing only a provider may do
-// is offered: a change is proposed here and approved in the Admin Portal.
+// TDD-identity-experience-004 §Ownership): its record, its redirect URI and audience changes, its
+// keys rotated and revoked, its suspension and restoration, and who else owns it. Nothing only a
+// provider may do is offered: a change is proposed here and approved in the Admin Portal.
 export function RegistrationPage({ registrationId }: { readonly registrationId: string }): ReactElement {
   const session = useSession();
   return (

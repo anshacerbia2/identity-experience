@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.6.0
+  version: 1.7.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -128,8 +128,9 @@ shows neither. Enrollment followed in 1.3.0 (below):
 - **Remove** is offered on every row. A step-up challenge offers a fresh sign-in, as everywhere
   (`TDD-identity-experience-001` §Step-Up).
 - A refusal is the API's (`last_authenticator`). The page renders it as "This is your last way to
-  sign in", and does not compute it beforehand (§The Last Authenticator Guard). Enrolling a
-  replacement first is not possible yet, so the sentence says so.
+  sign in", and does not compute it beforehand (§The Last Authenticator Guard). Since 1.7.0 it also
+  says how to replace it: add another one first, then remove this one. The ways to add one are on the
+  same page (below), so replacement is enrollment followed by removal, and needs no control of its own.
 
 **Enrolling an authenticator app (1.3.0).** Built on `TDD-identity-control-005` slice 4a.
 - **Asking.** "Add an authenticator app" asks the API to authorize the enrollment
@@ -327,6 +328,8 @@ Session, cookie, and refresh settings are inherited from
 - Removing a factor that would drop assurance below the policy floor is refused, and
   the refusal names the floor.
 - The refusal originates from the API, asserted by calling the API directly.
+- The last-authenticator refusal says how to replace it, and the ways to add one are offered beside
+  it (1.7.0, `apps/account/src/features/security/SecurityPage.test.tsx`).
 
 ### Sessions
 
