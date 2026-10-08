@@ -120,7 +120,7 @@ describe('OwnerManagement', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('grants ownership with the principal_id and a reason, and no Idempotency-Key', async () => {
+  it('grants ownership with the principal_id, a reason and an Idempotency-Key', async () => {
     const { sent } = api({
       command: () => json({ owners: [owner(first), owner(second), owner(newcomer)] }, 201),
     });
@@ -140,7 +140,36 @@ describe('OwnerManagement', () => {
     expect(request?.body).toEqual({ principal_id: newcomer });
     expect(request?.headers['x-administrative-reason']).toBe('Joins the payroll team as on-call owner.');
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
-    expect(request?.headers['idempotency-key']).toBeUndefined();
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('retries a grant whose answer was lost under the same key', async () => {
+    let calls = 0;
+    const { sent } = api({
+      command: () => {
+        calls += 1;
+        return calls === 1
+          ? json({ status: 503, detail: 'unavailable' }, 503)
+          : json({ owners: [owner(first), owner(second), owner(newcomer)] }, 201);
+      },
+    });
+    renderApp('/registrations/r-pay');
+    const section = await ownersSection();
+    await userEvent.click(await within(section).findByRole('button', { name: 'Grant ownership' }));
+    await userEvent.type(within(section).getByRole('textbox', { name: 'Person’s principal_id' }), newcomer);
+    await userEvent.type(
+      within(section).getByRole('textbox', { name: 'Reason' }),
+      'Joins the payroll team as on-call owner.',
+    );
+    const grant = within(section).getByRole('button', { name: 'Grant' });
+    await userEvent.click(grant);
+    await within(section).findByRole('alert');
+    await userEvent.click(grant);
+    expect(await within(section).findByText('Ownership granted.')).toBeInTheDocument();
+    const keys = posts(sent).map((request) => request.headers['idempotency-key']);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).toBe(keys[0]);
   });
 
   it('refuses a grant that names no identifier before sending', async () => {
@@ -178,6 +207,7 @@ describe('OwnerManagement', () => {
     ).toBeInTheDocument();
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe(`/api/v1/registrations/r-pay/owners/${first}:revoke`);
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(request?.headers['x-administrative-reason']).toBe('Left the payroll team.');
   });
 

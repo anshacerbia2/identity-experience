@@ -159,9 +159,25 @@ events again. A `503` says the kernel or the record could not be read, in the ap
 
 Every mutation carries an idempotency key, an optimistic version, a reason, and a
 correlation identifier. The reason is a required field on the request, not a prompt
-after the fact. Where the API takes no key or version for a command, none is sent, and the command's
-section says how the API keeps it safe to repeat (1.21.0: ownership, re-drive, the sweeps, rebuild and
-review).
+after the fact. Where the API takes no version for a command, none is sent, and the command's section
+says how the API keeps it safe to repeat (1.21.0: ownership, re-drive, the sweeps, rebuild and review).
+
+**Every command carries an `Idempotency-Key` (1.21.0).** STD-GLB-001 1.4.0 §Commands Require an
+`Idempotency-Key` makes the key a command's, and identity-control is moving its remaining commands to
+require it. A key sent to a route that ignores it changes nothing, so every `POST` these applications
+send carries one, from `useCommandPost` in `packages/app-core`, unless the form already holds its own
+(creation, containment):
+
+- **One key per distinct request.** The path, the body and the reason together are the request. The
+  draft: "The idempotency key MUST be unique and MUST NOT be reused with another request with a
+  different request payload" (draft-ietf-httpapi-idempotency-key-header-07 §2.2).
+- **Reused while the outcome is unknown.** No answer, a `5xx`, or `request-in-progress` may mean the
+  command was applied, so the same request sent again reuses the key, and the API answers with what the
+  first attempt did ("The resource SHOULD respond with the result of the previously completed
+  operation, success or an error", §2.6).
+- **Dropped once the outcome is known.** After a success or a refusal the same values sent again are a
+  new request with a new key. Otherwise granting a person whose ownership was revoked a minute ago, with
+  the same reason, would replay the first grant instead of granting.
 
 `TDD-identity-control-005` defines the matching upstream routes. The BFF removes the
 `/api` prefix and forwards the verified access token; it does not translate canonical
@@ -524,9 +540,10 @@ budget:
 
 - It takes a reason, sent as `X-Administrative-Reason`, and needs a recent `aal2` sign-in; a step-up
   challenge offers the sign-in, as a containment command does.
-- It carries no Idempotency-Key and no version, because the API takes neither: an operation that is
-  no longer `unresolved` is refused with `409`, which is also the answer to a repeated request, so the
-  operation's state makes the request idempotent. The page shows that refusal with the API's sentence.
+- It carries an Idempotency-Key (§API / Interface) and no version, because the API takes none: an
+  operation that is no longer `unresolved` is refused with `409`, which is also the answer to a
+  repeated request, so the operation's state makes the request idempotent even where the key is
+  ignored. The page shows that refusal with the API's sentence.
 - The answer is followed as an accepted command is (§Outcomes), and the list is read again.
 - There is no abandon, because the API has none: a parked operation is resolved by fixing its cause
   and re-driving it. The section says so.
@@ -568,9 +585,10 @@ POST  /api/v1/registrations/{registration_id}/owners/{principal_id}:revoke   X-A
   registration fewer than two active owners (`ADR-IAM-003 §5.1`). The environment is read from
   `GET /v1/registrations:standing`; where revoking is not offered, the section says to grant another
   owner first.
-- **No key, no version.** The API takes neither: a second grant of the same person is refused as
-  already an owner, and a second revocation as no active ownership, each with `409` or `404` and the
-  API's sentence. So no Idempotency-Key is sent.
+- **A key, no version.** Each command carries an Idempotency-Key (§API / Interface), which
+  identity-control is about to require here. The API takes no version: a second grant of the same
+  person is refused as already an owner, and a second revocation as no active ownership, each with
+  `409` or `404` and the API's sentence.
 - **The API decides eligibility.** A workload, an inactive Principal and a second grant are refused
   there, and the page shows the sentence. The page refuses only what is not an identifier.
 - After either command the owners are read again.
@@ -665,8 +683,8 @@ POST  /api/v1/workloads:sweep
   A form that sends a statement about a workload its author cannot see would make the review an
   attestation about a record its author was not shown. The console offers it once identity-control
   serves an owner's read of their own workloads.
-- None of these takes an Idempotency-Key or a version, because the API takes neither; the sweep is the
-  scheduled one and changes nothing a second run would not.
+- Each carries an Idempotency-Key (§API / Interface) and no version, because the API takes none; the
+  sweep is the scheduled one and changes nothing a second run would not.
 
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the
@@ -762,11 +780,14 @@ again and shows the user signed out rather than a page of errors.
   reported, and it sends nothing.
 
 - A registration's owners are listed; a grant sends the `principal_id` and the reason, a revocation the
-  reason, and neither an Idempotency-Key. Grant is not offered on a retired registration, and revoke
+  reason, each with an Idempotency-Key that a retry after a lost answer reuses. Grant is not offered on a retired registration, and revoke
   not where production would keep fewer than two owners (1.21.0).
 - The workload condition lists are read only when opened. The sweep reports its counts. Rebuild is
   offered for an active or orphaned workload, review only for an active one the operator owns, each
   sending its reason (1.21.0).
+- Every command carries an Idempotency-Key. The same request after no answer, a `5xx` or
+  `request-in-progress` reuses it; after a success or a refusal the same values take a new one; a
+  different request never shares one (`use-command-post.test.ts`, 1.21.0).
 
 ### Change Approval
 
@@ -783,7 +804,7 @@ again and shows the user signed out rather than a page of errors.
 
 - The unmapped, orphan and duplicate findings are listed with their class as a word, and offer no
   action (1.21.0). The Principal sweep reports its five counts.
-- Parked operations are listed oldest first. A re-drive sends its reason with no Idempotency-Key, is
+- Parked operations are listed oldest first. A re-drive sends its reason and an Idempotency-Key, is
   followed to its final state, and a refusal shows the API's sentence (1.21.0).
 - The Events section's kernel sweep reports what it read and recorded per kind, then reads the events
   again (1.21.0).

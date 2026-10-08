@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
@@ -150,12 +150,13 @@ function useCsrfToken(): string {
 // useSecurityCommand sends one containment command and follows it to its final state. The Principal
 // is read again afterwards, so the next command names the version this one produced.
 export function useSecurityCommand() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: async (command: SecurityCommand) =>
       follow(
-        await apiPost<SecurityOperation>(
+        await post<SecurityOperation>(
           commandPath(command),
           { expected_version: command.expectedVersion },
           {
@@ -191,12 +192,13 @@ export function useParkedOperations() {
 // command. It carries no Idempotency-Key: the API refuses a re-drive of an operation that is no longer
 // parked, which makes a repeated request harmless.
 export function useRedrive() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: async ({ operationId, reason }: { readonly operationId: string; readonly reason: string }) =>
       follow(
-        await apiPost<SecurityOperation>(
+        await post<SecurityOperation>(
           `/v1/security-operations/${encodeURIComponent(operationId)}:redrive`,
           {},
           { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -215,10 +217,11 @@ export function useRedrive() {
 // useKernelEventSweep runs the kernel event sweep now, as the schedule does, and reads the
 // Principal's events again (TDD-identity-control-007).
 export function useKernelEventSweep(principalId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
-    mutationFn: () => apiPost<KernelEventSweep>('/v1/kernel-events:sweep', {}, { csrfToken: token }),
+    mutationFn: () => post<KernelEventSweep>('/v1/kernel-events:sweep', {}, { csrfToken: token }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: securityKeys.section(principalId, 'events') }),
   });
 }

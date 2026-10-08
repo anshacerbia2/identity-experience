@@ -221,6 +221,7 @@ describe('PrincipalDetailPage', () => {
     ).toBeInTheDocument();
     const post = sent.find((request) => request.method === 'POST');
     expect(post?.url.pathname).toBe('/api/v1/kernel-events:sweep');
+    expect(post?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(post?.headers['x-csrf-token']).toBe(csrfToken);
     await vi.waitFor(() => {
       expect(reads(requests).filter((path) => path.endsWith('/events'))).toHaveLength(2);

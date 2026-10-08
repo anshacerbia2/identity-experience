@@ -189,9 +189,9 @@ carries an idempotency key, an optimistic version, and a reason.
 
 **Not met as written, by the API's design.** Every action is reauthorized by the Identity Control
 API, and the BFF decides nothing. Ending a session, signing out everywhere and removing an
-authenticator carry an Idempotency-Key, asserted in `SecurityPage.test.tsx`. None carries a version
-or a reason, and removing a notification address carries no key: identity-control's `/v1/me`
-commands take none of them (TDD-002 §Commands, `TDD-identity-control-005`). Meeting it needs either
+authenticator carry an Idempotency-Key, asserted in `SecurityPage.test.tsx`, and since TDD-002 1.8.0
+so does every other command, notification addresses included. None carries a version or a reason:
+identity-control's `/v1/me` commands take neither (TDD-002 §Commands, `TDD-identity-control-005`). Meeting it needs either
 identity-control to accept them, or the owner to restate the exit for a person's own commands.
 
 ## Week 4 · Administration and developer console
@@ -248,8 +248,8 @@ would refuse, and no control the API permits is hidden without a stated reason.
 **Not met yet; the 2026-10-07 list is closed.** The first half holds where tested: each control is
 offered from the state the API accepts it in (lifecycle, keys, changes, findings, workloads, owners, a
 Principal's containment). For the second, every control found on 2026-10-07 now has a screen
-(TDD-003 1.21.0, TDD-004 1.9.0), each sending its reason, with no key or version where the API takes
-none:
+(TDD-003 1.21.0, TDD-004 1.9.0), each sending its reason and an Idempotency-Key (STD-GLB-001 1.4.0),
+with no version where the API takes none:
 
 - ✅ Granting and revoking a registration's owners: the Admin Portal's registration page
   (§Registration Ownership). Grant is not offered on a retired registration, and revoke not where
@@ -308,7 +308,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, at 1.17.0, 1.7.0, 1.21.0 and 1.9.0.
+✅ **Met.** All four are approved, at 1.17.0, 1.8.0, 1.21.0 and 1.9.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

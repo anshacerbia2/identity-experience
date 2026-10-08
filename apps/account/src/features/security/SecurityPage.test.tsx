@@ -206,6 +206,7 @@ describe('enrolling an authenticator app', () => {
     const [request] = posts(sent);
     expect(request?.body).toEqual({ type: 'totp' });
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('adds a security key through webauthn-register', async () => {
@@ -336,6 +337,7 @@ describe('notification addresses', () => {
     const [verify] = posts(stub.sent);
     expect(verify?.url.pathname).toBe(`/api/v1/me/notification-addresses/${pending.address_id}:verify`);
     expect(verify?.body).toEqual({ code: '12345678' });
+    expect(verify?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('renders the refusal to remove the last address, and the step-up a removal needs', async () => {

@@ -187,6 +187,7 @@ describe('PrincipalsPage', () => {
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe(`/api/v1/principals/${lost}:relink`);
     expect(request?.headers['x-administrative-reason']).toBe('User deleted by mistake, ticket OPS-42.');
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
   });
 
@@ -228,6 +229,7 @@ describe('PrincipalsPage', () => {
       ),
     ).toBeInTheDocument();
     expect(posts(sent)[0]?.url.pathname).toBe('/api/v1/principals:reconcile');
+    expect(posts(sent)[0]?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('says so when no mapping is dangling', async () => {
@@ -253,7 +255,7 @@ describe('PrincipalsPage', () => {
     expect(within(table).queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('re-drives a parked operation with a reason and no Idempotency-Key, and says where it came to', async () => {
+  it('re-drives a parked operation with a reason and an Idempotency-Key, and says where it came to', async () => {
     const { sent } = api(() =>
       json({ ...parked[0], state: 'applied', attempts: 9, applied_at: '2026-10-08T08:00:00Z' }),
     );
@@ -276,7 +278,7 @@ describe('PrincipalsPage', () => {
     expect(request?.url.pathname).toBe(`/api/v1/security-operations/${parkedId}:redrive`);
     expect(request?.headers['x-administrative-reason']).toBe('Kernel back after the outage, OPS-77.');
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
-    expect(request?.headers['idempotency-key']).toBeUndefined();
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('shows a refused re-drive with the API sentence', async () => {

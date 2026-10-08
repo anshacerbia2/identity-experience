@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
@@ -43,6 +43,7 @@ export function useWorkload(principalId: string | null) {
 // useCreateWorkload creates a workload under an Idempotency-Key the caller holds: a retry of the same
 // request after an outage uses the same key, so a second workload never appears.
 export function useCreateWorkload() {
+  const post = useCommandPost();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({
@@ -52,7 +53,7 @@ export function useCreateWorkload() {
       readonly request: CreateWorkloadRequest;
       readonly idempotencyKey: string;
     }) =>
-      apiPost<Workload>('/v1/workloads', request, {
+      post<Workload>('/v1/workloads', request, {
         csrfToken: token,
         headers: { 'idempotency-key': idempotencyKey },
       }),
@@ -60,6 +61,7 @@ export function useCreateWorkload() {
 }
 
 export function useReassign() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -72,7 +74,7 @@ export function useReassign() {
       readonly request: ReassignRequest;
       readonly reason: string;
     }) =>
-      apiPost<Workload>(`/v1/workloads/${encodeURIComponent(principalId)}:reassign`, request, {
+      post<Workload>(`/v1/workloads/${encodeURIComponent(principalId)}:reassign`, request, {
         csrfToken: token,
         headers: { 'x-administrative-reason': normalizeReason(reason) },
       }),
@@ -85,11 +87,12 @@ export function useReassign() {
 // useWorkloadAction suspends, restores or retires a workload with a reason. The workload is read
 // again afterwards, whatever the answer: a refusal can mean another operator changed it meanwhile.
 export function useWorkloadAction(principalId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ action, reason }: { readonly action: WorkloadAction; readonly reason: string }) =>
-      apiPost<Workload>(
+      post<Workload>(
         `/v1/workloads/${encodeURIComponent(principalId)}:${action}`,
         {},
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -101,11 +104,12 @@ export function useWorkloadAction(principalId: string) {
 // useWorkloadUpkeep rebuilds a workload's deleted client, or records its owner's review, each with a
 // reason: the review's is the owner's statement. The workload and the condition lists are read again.
 export function useWorkloadUpkeep(principalId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ upkeep, reason }: { readonly upkeep: WorkloadUpkeep; readonly reason: string }) =>
-      apiPost<Workload>(
+      post<Workload>(
         `/v1/workloads/${encodeURIComponent(principalId)}:${upkeep}`,
         {},
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -136,10 +140,11 @@ export function useWorkloadCondition(condition: WorkloadCondition, open: boolean
 // useWorkloadSweep runs the workload sweep now, as the schedule does, and reads every open listing
 // again.
 export function useWorkloadSweep() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
-    mutationFn: () => apiPost<WorkloadSweep>('/v1/workloads:sweep', {}, { csrfToken: token }),
+    mutationFn: () => post<WorkloadSweep>('/v1/workloads:sweep', {}, { csrfToken: token }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: workloadKeys.all }),
   });
 }

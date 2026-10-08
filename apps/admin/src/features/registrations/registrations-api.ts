@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import {
   type DriftException,
@@ -107,11 +107,12 @@ interface ReconcileResponse {
 // useRunSweep asks for a sweep now. deferred means another replica's sweep is running; its result
 // arrives with that sweep.
 export function useRunSweep() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: () =>
-      apiPost<ReconcileResponse>('/v1/registrations:reconcile', {}, { csrfToken: requireToken(token) }),
+      post<ReconcileResponse>('/v1/registrations:reconcile', {}, { csrfToken: requireToken(token) }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
 }
@@ -119,11 +120,12 @@ export function useRunSweep() {
 // useApplyDesiredState applies the registered state to one finding the sweep will not settle on
 // its own, with the operator's reason, which the API records on the finding.
 export function useApplyDesiredState() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ findingId, reason }: { readonly findingId: string; readonly reason: string }) =>
-      apiPost<ReconcileResponse>(
+      post<ReconcileResponse>(
         '/v1/registrations:reconcile',
         { findings: [findingId] },
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -142,11 +144,12 @@ export interface ExceptionRequest {
 // useGrantException lets one Keycloak user change one field class of this client in the console,
 // for a bounded time.
 export function useGrantException(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: (request: ExceptionRequest) =>
-      apiPost<DriftException>(
+      post<DriftException>(
         `/v1/registrations/${encodeURIComponent(registrationId)}/drift-exceptions`,
         {
           field_class: request.fieldClass,
@@ -168,11 +171,12 @@ const ownersPath = (registrationId: string): `/v1/${string}` =>
 // takes no Idempotency-Key: a second grant is refused as already an owner, a second revocation as no
 // active ownership. The owners are read again either way.
 export function useGrantOwner(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
-      apiPost<{ readonly owners: readonly Owner[] | null }>(
+      post<{ readonly owners: readonly Owner[] | null }>(
         ownersPath(registrationId),
         { principal_id: principalId.trim().toLowerCase() },
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -182,11 +186,12 @@ export function useGrantOwner(registrationId: string) {
 }
 
 export function useRevokeOwner(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
-      apiPost<{ readonly owners: readonly Owner[] | null }>(
+      post<{ readonly owners: readonly Owner[] | null }>(
         `${ownersPath(registrationId)}/${encodeURIComponent(principalId)}:revoke`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },

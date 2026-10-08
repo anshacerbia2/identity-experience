@@ -139,6 +139,7 @@ describe('the workload sweep’s conditions', () => {
     ).toBeInTheDocument();
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe('/api/v1/workloads:sweep');
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(request?.headers['x-csrf-token']).toBe(csrfToken);
   });
 });
@@ -182,7 +183,7 @@ describe('a workload’s upkeep', () => {
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe(`/api/v1/workloads/${workloadId}:rebuild`);
     expect(request?.headers['x-administrative-reason']).toBe('Client deleted in the console, OPS-90.');
-    expect(request?.headers['idempotency-key']).toBeUndefined();
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it('records the owner’s review, its statement as the reason', async () => {
@@ -201,6 +202,7 @@ describe('a workload’s upkeep', () => {
     expect(await screen.findByText('Your review is recorded.')).toBeInTheDocument();
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe(`/api/v1/workloads/${workloadId}:review`);
+    expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(request?.headers['x-administrative-reason']).toBe(
       'Still exports payroll nightly; owner and team are right.',
     );
