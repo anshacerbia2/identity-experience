@@ -23,7 +23,12 @@ import {
 
 import { stateTones } from './labels';
 import styles from './PrincipalsPage.module.scss';
-import { usePrincipalDetail, useSecurityCommand, useSecuritySection } from './security-api';
+import {
+  useKernelEventSweep,
+  usePrincipalDetail,
+  useSecurityCommand,
+  useSecuritySection,
+} from './security-api';
 
 type Command = ContainmentAction | 'revoke';
 
@@ -431,9 +436,12 @@ function FindingsSection({ principalId }: { readonly principalId: string }): Rea
 
 // The Principal's sign-ins, failures and admin changes, from the kernel event record (TDD-identity-control-005
 // 2.9.0): what an investigator read in the kernel's Admin Console before, here, recorded as a read.
+// The record is filled by a scheduled sweep; running it now brings a sign-in from a minute ago in
+// (TDD-identity-control-007), and the events are read again.
 function EventsSection({ principalId }: { readonly principalId: string }): ReactElement {
   const [open, setOpen] = useState(false);
   const events = useSecuritySection(principalId, 'events', open);
+  const sweep = useKernelEventSweep(principalId);
   return (
     <Section
       title="principals.events.title"
@@ -442,6 +450,34 @@ function EventsSection({ principalId }: { readonly principalId: string }): React
         setOpen(true);
       }}
     >
+      <div className={styles['actions']}>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Icon name="pulse" />}
+          disabled={sweep.isPending}
+          onClick={() => {
+            sweep.mutate();
+          }}
+        >
+          <Message id="principals.events.sweep" />
+        </Button>
+      </div>
+      {sweep.isSuccess ? (
+        <div className={styles['quiet']} role="status">
+          <ul>
+            {sweep.data.kinds.map((kind) => (
+              <li key={kind.kind}>
+                <Message
+                  id={kind.truncated ? 'principals.events.sweep.truncated' : 'principals.events.sweep.done'}
+                  values={{ kind: kind.kind, read: kind.read, recorded: kind.recorded }}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {sweep.isError ? <MutationError error={sweep.error} /> : null}
       {events.isPending ? (
         <div aria-busy="true" />
       ) : events.isError ? (

@@ -8,6 +8,7 @@ import {
   type ExpiringKeys,
   type ExceptionField,
   type Finding,
+  type Owner,
   type ReconcileRun,
   type RegistrationPage,
   type RegistrationState,
@@ -156,5 +157,40 @@ export function useGrantException(registrationId: string) {
         { csrfToken: requireToken(token) },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
+  });
+}
+
+const ownersPath = (registrationId: string): `/v1/${string}` =>
+  `/v1/registrations/${encodeURIComponent(registrationId)}/owners`;
+
+// useGrantOwner makes a person an owner of a registration, and useRevokeOwner ends one's ownership,
+// each with a reason (TDD-identity-control-003 §Registration Ownership). Both are a provider's. The API
+// takes no Idempotency-Key: a second grant is refused as already an owner, a second revocation as no
+// active ownership. The owners are read again either way.
+export function useGrantOwner(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
+      apiPost<{ readonly owners: readonly Owner[] | null }>(
+        ownersPath(registrationId),
+        { principal_id: principalId.trim().toLowerCase() },
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.owners(registrationId) }),
+  });
+}
+
+export function useRevokeOwner(registrationId: string) {
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
+      apiPost<{ readonly owners: readonly Owner[] | null }>(
+        `${ownersPath(registrationId)}/${encodeURIComponent(principalId)}:revoke`,
+        {},
+        { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.owners(registrationId) }),
   });
 }

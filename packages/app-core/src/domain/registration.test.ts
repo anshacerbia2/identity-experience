@@ -16,6 +16,8 @@ import {
   unmanagedEnabled,
   type Finding,
   type Registration,
+  ownerRevocable,
+  type Owner,
 } from './registration';
 
 const finding = (overrides: Partial<Finding>): Finding => ({
@@ -174,5 +176,35 @@ describe('registration requests', () => {
     expect(mayRequest({ ...developer, environment: 'production' })).toBe(true);
     expect(mayRequest({ ...developer, environment: 'non-production' })).toBe(false);
     expect(mayRequest({ ...developer, application_developer: false, environment: 'production' })).toBe(false);
+  });
+});
+
+describe('ownerRevocable', () => {
+  const owner = (id: string, extra: Partial<Owner> = {}): Owner => ({
+    ownership_id: `o-${id}`,
+    registration_id: 'r',
+    principal_id: id,
+    granted_by: 'p',
+    grant_reason: 'reason',
+    granted_at: '2026-10-01T00:00:00Z',
+    revoked_at: null,
+    revoked_by: null,
+    active: true,
+    ...extra,
+  });
+
+  it('holds production to two active owners, and nothing else to any', () => {
+    const two = [owner('a'), owner('b')];
+    const three = [...two, owner('c')];
+    expect(ownerRevocable(two[0] as Owner, two, 'production')).toBe(false);
+    expect(ownerRevocable(three[0] as Owner, three, 'production')).toBe(true);
+    expect(ownerRevocable(two[0] as Owner, two, 'non-production')).toBe(true);
+  });
+
+  it('always allows an ownership that confers nothing, and never a revoked one', () => {
+    const idle = owner('c', { active: false });
+    expect(ownerRevocable(idle, [owner('a'), owner('b'), idle], 'production')).toBe(true);
+    const gone = owner('d', { active: false, revoked_at: '2026-10-02T00:00:00Z' });
+    expect(ownerRevocable(gone, [gone], 'non-production')).toBe(false);
   });
 });

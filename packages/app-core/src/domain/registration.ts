@@ -269,6 +269,24 @@ export interface Owner {
 export const activeOwners = (owners: readonly Owner[]): readonly Owner[] =>
   owners.filter((owner) => owner.active);
 
+// ownerRevocable is whether the API accepts revoking this ownership (TDD-identity-control-003
+// §Registration Ownership): one not yet revoked, except an active one in production when it would
+// leave fewer than minProductionOwners active owners. An ownership that confers nothing already
+// leaves the active owners as they were, so it is always revocable.
+export function ownerRevocable(
+  owner: Owner,
+  owners: readonly Owner[],
+  environment: 'production' | 'non-production',
+): boolean {
+  if (owner.revoked_at !== null) {
+    return false;
+  }
+  if (!owner.active || environment !== 'production') {
+    return true;
+  }
+  return activeOwners(owners).length - 1 >= minProductionOwners;
+}
+
 // A change to a registration's redirect URIs or its audience (ADR-IAM-003 §5.2,
 // TDD-identity-control-003 §Registration Changes). The API records the set it replaces and the
 // version it was read at, so what an approver sees is what the proposer saw. Exactly one of the

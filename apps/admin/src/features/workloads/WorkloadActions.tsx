@@ -3,13 +3,20 @@ import { useForm } from 'react-hook-form';
 
 import { MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { useSession } from '@identity-experience/app-core/session';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
-import { workloadActions, type Workload, type WorkloadAction } from '@/domain/workload';
+import {
+  workloadActions,
+  workloadUpkeep,
+  type Workload,
+  type WorkloadAction,
+  type WorkloadUpkeep,
+} from '@/domain/workload';
 
-import { useWorkloadAction } from './workloads-api';
+import { useWorkloadAction, useWorkloadUpkeep } from './workloads-api';
 import styles from './WorkloadsPage.module.scss';
 
 const copy: Readonly<
@@ -105,6 +112,156 @@ function ActionForm({
         </div>
       </form>
     </Panel.Root>
+  );
+}
+
+const upkeepCopy: Readonly<
+  Record<
+    WorkloadUpkeep,
+    {
+      readonly open: MessageKey;
+      readonly title: MessageKey;
+      readonly body: MessageKey;
+      readonly submit: MessageKey;
+      readonly done: MessageKey;
+    }
+  >
+> = {
+  rebuild: {
+    open: 'workloads.rebuild',
+    title: 'workloads.rebuild.title',
+    body: 'workloads.rebuild.body',
+    submit: 'workloads.rebuild',
+    done: 'workloads.rebuild.done',
+  },
+  review: {
+    open: 'workloads.review',
+    title: 'workloads.review.title',
+    body: 'workloads.review.body',
+    submit: 'workloads.review.submit',
+    done: 'workloads.review.done',
+  },
+};
+
+// UpkeepForm rebuilds a workload's deleted client, or records its owner's review. Each sends one line
+// as X-Administrative-Reason: a rebuild's reason, or the review's statement, which the API records as
+// the owner's word (TDD-identity-control-004 1.5.0).
+function UpkeepForm({
+  workload,
+  upkeep,
+  onDone,
+  onCancel,
+}: {
+  readonly workload: Workload;
+  readonly upkeep: WorkloadUpkeep;
+  readonly onDone: (upkeep: WorkloadUpkeep) => void;
+  readonly onCancel: () => void;
+}): ReactElement {
+  const mutation = useWorkloadUpkeep(workload.principal_id);
+  const form = useForm<{ reason: string }>({ defaultValues: { reason: '' } });
+  const submit = form.handleSubmit((values) => {
+    mutation.mutate(
+      { upkeep, reason: values.reason },
+      {
+        onSuccess: () => {
+          onDone(upkeep);
+        },
+      },
+    );
+  });
+  const text = upkeepCopy[upkeep];
+  return (
+    <Panel.Root elevation="floating">
+      <Panel.Header>
+        <Panel.Title>
+          <Message id={text.title} />
+        </Panel.Title>
+        <Panel.Description>
+          <Message id={text.body} />
+        </Panel.Description>
+      </Panel.Header>
+      <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
+        <ReasonField
+          registration={form.register('reason', reasonRules)}
+          error={form.formState.errors.reason}
+        />
+        {mutation.isError ? <MutationError error={mutation.error} /> : null}
+        <div className={styles['actions']}>
+          <Button
+            type="submit"
+            disabled={mutation.isPending}
+            icon={<Icon name={upkeep === 'review' ? 'check' : 'key'} />}
+          >
+            <Message id={text.submit} />
+          </Button>
+          <Button variant="ghost" onClick={onCancel} disabled={mutation.isPending}>
+            <Message id="form.cancel" />
+          </Button>
+        </div>
+      </form>
+    </Panel.Root>
+  );
+}
+
+// WorkloadUpkeepActions offers a rebuild where the API accepts one, and the review to the workload's
+// owner alone (TDD-identity-experience-003 §Workloads).
+export function WorkloadUpkeepActions({ workload }: { readonly workload: Workload }): ReactElement | null {
+  const session = useSession();
+  const operator = session.data?.authenticated === true ? session.data.principalId : null;
+  const [open, setOpen] = useState<WorkloadUpkeep | null>(null);
+  const [done, setDone] = useState<WorkloadUpkeep | null>(null);
+  const upkeep = workloadUpkeep(workload, operator);
+  if (upkeep.length === 0 && done === null) {
+    return null;
+  }
+  const selected = open !== null && upkeep.includes(open) ? open : null;
+  return (
+    <section className={styles['section']} aria-labelledby="workload-upkeep-title">
+      <h3 id="workload-upkeep-title" className={styles['sectionTitle']}>
+        <Message id="workloads.upkeep.title" />
+      </h3>
+      <p className={styles['quiet']}>
+        <Message id="workloads.upkeep.description" />
+      </p>
+      {done === null ? null : (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id={upkeepCopy[done].done} />
+        </p>
+      )}
+      {upkeep.length === 0 ? null : (
+        <div className={styles['actions']}>
+          {upkeep.map((item) => (
+            <Button
+              key={item}
+              variant="secondary"
+              size="sm"
+              aria-expanded={selected === item}
+              onClick={() => {
+                setOpen(item);
+                setDone(null);
+              }}
+            >
+              <Message id={upkeepCopy[item].open} />
+            </Button>
+          ))}
+        </div>
+      )}
+      {selected === null ? null : (
+        <UpkeepForm
+          key={selected}
+          workload={workload}
+          upkeep={selected}
+          onDone={(item) => {
+            setOpen(null);
+            setDone(item);
+          }}
+          onCancel={() => {
+            setOpen(null);
+          }}
+        />
+      )}
+    </section>
   );
 }
 

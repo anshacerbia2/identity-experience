@@ -11,6 +11,7 @@ import type {
   PrincipalCreated,
   PrincipalSweep,
   RelinkResult,
+  UnmappedUser,
 } from '@/domain/principal';
 
 // The Principal reads and commands (TDD-identity-control-001), through the BFF.
@@ -18,6 +19,7 @@ import type {
 export const principalKeys = {
   all: ['principals'] as const,
   dangling: ['principals', 'dangling'] as const,
+  unmapped: ['principals', 'unmapped'] as const,
   developers: ['principals', 'application-developers'] as const,
 };
 
@@ -31,6 +33,17 @@ export function useDangling() {
           signal,
         )
       ).dangling ?? [],
+  });
+}
+
+// useUnmapped reads the kernel users no mapping accounts for: the sweep's open unmapped, orphan and
+// duplicate findings, oldest first. Like the dangling list it is bounded by what the sweep found.
+export function useUnmapped() {
+  return useQuery({
+    queryKey: principalKeys.unmapped,
+    queryFn: async ({ signal }) =>
+      (await apiGet<{ readonly unmapped: readonly UnmappedUser[] | null }>('/v1/principals:unmapped', signal))
+        .unmapped ?? [],
   });
 }
 

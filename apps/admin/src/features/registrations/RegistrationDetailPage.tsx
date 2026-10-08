@@ -24,6 +24,7 @@ import { Message } from '@/core/i18n/Message';
 import { ApplyDesiredStateForm } from './ApplyDesiredStateForm';
 import { DriftExceptions } from './DriftExceptions';
 import { attentionTone, fieldLabel, findingClassLabel, stateLabel, stateTone } from './labels';
+import { OwnerManagement } from './OwnerManagement';
 import { useFindings } from './registrations-api';
 import styles from './RegistrationsPage.module.scss';
 
@@ -211,6 +212,7 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
       <LifecycleActions registration={found} />
       <RegistrationChanges registration={found} provider />
       <ClientKeys registration={found} />
+      <OwnerManagement registration={found} />
       <Findings registrationId={registrationId} operable={found.state === 'active'} />
       <DriftExceptions registrationId={registrationId} grantable={found.state === 'active'} />
     </>

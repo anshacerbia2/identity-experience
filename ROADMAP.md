@@ -52,6 +52,14 @@ Its README maps each component to its platform counterpart.
 `connect-src`, so `default-src 'none'` would have refused the application's own stylesheets and
 fonts. It now names each directive. The runtime and the session store are stated.
 
+**Changed in TDD-001 1.17.0.** A session store that does not answer answers `503
+dependency-unavailable`, not `500`: API calls, the session read and sign-out keep the cookie, and a
+sign-in lands on `?sign-in=unavailable`. A back-channel logout it could not record answers `400`, as the
+specification requires. A session that no longer opens under `IDENTITY_EXPERIENCE_SESSION_KEY` is a
+signed-out one, `401`, instead of a `500` for every open session after the key changes
+(`bff/test/store-outage.test.ts`, `docs/runbooks/session-store-outage.md`). organization-experience
+takes the change through `bff/conformance.json`.
+
 **Changed in TDD-001 1.2.0.** Sign-out ends the Keycloak session server-side instead of
 redirecting the browser through RP-initiated logout, which would have put the ID token in a URL the
 browser holds. The ID token is validated at sign-in and not kept. A login binding cookie ties the
@@ -237,19 +245,27 @@ an owner decision there.
 **Exit:** no administrative control is available in the interface that the Control API
 would refuse, and no control the API permits is hidden without a stated reason.
 
-**Not met.** The first half holds where tested: each control is offered from the state the API
-accepts it in (lifecycle, keys, changes, findings, workloads, a Principal's containment). The second
-does not. Checked against identity-control's routes on 2026-10-07, the API permits these and no screen
-offers them, with no reason stated here or in a TDD:
+**Not met yet; the 2026-10-07 list is closed.** The first half holds where tested: each control is
+offered from the state the API accepts it in (lifecycle, keys, changes, findings, workloads, owners, a
+Principal's containment). For the second, every control found on 2026-10-07 now has a screen
+(TDD-003 1.21.0, TDD-004 1.9.0), each sending its reason, with no key or version where the API takes
+none:
 
-- granting and revoking a registration's owners (`POST /v1/registrations/{id}/owners`, `…/owners/{principal_id}:revoke`);
-- the unresolved security operations and their redrive (`GET /v1/security-operations:unresolved`,
-  `POST /v1/security-operations/{operation_id}:redrive`);
-- workload review and rebuild, the workload sweep, and the orphaned, unused and review-overdue lists;
-- the unmapped Principals list (`GET /v1/principals:unmapped`) and the kernel event sweep
-  (`POST /v1/kernel-events:sweep`).
+- ✅ Granting and revoking a registration's owners: the Admin Portal's registration page
+  (§Registration Ownership). Grant is not offered on a retired registration, and revoke not where
+  production would keep fewer than two owners. The Developer Console offers neither: both are a
+  provider's.
+- ✅ The parked security operations and their re-drive: the Principals page.
+- ✅ The workload sweep, and the orphaned, unused and review-overdue lists, each read when opened: the
+  Workloads page. A workload offers a rebuild when active or orphaned, and a review to its owner.
+  **Stated reason:** the Developer Console offers no review, because an owner who is not a provider
+  cannot read the workload; it waits on identity-control serving the owner's read.
+- ✅ The unmapped, orphan and duplicate kernel users: the Principals page, with no action, because the
+  API has none. The kernel event sweep: a Principal's Events section.
 
-Each needs a screen or a stated reason in TDD-003.
+Checked again on 2026-10-08, four provider reads have no screen and no stated reason yet:
+`GET /v1/principals/{principal_id}/notification-addresses`, `…/security-notifications`,
+`GET /v1/projections/tenant-context/report` and `GET /v1/provider-grants:emergency-validation`.
 
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
@@ -292,7 +308,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, at 1.16.0, 1.7.0, 1.20.0 and 1.8.0.
+✅ **Met.** All four are approved, at 1.17.0, 1.7.0, 1.21.0 and 1.9.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

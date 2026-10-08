@@ -190,6 +190,43 @@ describe('PrincipalDetailPage', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  it('sweeps the kernel’s events on request, reports each kind, and reads the events again', async () => {
+    const { requests, sent } = api({
+      command: () =>
+        json({
+          kinds: [
+            { kind: 'user', read: 12, recorded: 3, read_through: '2026-10-08T08:00:00Z', truncated: false },
+            {
+              kind: 'admin',
+              read: 500,
+              recorded: 500,
+              read_through: '2026-10-08T07:00:00Z',
+              truncated: true,
+            },
+          ],
+        }),
+    });
+    renderApp(`/principals/${subject}`);
+    expect(await screen.findByRole('heading', { name: 'alice' })).toBeInTheDocument();
+    const shows = screen.getAllByRole('button', { name: 'Show — this read is recorded' });
+    await userEvent.click(shows[shows.length - 1] as HTMLElement);
+    await screen.findByText('invalid_user_credentials');
+    await userEvent.click(screen.getByRole('button', { name: 'Read the kernel’s latest events' }));
+
+    expect(await screen.findByText('user: 12 read, 3 new.')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'admin: 500 read, 500 new. The read stopped at its bound; the next sweep reads the rest.',
+      ),
+    ).toBeInTheDocument();
+    const post = sent.find((request) => request.method === 'POST');
+    expect(post?.url.pathname).toBe('/api/v1/kernel-events:sweep');
+    expect(post?.headers['x-csrf-token']).toBe(csrfToken);
+    await vi.waitFor(() => {
+      expect(reads(requests).filter((path) => path.endsWith('/events'))).toHaveLength(2);
+    });
+  });
+
   it('suspends with a reason, the security_version and an Idempotency-Key, and says what happened', async () => {
     const { sent } = api({ command: () => json(operation('applied')) });
     renderApp(`/principals/${subject}`);

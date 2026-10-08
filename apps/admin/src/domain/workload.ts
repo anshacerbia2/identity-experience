@@ -50,6 +50,10 @@ export interface Workload {
   readonly created_by: string;
   readonly created_at: string;
   readonly activated_at: string | null;
+  // The owner's latest review and when the next is due (TDD-identity-control-004 1.5.0 §Periodic
+  // Review); the due date only for an active or orphaned workload.
+  readonly last_reviewed_at?: string | null;
+  readonly review_due_at?: string;
 }
 
 export interface ReassignRequest {
@@ -112,4 +116,56 @@ export function createWorkloadRequest(values: {
     ...(audience.length === 0 ? {} : { audience }),
     public_key: values.publicKey,
   };
+}
+
+// Upkeep is what keeps a workload accountable beside its lifecycle (TDD-identity-control-004 1.5.0):
+// rebuilding a client deleted in the kernel, and the owner's periodic review.
+export type WorkloadUpkeep = 'rebuild' | 'review';
+
+// workloadUpkeep is what the API accepts from this operator for the workload as it stands. A rebuild
+// is a provider's for an active or orphaned workload; the API refuses it while the client exists,
+// which the record cannot tell. A review is the owner's alone, of an active workload.
+export function workloadUpkeep(
+  workload: Pick<Workload, 'state' | 'owner_principal_id'>,
+  operator: string | null,
+): readonly WorkloadUpkeep[] {
+  const upkeep: WorkloadUpkeep[] = [];
+  if (workload.state === 'active' || workload.state === 'orphaned') {
+    upkeep.push('rebuild');
+  }
+  if (
+    workload.state === 'active' &&
+    operator !== null &&
+    workload.owner_principal_id.toLowerCase() === operator.toLowerCase()
+  ) {
+    upkeep.push('review');
+  }
+  return upkeep;
+}
+
+// The sweep's three listings (TDD-identity-control-004 1.5.0).
+export type WorkloadCondition = 'orphaned' | 'unused' | 'reviews-overdue';
+
+export const workloadConditions: readonly WorkloadCondition[] = ['orphaned', 'unused', 'reviews-overdue'];
+
+// A workload in one of the conditions. since is when the condition began: orphaned at, last seen (or
+// activated), or the review's due date.
+export interface ConditionRow {
+  readonly principal_id: string;
+  readonly client_key: string;
+  readonly display_name: string;
+  readonly owner_principal_id: string;
+  readonly state: WorkloadState;
+  readonly since: string;
+  readonly stage?: 'reminder' | 'escalated' | 'suspended';
+  readonly last_seen_at?: string;
+}
+
+// What one workload sweep did.
+export interface WorkloadSweep {
+  readonly orphaned: number;
+  readonly reclaimed: number;
+  readonly suspended: number;
+  readonly unused: number;
+  readonly reviews_overdue: number;
 }

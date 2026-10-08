@@ -150,7 +150,16 @@ export function DanglingSection(): ReactElement {
         </Button>
         {sweep.isSuccess ? (
           <p className={styles['quiet']} role="status">
-            <Message id="principals.sweep.done" values={{ ...sweep.data }} />
+            <Message
+              id="principals.sweep.done"
+              values={{
+                recovered: sweep.data.recovered,
+                dangling: sweep.data.dangling,
+                unmapped: sweep.data.unmapped ?? 0,
+                orphan: sweep.data.orphan ?? 0,
+                duplicate: sweep.data.duplicate ?? 0,
+              }}
+            />
           </p>
         ) : null}
       </div>

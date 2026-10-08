@@ -35,9 +35,28 @@ export interface RelinkResult {
   readonly state: 'active' | 'pending';
 }
 
+// PrincipalSweep is what POST /v1/principals:reconcile found (TDD-identity-control-001 1.13.0).
 export interface PrincipalSweep {
   readonly recovered: number;
   readonly dangling: number;
+  readonly unmapped?: number;
+  readonly orphan?: number;
+  readonly duplicate?: number;
+}
+
+// A kernel user no mapping accounts for (GET /v1/principals:unmapped, TDD-identity-control-001
+// 1.13.0): unmapped carries no identifier, an orphan the one it claims, and a duplicate the Principal
+// whose identifier it repeats.
+export type UnmappedClass = 'unmapped' | 'orphan' | 'duplicate';
+
+export interface UnmappedUser {
+  readonly finding_id: string;
+  readonly finding_class: UnmappedClass;
+  readonly principal_id?: string;
+  readonly claimed_principal_id?: string;
+  readonly username?: string;
+  readonly user_disabled: boolean;
+  readonly detected_at: string;
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

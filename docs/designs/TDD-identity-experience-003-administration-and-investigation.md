@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.20.0
+  version: 1.21.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-07
+  last_reviewed: 2026-10-08
   parent_sad: SAD-002
 ---
 
@@ -135,6 +135,9 @@ POST  /api/v1/principals/{principal_id}:restore
 POST  /api/v1/principals/{principal_id}/sessions:terminate-all
 POST  /api/v1/principals/{principal_id}/authenticators/{security_ref}:revoke
 GET   /api/v1/security-operations/{operation_id}
+GET   /api/v1/security-operations:unresolved                       1.21.0
+POST  /api/v1/security-operations/{operation_id}:redrive           1.21.0, X-Administrative-Reason
+POST  /api/v1/kernel-events:sweep                                  1.21.0
 ```
 
 `GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
@@ -146,9 +149,19 @@ Admin Console before, which is no longer an operating surface (ADR-IAM-001 §5.8
 administrators' own reads stays in `identity.privileged_access`, and the `EvidencePanel` for it is
 absent rather than empty until the Audit API exists.
 
+**Sweeping the kernel's events now (1.21.0).** The Events section offers **Read the kernel's latest
+events**, `POST /v1/kernel-events:sweep` (`TDD-identity-control-007` §API). The record is filled by a
+scheduled sweep, so an investigator looking at a sign-in from a minute ago would otherwise wait for
+it. The sweep is the scheduled one run now: it takes nothing and changes nothing but the record. The
+page reports, per kind, how many events it read and how many it recorded for the first time, says
+when a read stopped at its bound and the next sweep reads the rest, and then reads the Principal's
+events again. A `503` says the kernel or the record could not be read, in the application's words.
+
 Every mutation carries an idempotency key, an optimistic version, a reason, and a
 correlation identifier. The reason is a required field on the request, not a prompt
-after the fact.
+after the fact. Where the API takes no key or version for a command, none is sent, and the command's
+section says how the API keeps it safe to repeat (1.21.0: ownership, re-drive, the sweeps, rebuild and
+review).
 
 `TDD-identity-control-005` defines the matching upstream routes. The BFF removes the
 `/api` prefix and forwards the verified access token; it does not translate canonical
@@ -423,6 +436,16 @@ values after an outage reuses it, so the API returns the Principal the first att
 created. Changing a value takes a new key, because the API refuses a key reused for a
 different request.
 
+**Kernel users no Principal accounts for (1.21.0).** `GET /api/v1/principals:unmapped`
+(`TDD-identity-control-001` 1.13.0) lists the sweep's open `unmapped`, `orphan` and `duplicate`
+findings, oldest first. Each row shows the class as a word, the kernel username, the identifier an
+orphan claims, the Principal a duplicate belongs to, linked to its page, whether the sweep disabled
+the user, and when it was detected. It offers no action, because the API has none: such a user came
+from outside the authorized path, and deleting it in the kernel is the triage decision, after which
+the next sweep resolves the finding. The section says so. Like the dangling list, it is bounded by
+what the sweep found, so it is read when the page opens. **Run the Principal sweep now** reports the
+five counts the API answers: recovered, dangling, unmapped, orphan and duplicate.
+
 **Dangling mappings.** A Principal whose Keycloak user is gone is listed by
 `principal_id` with the time it was detected. It keeps its `principal_id` and every
 Membership. **Relink** requires a reason, sent as `X-Administrative-Reason`, and says
@@ -492,6 +515,25 @@ disclosure nobody needed (§Reads Are Privileged Too).
   the challenge's `max_age` (`TDD-identity-experience-001` §Step-Up). The form is filled in again
   after the sign-in.
 
+**Parked operations (1.21.0).** A command the executor could not apply after its attempts is parked
+`unresolved`, and the Principal's later commands wait behind it (`TDD-identity-control-005` §Operating
+the Executor). The Principals page lists them, up to the API's hundred, oldest first: the operation
+identifier, the Principal linked to its page, the operation type as a word, the attempts, the last
+error class, and when it was created. **Re-drive** returns one to `retrying` with a new attempt
+budget:
+
+- It takes a reason, sent as `X-Administrative-Reason`, and needs a recent `aal2` sign-in; a step-up
+  challenge offers the sign-in, as a containment command does.
+- It carries no Idempotency-Key and no version, because the API takes neither: an operation that is
+  no longer `unresolved` is refused with `409`, which is also the answer to a repeated request, so the
+  operation's state makes the request idempotent. The page shows that refusal with the API's sentence.
+- The answer is followed as an accepted command is (§Outcomes), and the list is read again.
+- There is no abandon, because the API has none: a parked operation is resolved by fixing its cause
+  and re-driving it. The section says so.
+
+The list is a finding list bounded by the executor, not a listing of Principals, so it is read when the
+page opens, as the dangling mappings are.
+
 **References stay in memory.** A `security_ref` lives in the authenticators query's cache for the
 rendered page. It is never written to browser storage (§Data Model).
 
@@ -503,6 +545,35 @@ granted it and why. A provider grants the standing to a person by `principal_id`
 and revokes an active grant with a reason. The API refuses a workload, an inactive Principal and a
 second grant, and the page shows its sentence. A Principal search does not exist yet
 (`TDD-identity-control-005`), so the person is named by identifier.
+
+### Registration Ownership
+
+Built in 1.21.0 on `TDD-identity-control-003` §Registration Ownership (`ADR-IAM-003`). A registration's
+page in the Admin Portal lists its active owners by `principal_id`, with when and why each was granted,
+and a provider changes them. The Developer Console lists the same owners and offers no control
+(`TDD-identity-experience-004` §Ownership): granting and revoking are a provider's.
+
+```text
+GET   /api/v1/registrations/{registration_id}/owners
+POST  /api/v1/registrations/{registration_id}/owners                         X-Administrative-Reason
+POST  /api/v1/registrations/{registration_id}/owners/{principal_id}:revoke   X-Administrative-Reason
+```
+
+| Action | Offered | Collected |
+| :-- | :-- | :-- |
+| Grant | any registration that is not `retired` | the person's `principal_id` and a reason |
+| Revoke | each active owner, except where the environment is production and the registration has two active owners or fewer | a reason |
+
+- **Production keeps two owners.** The API refuses a revocation that would leave a production
+  registration fewer than two active owners (`ADR-IAM-003 §5.1`). The environment is read from
+  `GET /v1/registrations:standing`; where revoking is not offered, the section says to grant another
+  owner first.
+- **No key, no version.** The API takes neither: a second grant of the same person is refused as
+  already an owner, and a second revocation as no active ownership, each with `409` or `404` and the
+  API's sentence. So no Idempotency-Key is sent.
+- **The API decides eligibility.** A workload, an inactive Principal and a second grant are refused
+  there, and the page shows the sentence. The page refuses only what is not an identifier.
+- After either command the owners are read again.
 
 ### Workloads
 
@@ -552,6 +623,50 @@ workload's state:
 A retirement is offered only after a suspension, as for a registration. A restore refused because
 the owner has left is shown with the API's sentence, which says to reassign first; the console does
 not reassign on the operator's behalf. After any action the workload is read again.
+
+**The sweep's conditions (1.21.0).** `TDD-identity-control-004` 1.5.0 adds the workload sweep and
+what it found:
+
+```text
+POST  /api/v1/workloads/{principal_id}:rebuild       X-Administrative-Reason
+POST  /api/v1/workloads/{principal_id}:review        X-Administrative-Reason, the owner's statement
+GET   /api/v1/workloads:orphaned
+GET   /api/v1/workloads:unused
+GET   /api/v1/workloads:reviews-overdue
+POST  /api/v1/workloads:sweep
+```
+
+- **Three lists, each read when opened.** Orphaned, unused, and review overdue. They are finding
+  lists, bounded by the sweep, not a directory of workloads; but a page that lists nothing until asked
+  (§Finding and reassigning a workload) keeps that promise only if each list waits for its button. A
+  row shows the workload's name, `client_key`, owner, state, and when the condition began; an orphaned
+  row also its stage (reminder, escalated, suspended), and an unused row when it was last seen. **Open**
+  loads the workload into the lookup below, with its actions.
+- **Run the workload sweep now** runs the scheduled sweep and reports its five counts: orphaned,
+  reclaimed, suspended, unused and reviews overdue. Every open list is read again.
+- **A workload shows its review**: when its owner last reviewed it, and when the next review is due.
+
+**Rebuilding and reviewing a workload (1.21.0).**
+
+| Action | Offered | Collected, and the effect stated |
+| :-- | :-- | :-- |
+| Rebuild the client | `active`, `orphaned` | a reason; the deleted client is created again under the same `principal_id` and keys. The API refuses it while the kernel still holds the client, and the page shows that sentence |
+| Review | `active`, and only when the signed-in provider is the workload's owner | a statement, sent as `X-Administrative-Reason`: the workload is still needed, its purpose holds, its owner and team are right. It is recorded with who gave it |
+
+- **Why rebuild is offered without knowing the client is gone.** The workload record does not say
+  whether its client exists; the API reads the kernel and refuses with `409` while it does. Hiding the
+  action would need a second read the API does not offer for one workload, so the page offers it in the
+  states the API accepts, states the condition, and shows the refusal.
+- **Review is the owner's.** The API answers anyone but the current owner `404`. A provider who is not
+  the owner is offered nothing. A review that no longer holds is not edited: reassign, suspend or
+  retire is what changes it.
+- **Not in the Developer Console, by reason.** An owner who is not a provider cannot read the workload:
+  `GET /v1/workloads/{principal_id}` is a provider's, and there is no list of a person's own workloads.
+  A form that sends a statement about a workload its author cannot see would make the review an
+  attestation about a record its author was not shown. The console offers it once identity-control
+  serves an owner's read of their own workloads.
+- None of these takes an Idempotency-Key or a version, because the API takes neither; the sweep is the
+  scheduled one and changes nothing a second run would not.
 
 A read that fails states why in words chosen from the status, and shows the correlation
 identifier an operator quotes. It never renders the server's detail text as the
@@ -646,6 +761,13 @@ again and shows the user signed out rather than a page of errors.
   first as the API orders them, linked to its registration; the section is absent while none is
   reported, and it sends nothing.
 
+- A registration's owners are listed; a grant sends the `principal_id` and the reason, a revocation the
+  reason, and neither an Idempotency-Key. Grant is not offered on a retired registration, and revoke
+  not where production would keep fewer than two owners (1.21.0).
+- The workload condition lists are read only when opened. The sweep reports its counts. Rebuild is
+  offered for an active or orphaned workload, review only for an active one the operator owns, each
+  sending its reason (1.21.0).
+
 ### Change Approval
 
 - The queue lists the open changes oldest first, each with its before and after and its age.
@@ -659,6 +781,12 @@ again and shows the user signed out rather than a page of errors.
 
 ### Principals
 
+- The unmapped, orphan and duplicate findings are listed with their class as a word, and offer no
+  action (1.21.0). The Principal sweep reports its five counts.
+- Parked operations are listed oldest first. A re-drive sends its reason with no Idempotency-Key, is
+  followed to its final state, and a refusal shows the API's sentence (1.21.0).
+- The Events section's kernel sweep reports what it read and recorded per kind, then reads the events
+  again (1.21.0).
 - The application developer grants are listed newest first. A grant and a revocation each send
   their reason, and a refusal shows the API's sentence.
 - Only the dangling mappings are read: no request lists the Principal population.

@@ -207,7 +207,8 @@ export const en = {
   'principals.relink.pending':
     'Relinked. The Principal is pending; the scheduled recovery gives it a Keycloak user.',
   'principals.sweep': 'Run the Principal sweep now',
-  'principals.sweep.done': 'Sweep finished: {recovered, number} recovered, {dangling, number} dangling.',
+  'principals.sweep.done':
+    'Sweep finished: {recovered, number} recovered, {dangling, number} dangling, {unmapped, number} unmapped, {orphan, number} orphaned, {duplicate, number} duplicate.',
 
   'principals.search.title': 'Find a Principal',
   'principals.search.description':
@@ -451,6 +452,125 @@ export const en = {
   'requestQueue.reject.body': 'Nothing is registered. Your reason is recorded with the decision.',
   'requestQueue.done.approved': '{clientKey} is approved and registered. Open it.',
   'requestQueue.done.rejected': 'The request for {clientKey} is rejected.',
+
+  'owners.manage.title': 'Owners',
+  'owners.manage.description':
+    'The people accountable for this registration, who may act on it in the Developer Console. A provider grants and revokes ownership, each with a reason.',
+  'owners.manage.caption': 'Owners of this registration, and what each may be offered',
+  'owners.manage.column.state': 'State',
+  'owners.manage.empty': 'No one owns this registration. Grant ownership to a person.',
+  'owners.state.active': 'Active',
+  'owners.state.inactive': 'Confers nothing',
+  'owners.grant.open': 'Grant ownership',
+  'owners.grant.title': 'Grant ownership',
+  'owners.grant.body':
+    'The person becomes an owner at once. The Identity Control API refuses a workload, an inactive Principal, and someone who already owns it.',
+  'owners.grant.principal': 'Person’s principal_id',
+  'owners.grant.principal.invalid': 'Enter a principal_id: a UUID.',
+  'owners.grant': 'Grant',
+  'owners.revoke.open': 'Revoke {principal}',
+  'owners.revoke.title': 'Revoke ownership',
+  'owners.revoke.body':
+    'The person stops being an owner at their next request. The ownership stays in the record with your reason.',
+  'owners.revoke': 'Revoke',
+  'owners.revoke.held':
+    'A production registration keeps at least two active owners, so revoking one of them is not offered. Grant another owner first.',
+  'owners.done.granted': 'Ownership granted.',
+  'owners.done.revoked': 'Ownership revoked.',
+
+  'principals.unmapped.title': 'Kernel users no Principal accounts for',
+  'principals.unmapped.description':
+    'Users the sweep found in the kernel outside the authorized path. There is nothing to do here: decide in the kernel whether each should exist, and the next sweep resolves the finding once the user is gone.',
+  'principals.unmapped.empty': 'The last sweep found none.',
+  'principals.unmapped.caption': 'Open findings about kernel users, oldest first',
+  'principals.unmapped.column.class': 'Finding',
+  'principals.unmapped.column.username': 'Kernel username',
+  'principals.unmapped.column.identifier': 'Identifier',
+  'principals.unmapped.column.user': 'Kernel user',
+  'principals.unmapped.class.unmapped': 'No identifier',
+  'principals.unmapped.class.orphan': 'Identifier no Principal holds',
+  'principals.unmapped.class.duplicate': 'Second user of a Principal',
+  'principals.unmapped.none': 'None',
+  'principals.unmapped.disabled': 'Disabled by the sweep',
+  'principals.unmapped.enabled': 'Still enabled',
+
+  'operations.title': 'Parked security operations',
+  'operations.description':
+    'Commands the executor could not apply after its attempts. Each holds back its Principal’s later commands. Fix the cause, in the kernel or by a relink, then re-drive it. An operation cannot be abandoned.',
+  'operations.empty': 'No operation is parked.',
+  'operations.caption': 'Parked operations, oldest first',
+  'operations.column.principal': 'Principal',
+  'operations.column.type': 'Operation',
+  'operations.column.attempts': 'Attempts',
+  'operations.column.error': 'Last error',
+  'operations.column.created': 'Created',
+  'operations.type.suspend': 'Suspend',
+  'operations.type.restore': 'Restore',
+  'operations.type.terminateAll': 'End every session',
+  'operations.type.revoke': 'Revoke an authenticator',
+  'operations.type.sessionTerminate': 'End a session (self-service)',
+  'operations.type.authenticatorRemove': 'Remove an authenticator (self-service)',
+  'operations.redrive.open': 'Re-drive {id}',
+  'operations.redrive.title': 'Re-drive the operation',
+  'operations.redrive.body':
+    'It is tried again now, with a new set of attempts, under its own identifier and history. This needs a recent sign-in.',
+  'operations.redrive': 'Re-drive',
+  'operations.redrive.applied': 'The operation is applied.',
+  'operations.redrive.refused': 'The operation was refused: {code}.',
+  'operations.redrive.parked': 'Operation {id} is parked again. Its cause is not fixed yet.',
+
+  'principals.events.sweep': 'Read the kernel’s latest events',
+  'principals.events.sweep.done': '{kind}: {read, number} read, {recorded, number} new.',
+  'principals.events.sweep.truncated':
+    '{kind}: {read, number} read, {recorded, number} new. The read stopped at its bound; the next sweep reads the rest.',
+
+  'workloads.detail.reviewed': 'Last reviewed',
+  'workloads.detail.never': 'Never',
+  'workloads.detail.reviewDue': 'Next review due',
+  'workloads.conditions.title': 'What the sweep found',
+  'workloads.conditions.description':
+    'Workloads with no accountable owner, workloads that have stopped authenticating, and owner reviews past their date. Each list is read only when you open it.',
+  'workloads.conditions.show': 'Show',
+  'workloads.conditions.column.workload': 'Workload',
+  'workloads.conditions.open': 'Open {name}',
+  'workloads.conditions.orphaned.title': 'Orphaned',
+  'workloads.conditions.orphaned.description':
+    'The owner is no longer an active person. The workload keeps working until the sweep suspends it; reassign it to stop that.',
+  'workloads.conditions.orphaned.empty': 'No workload is orphaned.',
+  'workloads.conditions.orphaned.since': 'Orphaned since',
+  'workloads.conditions.orphaned.caption': 'Orphaned workloads, oldest first',
+  'workloads.conditions.unused.title': 'Unused',
+  'workloads.conditions.unused.description':
+    'The workload has not authenticated for longer than the unused threshold. Its owner decides whether to retire it.',
+  'workloads.conditions.unused.empty': 'No workload is unused.',
+  'workloads.conditions.unused.since': 'Last seen',
+  'workloads.conditions.unused.caption': 'Unused workloads, oldest first',
+  'workloads.conditions.overdue.title': 'Review overdue',
+  'workloads.conditions.overdue.description':
+    'The owner has not reviewed the workload in time. An overdue review suspends nothing; the owner reviews it.',
+  'workloads.conditions.overdue.empty': 'No review is overdue.',
+  'workloads.conditions.overdue.since': 'Review was due',
+  'workloads.conditions.overdue.caption': 'Workloads whose review is overdue, oldest first',
+  'workloads.conditions.stage.reminder': 'Reminded',
+  'workloads.conditions.stage.escalated': 'Escalated',
+  'workloads.conditions.stage.suspended': 'Suspended',
+  'workloads.sweep': 'Run the workload sweep now',
+  'workloads.sweep.done':
+    'Sweep finished: {orphaned, number} orphaned, {reclaimed, number} reclaimed, {suspended, number} suspended, {unused, number} unused, {reviews_overdue, number} reviews overdue.',
+  'workloads.upkeep.title': 'Upkeep',
+  'workloads.upkeep.description':
+    'Rebuild a client deleted in the kernel, and, for the workload’s owner, the periodic review.',
+  'workloads.rebuild': 'Rebuild the client',
+  'workloads.rebuild.title': 'Rebuild the workload’s client',
+  'workloads.rebuild.body':
+    'The client is created again under the same principal_id and keys, so everything naming the workload stays valid. The Identity Control API refuses this while the kernel still holds the client.',
+  'workloads.rebuild.done': 'The client is rebuilt.',
+  'workloads.review': 'Review',
+  'workloads.review.title': 'Review this workload',
+  'workloads.review.body':
+    'As its owner, state that it is still needed, that its purpose holds, and that its owner and team are right. Your statement is recorded with your name. If something does not hold, reassign, suspend or retire it instead.',
+  'workloads.review.submit': 'Record the review',
+  'workloads.review.done': 'Your review is recorded.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -655,7 +775,7 @@ export const id: Messages = {
     'Relink tercatat. Principal menunggu; pemulihan terjadwal akan memberinya user Keycloak.',
   'principals.sweep': 'Jalankan pembanding Principal sekarang',
   'principals.sweep.done':
-    'Pembanding selesai: {recovered, number} dipulihkan, {dangling, number} kehilangan user.',
+    'Pembanding selesai: {recovered, number} dipulihkan, {dangling, number} kehilangan user, {unmapped, number} tanpa pemetaan, {orphan, number} yatim, {duplicate, number} ganda.',
 
   'principals.search.title': 'Cari Principal',
   'principals.search.description':
@@ -898,6 +1018,125 @@ export const id: Messages = {
   'requestQueue.reject.body': 'Tidak ada yang didaftarkan. Alasanmu dicatat bersama keputusan.',
   'requestQueue.done.approved': '{clientKey} disetujui dan terdaftar. Buka.',
   'requestQueue.done.rejected': 'Permintaan untuk {clientKey} ditolak.',
+
+  'owners.manage.title': 'Owner',
+  'owners.manage.description':
+    'Orang yang bertanggung jawab atas registrasi ini, yang boleh mengelolanya di Developer Console. Provider memberi dan mencabut kepemilikan, masing-masing dengan alasan.',
+  'owners.manage.caption': 'Owner registrasi ini, dan apa yang bisa ditawarkan untuk masing-masing',
+  'owners.manage.column.state': 'Status',
+  'owners.manage.empty': 'Belum ada owner untuk registrasi ini. Berikan kepemilikan kepada seseorang.',
+  'owners.state.active': 'Aktif',
+  'owners.state.inactive': 'Tidak memberi hak apa pun',
+  'owners.grant.open': 'Berikan kepemilikan',
+  'owners.grant.title': 'Berikan kepemilikan',
+  'owners.grant.body':
+    'Orangnya langsung menjadi owner. Identity Control API menolak workload, Principal yang tidak aktif, dan orang yang sudah menjadi owner.',
+  'owners.grant.principal': 'principal_id orangnya',
+  'owners.grant.principal.invalid': 'Masukkan principal_id: sebuah UUID.',
+  'owners.grant': 'Berikan',
+  'owners.revoke.open': 'Cabut {principal}',
+  'owners.revoke.title': 'Cabut kepemilikan',
+  'owners.revoke.body':
+    'Orangnya berhenti menjadi owner pada permintaan berikutnya. Kepemilikannya tetap tercatat bersama alasanmu.',
+  'owners.revoke': 'Cabut',
+  'owners.revoke.held':
+    'Registrasi produksi mempertahankan minimal dua owner aktif, jadi mencabut salah satunya tidak ditawarkan. Berikan kepemilikan ke owner lain dulu.',
+  'owners.done.granted': 'Kepemilikan diberikan.',
+  'owners.done.revoked': 'Kepemilikan dicabut.',
+
+  'principals.unmapped.title': 'User kernel yang tidak dimiliki Principal mana pun',
+  'principals.unmapped.description':
+    'User yang ditemukan pembanding di kernel di luar jalur resmi. Tidak ada tindakan di sini: putuskan di kernel apakah user itu boleh ada, dan pembanding berikutnya menutup temuan begitu user-nya hilang.',
+  'principals.unmapped.empty': 'Pembanding terakhir tidak menemukan satu pun.',
+  'principals.unmapped.caption': 'Temuan terbuka tentang user kernel, yang terlama dulu',
+  'principals.unmapped.column.class': 'Temuan',
+  'principals.unmapped.column.username': 'Username kernel',
+  'principals.unmapped.column.identifier': 'Pengenal',
+  'principals.unmapped.column.user': 'User kernel',
+  'principals.unmapped.class.unmapped': 'Tanpa pengenal',
+  'principals.unmapped.class.orphan': 'Pengenal yang tidak dimiliki Principal mana pun',
+  'principals.unmapped.class.duplicate': 'User kedua dari satu Principal',
+  'principals.unmapped.none': 'Tidak ada',
+  'principals.unmapped.disabled': 'Dinonaktifkan pembanding',
+  'principals.unmapped.enabled': 'Masih aktif',
+
+  'operations.title': 'Operasi keamanan yang tertahan',
+  'operations.description':
+    'Perintah yang tidak bisa diterapkan executor setelah semua percobaannya. Masing-masing menahan perintah berikutnya untuk Principal-nya. Perbaiki penyebabnya, di kernel atau lewat relink, lalu jalankan ulang. Operasi tidak bisa ditinggalkan.',
+  'operations.empty': 'Tidak ada operasi yang tertahan.',
+  'operations.caption': 'Operasi yang tertahan, yang terlama dulu',
+  'operations.column.principal': 'Principal',
+  'operations.column.type': 'Operasi',
+  'operations.column.attempts': 'Percobaan',
+  'operations.column.error': 'Error terakhir',
+  'operations.column.created': 'Dibuat',
+  'operations.type.suspend': 'Tangguhkan',
+  'operations.type.restore': 'Pulihkan',
+  'operations.type.terminateAll': 'Akhiri semua sesi',
+  'operations.type.revoke': 'Cabut authenticator',
+  'operations.type.sessionTerminate': 'Akhiri satu sesi (swalayan)',
+  'operations.type.authenticatorRemove': 'Hapus authenticator (swalayan)',
+  'operations.redrive.open': 'Jalankan ulang {id}',
+  'operations.redrive.title': 'Jalankan ulang operasi',
+  'operations.redrive.body':
+    'Operasinya dicoba lagi sekarang dengan jatah percobaan baru, dengan pengenal dan riwayatnya sendiri. Ini butuh login yang baru.',
+  'operations.redrive': 'Jalankan ulang',
+  'operations.redrive.applied': 'Operasinya sudah diterapkan.',
+  'operations.redrive.refused': 'Operasinya ditolak: {code}.',
+  'operations.redrive.parked': 'Operasi {id} tertahan lagi. Penyebabnya belum diperbaiki.',
+
+  'principals.events.sweep': 'Baca event terbaru dari kernel',
+  'principals.events.sweep.done': '{kind}: {read, number} dibaca, {recorded, number} baru.',
+  'principals.events.sweep.truncated':
+    '{kind}: {read, number} dibaca, {recorded, number} baru. Pembacaan berhenti di batasnya; pembanding berikutnya membaca sisanya.',
+
+  'workloads.detail.reviewed': 'Terakhir ditinjau',
+  'workloads.detail.never': 'Belum pernah',
+  'workloads.detail.reviewDue': 'Tinjauan berikutnya jatuh tempo',
+  'workloads.conditions.title': 'Temuan pembanding',
+  'workloads.conditions.description':
+    'Workload tanpa owner yang bertanggung jawab, workload yang berhenti mengautentikasi, dan tinjauan owner yang lewat tanggalnya. Setiap daftar dibaca hanya saat kamu membukanya.',
+  'workloads.conditions.show': 'Tampilkan',
+  'workloads.conditions.column.workload': 'Workload',
+  'workloads.conditions.open': 'Buka {name}',
+  'workloads.conditions.orphaned.title': 'Yatim',
+  'workloads.conditions.orphaned.description':
+    'Owner-nya bukan lagi orang yang aktif. Workload tetap berjalan sampai pembanding menangguhkannya; pindahkan owner-nya untuk mencegahnya.',
+  'workloads.conditions.orphaned.empty': 'Tidak ada workload yang yatim.',
+  'workloads.conditions.orphaned.since': 'Yatim sejak',
+  'workloads.conditions.orphaned.caption': 'Workload yatim, yang terlama dulu',
+  'workloads.conditions.unused.title': 'Tidak terpakai',
+  'workloads.conditions.unused.description':
+    'Workload belum mengautentikasi lebih lama dari ambang tidak terpakai. Owner-nya memutuskan apakah akan memensiunkannya.',
+  'workloads.conditions.unused.empty': 'Tidak ada workload yang tidak terpakai.',
+  'workloads.conditions.unused.since': 'Terakhir terlihat',
+  'workloads.conditions.unused.caption': 'Workload tidak terpakai, yang terlama dulu',
+  'workloads.conditions.overdue.title': 'Tinjauan terlambat',
+  'workloads.conditions.overdue.description':
+    'Owner belum meninjau workload tepat waktu. Tinjauan yang terlambat tidak menangguhkan apa pun; owner-nya yang meninjau.',
+  'workloads.conditions.overdue.empty': 'Tidak ada tinjauan yang terlambat.',
+  'workloads.conditions.overdue.since': 'Tinjauan jatuh tempo',
+  'workloads.conditions.overdue.caption': 'Workload yang tinjauannya terlambat, yang terlama dulu',
+  'workloads.conditions.stage.reminder': 'Diingatkan',
+  'workloads.conditions.stage.escalated': 'Dieskalasi',
+  'workloads.conditions.stage.suspended': 'Ditangguhkan',
+  'workloads.sweep': 'Jalankan pembanding workload sekarang',
+  'workloads.sweep.done':
+    'Pembanding selesai: {orphaned, number} yatim, {reclaimed, number} kembali punya owner, {suspended, number} ditangguhkan, {unused, number} tidak terpakai, {reviews_overdue, number} tinjauan terlambat.',
+  'workloads.upkeep.title': 'Perawatan',
+  'workloads.upkeep.description':
+    'Bangun ulang client yang dihapus di kernel, dan, untuk owner workload, tinjauan berkala.',
+  'workloads.rebuild': 'Bangun ulang client',
+  'workloads.rebuild.title': 'Bangun ulang client workload',
+  'workloads.rebuild.body':
+    'Client dibuat lagi dengan principal_id dan key yang sama, jadi semua yang menyebut workload ini tetap berlaku. Identity Control API menolaknya selama kernel masih menyimpan client-nya.',
+  'workloads.rebuild.done': 'Client sudah dibangun ulang.',
+  'workloads.review': 'Tinjau',
+  'workloads.review.title': 'Tinjau workload ini',
+  'workloads.review.body':
+    'Sebagai owner-nya, nyatakan bahwa workload ini masih dibutuhkan, tujuannya masih berlaku, dan owner serta timnya benar. Pernyataanmu dicatat dengan namamu. Kalau ada yang tidak berlaku, pindahkan owner, tangguhkan, atau pensiunkan.',
+  'workloads.review.submit': 'Catat tinjauan',
+  'workloads.review.done': 'Tinjauanmu sudah dicatat.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };
