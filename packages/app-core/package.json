@@ -11,6 +11,7 @@
     "./domain/public-key": "./src/domain/public-key.ts",
     "./domain/reason": "./src/domain/reason.ts",
     "./domain/registration": "./src/domain/registration.ts",
+    "./domain/workload": "./src/domain/workload.ts",
     "./forms": "./src/forms/ReasonField.tsx",
     "./i18n": "./src/i18n/index.ts",
     "./preferences": "./src/preferences/index.ts",

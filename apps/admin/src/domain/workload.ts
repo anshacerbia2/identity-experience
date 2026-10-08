@@ -7,6 +7,12 @@
 // workload's private key. The workload's team generates the key pair and pastes the public half.
 
 import type { PublicJwk } from '@identity-experience/app-core/domain/public-key';
+import {
+  mayReview,
+  type Workload,
+  type WorkloadState,
+  type WorkloadType,
+} from '@identity-experience/app-core/domain/workload';
 
 export {
   readPublicKey,
@@ -14,13 +20,13 @@ export {
   type PublicKeyProblem,
 } from '@identity-experience/app-core/domain/public-key';
 
-export type WorkloadType = 'service' | 'job' | 'connector';
+// The record and who may review it are shared with the Developer Console, where a workload's owner
+// reviews it (TDD-identity-experience-004 §Ownership).
+export type { Workload, WorkloadState, WorkloadType } from '@identity-experience/app-core/domain/workload';
 
 // An agent is representable upstream and refused until bounded delegation is built, so it is not
 // offered here.
 export const workloadTypes: readonly WorkloadType[] = ['service', 'job', 'connector'];
-
-export type WorkloadState = 'pending' | 'active' | 'orphaned' | 'suspended' | 'retired';
 
 export interface CreateWorkloadRequest {
   readonly display_name: string;
@@ -32,28 +38,6 @@ export interface CreateWorkloadRequest {
   readonly application_ref: string;
   readonly audience?: readonly string[];
   readonly public_key: PublicJwk;
-}
-
-export interface Workload {
-  readonly principal_id: string;
-  readonly registration_id: string;
-  readonly client_key: string;
-  readonly display_name: string;
-  readonly purpose: string;
-  readonly workload_type: WorkloadType;
-  readonly owner_principal_id: string;
-  readonly team_reference?: string;
-  readonly owner_recorded_at: string;
-  readonly state: WorkloadState;
-  readonly orphaned_at: string | null;
-  readonly last_seen_at: string | null;
-  readonly created_by: string;
-  readonly created_at: string;
-  readonly activated_at: string | null;
-  // The owner's latest review and when the next is due (TDD-identity-control-004 1.5.0 §Periodic
-  // Review); the due date only for an active or orphaned workload.
-  readonly last_reviewed_at?: string | null;
-  readonly review_due_at?: string;
 }
 
 export interface ReassignRequest {
@@ -133,11 +117,7 @@ export function workloadUpkeep(
   if (workload.state === 'active' || workload.state === 'orphaned') {
     upkeep.push('rebuild');
   }
-  if (
-    workload.state === 'active' &&
-    operator !== null &&
-    workload.owner_principal_id.toLowerCase() === operator.toLowerCase()
-  ) {
+  if (mayReview(workload, operator)) {
     upkeep.push('review');
   }
   return upkeep;

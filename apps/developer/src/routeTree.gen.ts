@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RegistrationsRegistrationIdRouteImport } from './routes/registrations/$registrationId'
 import { Route as RegistrationsNewRouteImport } from './routes/registrations/new'
+import { Route as WorkloadsIndexRouteImport } from './routes/workloads/index'
+import { Route as WorkloadsPrincipalIdRouteImport } from './routes/workloads/$principalId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -29,35 +31,69 @@ const RegistrationsNewRoute = RegistrationsNewRouteImport.update({
   path: '/registrations/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkloadsIndexRoute = WorkloadsIndexRouteImport.update({
+  id: '/workloads/',
+  path: '/workloads/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkloadsPrincipalIdRoute = WorkloadsPrincipalIdRouteImport.update({
+  id: '/workloads/$principalId',
+  path: '/workloads/$principalId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/registrations/new': typeof RegistrationsNewRoute
+  '/workloads/$principalId': typeof WorkloadsPrincipalIdRoute
+  '/workloads/': typeof WorkloadsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/registrations/new': typeof RegistrationsNewRoute
+  '/workloads/$principalId': typeof WorkloadsPrincipalIdRoute
+  '/workloads': typeof WorkloadsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/registrations/new': typeof RegistrationsNewRoute
+  '/workloads/$principalId': typeof WorkloadsPrincipalIdRoute
+  '/workloads/': typeof WorkloadsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/registrations/$registrationId' | '/registrations/new'
+  fullPaths:
+    | '/'
+    | '/registrations/$registrationId'
+    | '/registrations/new'
+    | '/workloads/$principalId'
+    | '/workloads/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/registrations/$registrationId' | '/registrations/new'
-  id: '__root__' | '/' | '/registrations/$registrationId' | '/registrations/new'
+  to:
+    | '/'
+    | '/registrations/$registrationId'
+    | '/registrations/new'
+    | '/workloads/$principalId'
+    | '/workloads'
+  id:
+    | '__root__'
+    | '/'
+    | '/registrations/$registrationId'
+    | '/registrations/new'
+    | '/workloads/$principalId'
+    | '/workloads/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
   RegistrationsNewRoute: typeof RegistrationsNewRoute
+  WorkloadsPrincipalIdRoute: typeof WorkloadsPrincipalIdRoute
+  WorkloadsIndexRoute: typeof WorkloadsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -83,6 +119,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegistrationsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workloads/': {
+      id: '/workloads/'
+      path: '/workloads'
+      fullPath: '/workloads/'
+      preLoaderRoute: typeof WorkloadsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workloads/$principalId': {
+      id: '/workloads/$principalId'
+      path: '/workloads/$principalId'
+      fullPath: '/workloads/$principalId'
+      preLoaderRoute: typeof WorkloadsPrincipalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -90,6 +140,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
   RegistrationsNewRoute: RegistrationsNewRoute,
+  WorkloadsPrincipalIdRoute: WorkloadsPrincipalIdRoute,
+  WorkloadsIndexRoute: WorkloadsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

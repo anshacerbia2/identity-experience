@@ -15,6 +15,7 @@ export const en = {
 
   'shell.nav.section.applications': 'Your applications',
   'shell.nav.registrations': 'My registrations',
+  'shell.nav.workloads': 'My workloads',
 
   'mine.eyebrow': 'Developer Console',
   'mine.title': 'My registrations',
@@ -107,6 +108,50 @@ export const en = {
   'requests.withdraw.title': 'Withdraw the request for {clientKey}',
   'requests.withdraw': 'Withdraw',
   'requests.note': 'A provider other than you approves or rejects each request, in the Admin Portal.',
+
+  'workloads.title': 'My workloads',
+  'workloads.lead':
+    'The services, jobs and connectors you are the accountable owner of. Review each one at least every quarter: that it is still needed, that its purpose holds, and that its owner and team are right.',
+  'workloads.loading': 'Loading your workloads',
+  'workloads.caption': 'Workloads you own',
+  'workloads.column.workload': 'Workload',
+  'workloads.overdue': 'Overdue',
+  'workloads.empty.title': 'You own no workload',
+  'workloads.empty.body':
+    'A provider creates a workload and names the person accountable for it. When you are named, it is listed here with its review dates.',
+  'workloads.state.pending': 'Pending',
+  'workloads.state.active': 'Active',
+  'workloads.state.orphaned': 'Orphaned',
+  'workloads.state.suspended': 'Suspended',
+  'workloads.state.retired': 'Retired',
+
+  'workload.back': 'My workloads',
+  'workload.detail.title': 'The workload',
+  'workload.detail.principal': 'principal_id',
+  'workload.detail.type': 'Type',
+  'workload.detail.team': 'Team',
+  'workload.detail.none': 'None',
+  'workload.detail.never': 'Never',
+  'workload.detail.ownerSince': 'Owner since',
+  'workload.detail.lastSeen': 'Last authenticated',
+  'workload.detail.reviewed': 'Last reviewed',
+  'workload.detail.reviewDue': 'Next review due',
+  'workload.type.service': 'Service',
+  'workload.type.job': 'Job',
+  'workload.type.connector': 'Connector',
+  'workload.review.section': 'Periodic review',
+  'workload.review.description':
+    'As its owner you review it at least every quarter. A review past its due date is reported to you and then to the Tenant’s administrators.',
+  'workload.review.open': 'Review',
+  'workload.review.title': 'Review this workload',
+  'workload.review.body':
+    'State that it is still needed, that its purpose holds, and that its owner and team are right. Your statement is recorded with your name.',
+  'workload.review.submit': 'Record the review',
+  'workload.review.done': 'Your review is recorded.',
+  'workload.review.inactive': 'Only an active workload is reviewed.',
+  'workload.review.notOwner': 'Only the workload’s owner reviews it.',
+  'workload.provider':
+    'Reassigning, suspending, restoring and retiring a workload are a provider’s. If something does not hold, ask the platform team.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -119,6 +164,7 @@ export const id: Messages = {
 
   'shell.nav.section.applications': 'Aplikasimu',
   'shell.nav.registrations': 'Registrasi saya',
+  'shell.nav.workloads': 'Workload saya',
 
   'mine.eyebrow': 'Developer Console',
   'mine.title': 'Registrasi saya',
@@ -210,6 +256,50 @@ export const id: Messages = {
   'requests.withdraw.title': 'Tarik permintaan untuk {clientKey}',
   'requests.withdraw': 'Tarik',
   'requests.note': 'Provider selain kamu menyetujui atau menolak setiap permintaan, di Admin Portal.',
+
+  'workloads.title': 'Workload saya',
+  'workloads.lead':
+    'Service, job, dan connector yang kamu pertanggungjawabkan sebagai owner. Tinjau masing-masing setidaknya tiap kuartal: bahwa ia masih dibutuhkan, tujuannya masih berlaku, dan owner serta timnya benar.',
+  'workloads.loading': 'Memuat workload-mu',
+  'workloads.caption': 'Workload yang kamu miliki',
+  'workloads.column.workload': 'Workload',
+  'workloads.overdue': 'Terlambat',
+  'workloads.empty.title': 'Kamu tidak memiliki workload',
+  'workloads.empty.body':
+    'Provider membuat workload dan menetapkan orang yang bertanggung jawab atasnya. Kalau kamu ditetapkan, workload itu muncul di sini dengan tanggal tinjauannya.',
+  'workloads.state.pending': 'Menunggu',
+  'workloads.state.active': 'Aktif',
+  'workloads.state.orphaned': 'Yatim',
+  'workloads.state.suspended': 'Ditangguhkan',
+  'workloads.state.retired': 'Pensiun',
+
+  'workload.back': 'Workload saya',
+  'workload.detail.title': 'Workload',
+  'workload.detail.principal': 'principal_id',
+  'workload.detail.type': 'Jenis',
+  'workload.detail.team': 'Tim',
+  'workload.detail.none': 'Tidak ada',
+  'workload.detail.never': 'Belum pernah',
+  'workload.detail.ownerSince': 'Owner sejak',
+  'workload.detail.lastSeen': 'Terakhir terautentikasi',
+  'workload.detail.reviewed': 'Terakhir ditinjau',
+  'workload.detail.reviewDue': 'Tinjauan berikutnya jatuh tempo',
+  'workload.type.service': 'Service',
+  'workload.type.job': 'Job',
+  'workload.type.connector': 'Connector',
+  'workload.review.section': 'Tinjauan berkala',
+  'workload.review.description':
+    'Sebagai owner-nya kamu meninjaunya setidaknya tiap kuartal. Tinjauan yang lewat jatuh tempo dilaporkan kepadamu lalu kepada administrator Tenant.',
+  'workload.review.open': 'Tinjau',
+  'workload.review.title': 'Tinjau workload ini',
+  'workload.review.body':
+    'Nyatakan bahwa workload ini masih dibutuhkan, tujuannya masih berlaku, dan owner serta timnya benar. Pernyataanmu dicatat dengan namamu.',
+  'workload.review.submit': 'Catat tinjauan',
+  'workload.review.done': 'Tinjauanmu sudah dicatat.',
+  'workload.review.inactive': 'Hanya workload yang aktif yang ditinjau.',
+  'workload.review.notOwner': 'Hanya owner workload yang meninjaunya.',
+  'workload.provider':
+    'Memindahkan owner, menangguhkan, memulihkan, dan memensiunkan workload adalah wewenang provider. Kalau ada yang tidak berlaku, hubungi tim platform.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };
