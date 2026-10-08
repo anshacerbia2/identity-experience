@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.9.0
+  version: 1.10.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -32,7 +32,8 @@ form fields.
 
 - Where the console is served, and what it shares with the Admin Portal.
 - The owner's surface: the registrations a person owns, their keys, and their suspension and
-  restoration (`ADR-IAM-003`).
+  restoration (`ADR-IAM-003`); and the workloads a person is the accountable owner of, with their
+  review dates and the owner's periodic review (`ADR-IAM-003 §5.8`, 1.10.0).
 - The registration request flow and where approval is required.
 - Redirect URI and audience configuration, validated before submission.
 - Lifetime class selection, and how its consequence is shown.
@@ -70,6 +71,8 @@ a stated interval rather than as a label.
 | `RegistrationPage` | One owned registration: its record, `ClientKeyPanel`, suspend and restore, its redirect URI changes, and its owners |
 | `RedirectUriChanges` | The registered redirect URIs, a proposal of the next set, the open change with its before and after, and the changes decided |
 | `RegisterPage` | A non-production registration by an application developer, offered only where the API accepts one |
+| `MyWorkloadsPage` | The workloads the signed-in person owns, from `GET /v1/workloads:mine`, each with its state, last review and next review due, an overdue one marked (1.10.0) |
+| `WorkloadPage` | One owned workload: its record and the owner's periodic review, with a statement (1.10.0) |
 | `RegistrationWizard` | Guided flow with per-step validation against the API |
 | `RedirectUriEditor` | Live validation, exact-match preview, wildcard refusal with explanation |
 | `LifetimeClassSelector` | Class choice presented as an enforcement interval |
@@ -125,6 +128,9 @@ POST  /api/v1/registrations                             application developer, n
 POST  /api/v1/registration-requests                     application developer, production, with a reason
 GET   /api/v1/registration-requests:mine                its own requests
 POST  /api/v1/registration-requests/{r}:withdraw        its proposer, with a reason
+GET   /api/v1/workloads:mine                            any signed-in person: the workloads it owns
+GET   /api/v1/workloads/{principal_id}                  owner of {principal_id}
+POST  /api/v1/workloads/{principal_id}:review           owner of {principal_id}, with a statement
 POST  /api/v1/registrations/{id}:validate               not yet
 ```
 
@@ -164,12 +170,32 @@ not listed. Granting and revoking an owner are a provider's (`POST …/owners` a
 owner before anything is read), so the console offers neither, by that reason; the Admin Portal does
 (`TDD-identity-experience-003` 1.21.0 §Registration Ownership).
 
-**A workload's review is not offered here (1.9.0).** `POST /v1/workloads/{principal_id}:review` is
-the workload owner's, but the owner cannot read the workload: `GET /v1/workloads/{principal_id}` is a
-provider's, and identity-control serves no list of a person's own workloads. A review form here would
-send an attestation about a record its author cannot see. A provider who owns a workload reviews it in
-the Admin Portal (`TDD-identity-experience-003` 1.21.0 §Workloads). The console offers it once
-identity-control serves the owner's read.
+**A workload's owner reviews it here (1.10.0).** identity-control serves the owner's read
+(`ADR-IAM-003 §5.8`, `TDD-identity-control-004` 1.7.0), which 1.9.0 waited on:
+
+```text
+"My workloads" lists GET /v1/workloads:mine, oldest first:
+    name, client_key, state, last reviewed (or never), next review due
+    a due date already passed is marked overdue
+    an empty answer, null included, says that a provider creates a workload and names its owner
+
+on one workload, GET /v1/workloads/{principal_id}:
+    a workload the person does not own answers 404, and the console shows it as not found
+    show its record: principal_id, client_key, type, purpose, team, owner since,
+        last authenticated, last reviewed, next review due
+    offer the review only to its owner, of an active workload (mayReview)
+    the review sends one line as X-Administrative-Reason, the owner's statement,
+        with the session's CSRF token and an Idempotency-Key; the answer replaces the record
+    never offer reassign, suspend, restore, retire or rebuild: each is a provider's, and the page
+        says so
+```
+
+The workload record and `mayReview` are `packages/app-core/src/domain/workload.ts`, shared with the
+Admin Portal's Workloads page (`TDD-identity-experience-003` 1.22.0 §Workloads), so both offer the
+review by one rule. A provider who owns a workload sees it in the list like any owner; opening it is
+the provider's read, which asks a provider to step up to `aal2` first, and the step-up is offered as
+any other (`TDD-identity-experience-001` §Step-Up). The review goes through the BFF's `/api` proxy as
+every command does: the proxy forwards the path and the two headers and decides nothing.
 
 The console holds no authority of its own. Which registrations a person owns is the
 Identity Control API's record, checked on every request (`ADR-IAM-003`), and the console
@@ -414,6 +440,14 @@ hand-maintained documentation always does.
   workload's owner is offered an audience change and no redirect URIs; a resource, and a client that
   is not active, are offered none (1.8.0, `apps/developer/src/features/registrations/RegistrationPage.test.tsx`).
 - The console offers no approval: approving is a provider's, in the Admin Portal.
+- "My workloads" lists what `GET /api/v1/workloads:mine` returns with each workload's last review and
+  next review due, marks a due date already passed as overdue, and never reads a provider listing; an
+  empty answer, `null` included, says how a workload comes to be owned (1.10.0,
+  `apps/developer/src/features/workloads/WorkloadPage.test.tsx`).
+- A workload's page shows its record and dates. Its owner's review of an active workload sends the
+  statement as `X-Administrative-Reason`, the CSRF token and an Idempotency-Key, and a refusal shows the
+  API's sentence. A workload that is not active, or is not the person's, offers no review, and no
+  provider action is ever offered. A workload the API answers 404 for is shown as not found.
 - "Register a client" is offered only to an application developer outside production. The form
   offers no workload profile and no privileged class, and its audience lists only the person's
   own resources.
@@ -502,6 +536,8 @@ and registration approval backlog.
 | Conforms to | `TDD-identity-control-003` — every rule shown here originates there |
 | Governed by | ADR-IAM-001 §5.12 — confidential and workload clients authenticate with registered keys |
 | Governed by | ADR-IAM-003 — a registration's owners act on it; a production change is approved by another provider |
+| Governed by | ADR-IAM-003 §5.8 — a workload's owner lists, reads and reviews it; another's workload is not found |
+| Depends on | `TDD-identity-control-004` 1.7.0 — `GET /v1/workloads:mine`, the owner's `GET /v1/workloads/{principal_id}` and `:review` |
 | Conforms to | SAD-002 §4.1 — the Developer Identity Console is its own container behind the same BFF |
 | Conforms to | STD-IAM-001 §3.2 — PKCE, exact redirect URIs, no secret in a public client, `private_key_jwt` for confidential and workload clients |
 | Conforms to | STD-IAM-002 §3.3 — every protected resource carries exactly one lifetime class |

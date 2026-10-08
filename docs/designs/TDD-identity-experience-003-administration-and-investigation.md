@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.21.0
+  version: 1.22.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -678,11 +678,11 @@ POST  /api/v1/workloads:sweep
 - **Review is the owner's.** The API answers anyone but the current owner `404`. A provider who is not
   the owner is offered nothing. A review that no longer holds is not edited: reassign, suspend or
   retire is what changes it.
-- **Not in the Developer Console, by reason.** An owner who is not a provider cannot read the workload:
-  `GET /v1/workloads/{principal_id}` is a provider's, and there is no list of a person's own workloads.
-  A form that sends a statement about a workload its author cannot see would make the review an
-  attestation about a record its author was not shown. The console offers it once identity-control
-  serves an owner's read of their own workloads.
+- **In the Developer Console too (1.22.0).** identity-control now serves the owner's read
+  (`ADR-IAM-003 §5.8`, `TDD-identity-control-004` 1.7.0), so an owner who is not a provider lists,
+  reads and reviews its workloads there (`TDD-identity-experience-004` 1.10.0 §Ownership). The
+  workload record and who may review it are shared from `packages/app-core/src/domain/workload.ts`, so
+  this page and the console offer the review by one rule.
 - Each carries an Idempotency-Key (§API / Interface) and no version, because the API takes none; the
   sweep is the scheduled one and changes nothing a second run would not.
 

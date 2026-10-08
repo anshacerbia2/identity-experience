@@ -258,8 +258,11 @@ with no version where the API takes none:
 - ✅ The parked security operations and their re-drive: the Principals page.
 - ✅ The workload sweep, and the orphaned, unused and review-overdue lists, each read when opened: the
   Workloads page. A workload offers a rebuild when active or orphaned, and a review to its owner.
-  **Stated reason:** the Developer Console offers no review, because an owner who is not a provider
-  cannot read the workload; it waits on identity-control serving the owner's read.
+  ✅ The Developer Console's "My workloads" lists what a person owns with each workload's last review
+  and next review due, an overdue one marked, and offers the owner's review on the workload's page
+  (ADR-IAM-003 §5.8; TDD-004 1.10.0, TDD-003 1.22.0), on identity-control's owner read
+  (`GET /v1/workloads:mine` and the owner's `GET /v1/workloads/{principal_id}`, TDD-identity-control-004
+  1.7.0). The record and who may review it are shared in `packages/app-core/src/domain/workload.ts`.
 - ✅ The unmapped, orphan and duplicate kernel users: the Principals page, with no action, because the
   API has none. The kernel event sweep: a Principal's Events section.
 
