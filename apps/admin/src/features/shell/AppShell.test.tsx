@@ -16,11 +16,11 @@ describe('AppShell sign-in notices', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('says Keycloak could not be reached, which is worth simply trying again', async () => {
+  it('says the sign-in service could not be reached, which is worth simply trying again', async () => {
     stubFetch(() => json({ authenticated: false }));
     renderApp('/?sign-in=unavailable');
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('Keycloak could not be reached');
+    expect(alert).toHaveTextContent('The sign-in service could not be reached');
     expect(alert).not.toHaveTextContent('service log');
   });
 

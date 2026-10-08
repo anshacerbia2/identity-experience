@@ -10,7 +10,7 @@ import { Message, useMessage } from '@/core/i18n/Message';
 import { isPrincipalId } from '@/domain/principal';
 import type { Workload, WorkloadState } from '@/domain/workload';
 
-import { WorkloadActions } from './WorkloadActions';
+import { WorkloadActions, WorkloadUpkeepActions } from './WorkloadActions';
 import { useReassign, useWorkload } from './workloads-api';
 import styles from './WorkloadsPage.module.scss';
 
@@ -141,6 +141,26 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
           <dd>
             <FormattedDate value={workload.created_at} dateStyle="medium" timeStyle="short" />
           </dd>
+          <dt>
+            <Message id="workloads.detail.reviewed" />
+          </dt>
+          <dd>
+            {workload.last_reviewed_at === undefined || workload.last_reviewed_at === null ? (
+              <Message id="workloads.detail.never" />
+            ) : (
+              <FormattedDate value={workload.last_reviewed_at} dateStyle="medium" timeStyle="short" />
+            )}
+          </dd>
+          {workload.review_due_at === undefined ? null : (
+            <>
+              <dt>
+                <Message id="workloads.detail.reviewDue" />
+              </dt>
+              <dd>
+                <FormattedDate value={workload.review_due_at} dateStyle="medium" />
+              </dd>
+            </>
+          )}
         </dl>
         {reassigned ? (
           <p className={styles['success']} role="status">
@@ -164,6 +184,7 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
           </div>
         ) : null}
         <WorkloadActions workload={workload} />
+        <WorkloadUpkeepActions workload={workload} />
       </Panel.Body>
       {reassigning ? (
         <ReassignForm
@@ -182,16 +203,21 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
 }
 
 // WorkloadLookup finds one workload by its principal_id, moves it to a new owner, and suspends,
-// restores or retires it. There is no list
-// of every workload: a directory of machine credentials is what an attacker reads first, and the
-// Identity Control API offers none.
-export function WorkloadLookup(): ReactElement {
+// restores, retires, rebuilds or reviews it. There is no list of every workload: a directory of
+// machine credentials is what an attacker reads first, and the Identity Control API offers none. The
+// page holds which workload is looked up, so a row of the sweep's lists can open one here.
+export function WorkloadLookup({
+  principalId,
+  onLookup,
+}: {
+  readonly principalId: string | null;
+  readonly onLookup: (principalId: string) => void;
+}): ReactElement {
   const t = useMessage();
-  const [principalId, setPrincipalId] = useState<string | null>(null);
   const workload = useWorkload(principalId);
   const form = useForm<{ principalId: string }>({ defaultValues: { principalId: '' } });
   const submit = form.handleSubmit((values) => {
-    setPrincipalId(values.principalId.trim().toLowerCase());
+    onLookup(values.principalId.trim().toLowerCase());
   });
 
   let body: ReactElement | null = null;

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { useSession } from '@identity-experience/app-core/session';
 
 // A person's own sessions and authenticators (TDD-identity-control-005 §Self-Service as Built),
@@ -124,13 +124,14 @@ const commandPath = (command: SelfCommand) => {
 // useSelfCommand sends one of a person's own commands, with only its Idempotency-Key: the API takes
 // no reason and no version for them, and follows it to its final state.
 export function useSelfCommand() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const session = useSession();
   const token = session.data?.authenticated === true ? session.data.csrfToken : '';
   return useMutation({
     mutationFn: async (command: SelfCommand) =>
       follow(
-        await apiPost<Operation>(
+        await post<Operation>(
           commandPath(command),
           {},
           { csrfToken: token, headers: { 'idempotency-key': command.idempotencyKey } },
@@ -159,11 +160,12 @@ export type EnrollType = 'totp' | 'webauthn' | 'recovery-codes';
 // useEnroll asks the API to authorize enrolling an authenticator, then goes to the kernel's page
 // that enrolls it (TDD-identity-control-005 §Enrollment and the Assurance Floor).
 export function useEnroll() {
+  const post = useCommandPost();
   const session = useSession();
   const token = session.data?.authenticated === true ? session.data.csrfToken : '';
   return useMutation({
     mutationFn: (type: EnrollType) =>
-      apiPost<{ readonly action: string }>('/v1/me/authenticators:enroll', { type }, { csrfToken: token }),
+      post<{ readonly action: string }>('/v1/me/authenticators:enroll', { type }, { csrfToken: token }),
     onSuccess: ({ action }) => {
       browser.assign(enrollHref(action));
     },
@@ -191,6 +193,7 @@ export type AddressCommand =
 // useAddressCommand adds, proves or removes one of the person's own notification addresses. Adding
 // and removing need a recent sign-in, which the API asks for with a step-up challenge.
 export function useAddressCommand() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const session = useSession();
   const token = session.data?.authenticated === true ? session.data.csrfToken : '';
@@ -198,21 +201,21 @@ export function useAddressCommand() {
     mutationFn: async (command: AddressCommand) => {
       switch (command.action) {
         case 'add':
-          await apiPost<unknown>(
+          await post<unknown>(
             '/v1/me/notification-addresses',
             { address: command.address },
             { csrfToken: token, headers: { 'idempotency-key': command.idempotencyKey } },
           );
           return;
         case 'verify':
-          await apiPost<unknown>(
+          await post<unknown>(
             `/v1/me/notification-addresses/${encodeURIComponent(command.addressId)}:verify`,
             { code: command.code },
             { csrfToken: token },
           );
           return;
         case 'remove':
-          await apiPost<unknown>(
+          await post<unknown>(
             `/v1/me/notification-addresses/${encodeURIComponent(command.addressId)}:remove`,
             {},
             { csrfToken: token },

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
@@ -11,6 +11,7 @@ import type {
   PrincipalCreated,
   PrincipalSweep,
   RelinkResult,
+  UnmappedUser,
 } from '@/domain/principal';
 
 // The Principal reads and commands (TDD-identity-control-001), through the BFF.
@@ -18,6 +19,7 @@ import type {
 export const principalKeys = {
   all: ['principals'] as const,
   dangling: ['principals', 'dangling'] as const,
+  unmapped: ['principals', 'unmapped'] as const,
   developers: ['principals', 'application-developers'] as const,
 };
 
@@ -34,6 +36,17 @@ export function useDangling() {
   });
 }
 
+// useUnmapped reads the kernel users no mapping accounts for: the sweep's open unmapped, orphan and
+// duplicate findings, oldest first. Like the dangling list it is bounded by what the sweep found.
+export function useUnmapped() {
+  return useQuery({
+    queryKey: principalKeys.unmapped,
+    queryFn: async ({ signal }) =>
+      (await apiGet<{ readonly unmapped: readonly UnmappedUser[] | null }>('/v1/principals:unmapped', signal))
+        .unmapped ?? [],
+  });
+}
+
 function useCsrfToken(): string {
   const session = useSession();
   return session.data?.authenticated === true ? session.data.csrfToken : '';
@@ -42,6 +55,7 @@ function useCsrfToken(): string {
 // useCreatePrincipal creates a Principal under an Idempotency-Key the caller holds: a retry of the
 // same request after an outage uses the same key, so a second Principal never appears.
 export function useCreatePrincipal() {
+  const post = useCommandPost();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({
@@ -51,7 +65,7 @@ export function useCreatePrincipal() {
       readonly request: CreatePrincipalRequest;
       readonly idempotencyKey: string;
     }) =>
-      apiPost<PrincipalCreated>('/v1/principals', request, {
+      post<PrincipalCreated>('/v1/principals', request, {
         csrfToken: token,
         headers: { 'idempotency-key': idempotencyKey },
       }),
@@ -59,11 +73,12 @@ export function useCreatePrincipal() {
 }
 
 export function useRelink() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
-      apiPost<RelinkResult>(
+      post<RelinkResult>(
         `/v1/principals/${encodeURIComponent(principalId)}:relink`,
         {},
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -74,10 +89,11 @@ export function useRelink() {
 
 // usePrincipalSweep runs pending recovery and the dangling-mapping sweep now, as the schedule does.
 export function usePrincipalSweep() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
-    mutationFn: () => apiPost<PrincipalSweep>('/v1/principals:reconcile', {}, { csrfToken: token }),
+    mutationFn: () => post<PrincipalSweep>('/v1/principals:reconcile', {}, { csrfToken: token }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: principalKeys.all }),
   });
 }
@@ -95,11 +111,12 @@ export function useApplicationDevelopers() {
 
 // useGrantDeveloper grants a person the standing, and useRevokeDeveloper ends it, each with a reason.
 export function useGrantDeveloper() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
-      apiPost<Developers>(
+      post<Developers>(
         '/v1/application-developers',
         { principal_id: principalId.trim() },
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -109,11 +126,12 @@ export function useGrantDeveloper() {
 }
 
 export function useRevokeDeveloper() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
-      apiPost<Developers>(
+      post<Developers>(
         `/v1/application-developers/${encodeURIComponent(principalId)}:revoke`,
         {},
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },

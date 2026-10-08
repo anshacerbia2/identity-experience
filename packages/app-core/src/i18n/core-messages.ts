@@ -15,7 +15,7 @@ export const coreEn = {
   'shell.session.signInFailed':
     'Sign-in did not complete. Try again; if it keeps failing, the reason is in the service log.',
   'shell.session.signInUnavailable':
-    'Keycloak could not be reached, so sign-in did not complete. Nothing was refused: try again in a moment.',
+    'The sign-in service could not be reached, so sign-in did not complete. Nothing was refused: try again in a moment.',
   'shell.theme.toDark': 'Switch to dark theme',
   'shell.theme.toLight': 'Switch to light theme',
   'shell.locale.label': 'Language',
@@ -232,7 +232,7 @@ export const coreId: CoreMessages = {
   'shell.session.signInFailed':
     'Proses masuk tidak selesai. Coba lagi; kalau terus gagal, alasannya ada di log layanan.',
   'shell.session.signInUnavailable':
-    'Keycloak tidak bisa dihubungi, jadi proses masuk tidak selesai. Tidak ada yang ditolak: coba lagi sebentar lagi.',
+    'Layanan masuk tidak bisa dihubungi, jadi proses masuk tidak selesai. Tidak ada yang ditolak: coba lagi sebentar lagi.',
   'shell.theme.toDark': 'Ganti ke tema gelap',
   'shell.theme.toLight': 'Ganti ke tema terang',
   'shell.locale.label': 'Bahasa',

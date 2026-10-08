@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { audienceList, createWorkloadRequest, isClientKey, readPublicKey, workloadActions } from './workload';
+import {
+  audienceList,
+  createWorkloadRequest,
+  isClientKey,
+  readPublicKey,
+  workloadActions,
+  workloadUpkeep,
+} from './workload';
 
 const publicKey = { kty: 'RSA', n: 'sXch-Mo_B7E', e: 'AQAB' };
 
@@ -87,5 +94,30 @@ describe('workload lifecycle', () => {
     expect(workloadActions({ state: 'suspended' })).toEqual(['restore', 'retire']);
     expect(workloadActions({ state: 'pending' })).toEqual([]);
     expect(workloadActions({ state: 'retired' })).toEqual([]);
+  });
+});
+
+describe('workloadUpkeep', () => {
+  const owner = '01a0da74-44e7-7000-b600-b464c5cb8cec';
+  it('offers a rebuild for an active or orphaned workload, and the review to its owner alone', () => {
+    expect(workloadUpkeep({ state: 'active', owner_principal_id: owner }, owner)).toEqual([
+      'rebuild',
+      'review',
+    ]);
+    expect(workloadUpkeep({ state: 'active', owner_principal_id: owner }, owner.toUpperCase())).toEqual([
+      'rebuild',
+      'review',
+    ]);
+    expect(workloadUpkeep({ state: 'active', owner_principal_id: owner }, 'someone-else')).toEqual([
+      'rebuild',
+    ]);
+    expect(workloadUpkeep({ state: 'active', owner_principal_id: owner }, null)).toEqual(['rebuild']);
+    expect(workloadUpkeep({ state: 'orphaned', owner_principal_id: owner }, owner)).toEqual(['rebuild']);
+  });
+
+  it('offers nothing for a pending, suspended or retired workload', () => {
+    for (const state of ['pending', 'suspended', 'retired'] as const) {
+      expect(workloadUpkeep({ state, owner_principal_id: owner }, owner)).toEqual([]);
+    }
   });
 });

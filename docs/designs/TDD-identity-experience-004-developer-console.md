@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.8.0
+  version: 1.9.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-07
+  last_reviewed: 2026-10-08
   parent_sad: SAD-002
 ---
 
@@ -160,7 +160,16 @@ The record, the key panel and the lifecycle controls are the Admin Portal's own,
 `packages/app-core`; in the console the lifecycle controls offer only what an owner may do, and
 say that retirement is a provider's. Owners are listed by `principal_id`, the identifier the API
 returns, with when and why each was granted; revoked ownerships stay in the API's record and are
-not listed.
+not listed. Granting and revoking an owner are a provider's (`POST …/owners` and `…:revoke` refuse an
+owner before anything is read), so the console offers neither, by that reason; the Admin Portal does
+(`TDD-identity-experience-003` 1.21.0 §Registration Ownership).
+
+**A workload's review is not offered here (1.9.0).** `POST /v1/workloads/{principal_id}:review` is
+the workload owner's, but the owner cannot read the workload: `GET /v1/workloads/{principal_id}` is a
+provider's, and identity-control serves no list of a person's own workloads. A review form here would
+send an attestation about a record its author cannot see. A provider who owns a workload reviews it in
+the Admin Portal (`TDD-identity-experience-003` 1.21.0 §Workloads). The console offers it once
+identity-control serves the owner's read.
 
 The console holds no authority of its own. Which registrations a person owns is the
 Identity Control API's record, checked on every request (`ADR-IAM-003`), and the console

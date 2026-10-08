@@ -79,6 +79,30 @@ export interface SecurityOperation {
   readonly applied_at?: string;
 }
 
+// A parked operation (GET /v1/security-operations:unresolved, TDD-identity-control-005 §Operating the
+// Executor): one the executor gave up on after its attempts, which blocks the Principal's later
+// commands until it is re-driven.
+export interface ParkedOperation {
+  readonly operation_id: string;
+  readonly principal_id: string;
+  readonly operation_type: string;
+  readonly attempts: number;
+  readonly last_error_class?: string;
+  readonly created_at: string;
+}
+
+// What one sweep of the kernel's event store did, per kind (POST /v1/kernel-events:sweep,
+// TDD-identity-control-007).
+export interface KernelEventSweep {
+  readonly kinds: readonly {
+    readonly kind: string;
+    readonly read: number;
+    readonly recorded: number;
+    readonly read_through: string;
+    readonly truncated: boolean;
+  }[];
+}
+
 export const isFinal = (operation: SecurityOperation): boolean =>
   operation.state === 'applied' || operation.state === 'refused' || operation.state === 'unresolved';
 

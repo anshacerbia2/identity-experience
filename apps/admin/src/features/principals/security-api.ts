@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '@identity-experience/app-core/api';
+import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
@@ -10,6 +10,8 @@ import {
   type FederationLink,
   type Finding,
   type KernelEvent,
+  type KernelEventSweep,
+  type ParkedOperation,
   type PrincipalDetail,
   type PrincipalSummary,
   type SecurityOperation,
@@ -24,6 +26,7 @@ export const securityKeys = {
   search: (query: string) => ['principals', 'search', query] as const,
   principal: (id: string) => ['principals', 'detail', id] as const,
   section: (id: string, section: string) => ['principals', 'detail', id, section] as const,
+  parked: ['principals', 'parked-operations'] as const,
 };
 
 const principalPath = (id: string) => `/v1/principals/${encodeURIComponent(id)}` as const;
@@ -147,12 +150,13 @@ function useCsrfToken(): string {
 // useSecurityCommand sends one containment command and follows it to its final state. The Principal
 // is read again afterwards, so the next command names the version this one produced.
 export function useSecurityCommand() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: async (command: SecurityCommand) =>
       follow(
-        await apiPost<SecurityOperation>(
+        await post<SecurityOperation>(
           commandPath(command),
           { expected_version: command.expectedVersion },
           {
@@ -166,5 +170,58 @@ export function useSecurityCommand() {
       ),
     onSettled: (_data, _error, command) =>
       queryClient.invalidateQueries({ queryKey: securityKeys.principal(command.principalId) }),
+  });
+}
+
+// useParkedOperations reads the operations the executor parked, oldest first, at most a hundred
+// (TDD-identity-control-005 §Operating the Executor).
+export function useParkedOperations() {
+  return useQuery({
+    queryKey: securityKeys.parked,
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly operations: readonly ParkedOperation[] | null }>(
+          '/v1/security-operations:unresolved',
+          signal,
+        )
+      ).operations ?? [],
+  });
+}
+
+// useRedrive returns a parked operation to retrying, with a reason, and follows it as an accepted
+// command. It carries no Idempotency-Key: the API refuses a re-drive of an operation that is no longer
+// parked, which makes a repeated request harmless.
+export function useRedrive() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: async ({ operationId, reason }: { readonly operationId: string; readonly reason: string }) =>
+      follow(
+        await post<SecurityOperation>(
+          `/v1/security-operations/${encodeURIComponent(operationId)}:redrive`,
+          {},
+          { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+        ),
+      ),
+    onSettled: (operation) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: securityKeys.parked }),
+        operation === undefined
+          ? Promise.resolve()
+          : queryClient.invalidateQueries({ queryKey: securityKeys.principal(operation.principal_id) }),
+      ]),
+  });
+}
+
+// useKernelEventSweep runs the kernel event sweep now, as the schedule does, and reads the
+// Principal's events again (TDD-identity-control-007).
+export function useKernelEventSweep(principalId: string) {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: () => post<KernelEventSweep>('/v1/kernel-events:sweep', {}, { csrfToken: token }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: securityKeys.section(principalId, 'events') }),
   });
 }

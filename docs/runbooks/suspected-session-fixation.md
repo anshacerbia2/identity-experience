@@ -61,10 +61,10 @@ alert and/or block the offending IP address(es)" [R1]. The BFF logs no client ad
    - set a new 32-byte `IDENTITY_EXPERIENCE_SESSION_KEY` in the secret manager;
    - start the replicas.
 
-   Do the delete. A row sealed under the old key does not open under the new one, and a request that
-   presents it fails with `500` rather than being signed out (`Sealer.open` throws). A copy of the
-   table alone grants nothing: rows are keyed by the cookie's digest and the tokens are sealed under a
-   key the database never sees.
+   Do the delete. A row sealed under the old key does not open under the new one, so its holder is
+   signed out anyway, but the row stays until its expiry, and putting the old key back would open it
+   again. The delete makes the sign-out final. A copy of the table alone grants nothing: rows are keyed
+   by the cookie's digest and the tokens are sealed under a key the database never sees.
 
 ## Verify
 

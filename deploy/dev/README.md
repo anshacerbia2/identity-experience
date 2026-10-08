@@ -90,8 +90,10 @@ From the server's operator: the client, registered or adopted with this laptop's
      pwsh ./scripts/dev-adopt-bff.ps1 -BffJwkFile ./identity-experience-bff.jwk.json -Apply   # adopt
      ```
 
-     It declares the client as above, holds it to the one key it is given, and converges
-     `token_format` and `audience_scope`.
+     It declares the client as above with every key the BFF holds, and converges `token_format` and
+     `audience_scope`. `-BffJwkFile` takes one or two JWK files, `-BffJwkFile a.jwk.json,b.jwk.json`
+     (identity-control's script after identity-control#102). The keys are compared as a set. After
+     adoption the first is `active` and the second `retiring`.
 
    - **It exists, made with a secret before keys.** Give it the key first, with the kernel's tool, then
      adopt it as above:
@@ -180,9 +182,14 @@ copied between machines. How the server takes them depends on whether the client
   ./set-client-key.sh scnehaux identity-experience-bff laptop-a.jwk.json laptop-b.jwk.json
   ```
 
+  Adopting that client declares both keys: `dev-adopt-bff.ps1 -BffJwkFile laptop-a.jwk.json,laptop-b.jwk.json`.
+  The first becomes `active` and the second `retiring`. The retiring key is removed when
+  identity-control's `IDENTITY_CLIENT_KEY_ROTATION_OVERLAP` ends (168h by default), so the two devices
+  cannot both keep signing as the BFF after adoption. List first the key that must keep working.
+
 - **Adopted or registered.** The client's keys belong to its registration. `dev-adopt-bff.ps1` declares
-  the one key it is given, and a key the registration does not declare is a difference identity-control
-  reports, so the operator adopts with the key the client holds. A further key goes through
+  every key it is given, one or two, and a key the registration does not declare is a difference
+  identity-control reports, so the operator adopts with every key the client holds. A further key goes through
   identity-control, `POST /v1/registrations/{registration_id}/keys`, never through `set-client-key.sh`.
 
 **Rotating.** A new key is a rotation, never an overwrite. Make it under a new name, send its public

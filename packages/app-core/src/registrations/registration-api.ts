@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, apiPost } from '../api/api-client';
+import { apiGet } from '../api/api-client';
+import { useCommandPost } from '../api/use-command-post';
 import type { PublicJwk } from '../domain/public-key';
 import { normalizeReason } from '../domain/reason';
 import type {
@@ -49,11 +50,12 @@ export function useRegistration(registrationId: string) {
 // useLifecycle suspends, restores or retires one registration (ADR-IAM-001 §5.13), with the
 // caller's reason, which the API records with the change.
 export function useLifecycle(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ action, reason }: { readonly action: LifecycleAction; readonly reason: string }) =>
-      apiPost<Registration>(
+      post<Registration>(
         `${registrationPath(registrationId)}:${action}`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -75,11 +77,12 @@ export function useKeys(registrationId: string, enabled: boolean) {
 // useRotateKey registers the next public key, which starts a rotation. The answer carries the keys;
 // whether the key was new is read from them, since a retry after a lost answer is answered 200.
 export function useRotateKey(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: (publicKey: PublicJwk) =>
-      apiPost<{ keys: readonly ClientKey[] }>(
+      post<{ keys: readonly ClientKey[] }>(
         `${registrationPath(registrationId)}/keys`,
         { public_key: publicKey },
         { csrfToken: requireToken(token) },
@@ -90,11 +93,12 @@ export function useRotateKey(registrationId: string) {
 
 // useRevokeKey removes one key now, with a reason.
 export function useRevokeKey(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
     mutationFn: ({ keyId, reason }: { readonly keyId: string; readonly reason: string }) =>
-      apiPost<{ keys: readonly ClientKey[] }>(
+      post<{ keys: readonly ClientKey[] }>(
         `${registrationPath(registrationId)}/keys/${encodeURIComponent(keyId)}:revoke`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -152,6 +156,7 @@ export function useChangeQueue() {
 // (TDD-identity-control-003 §Registration Changes). An audience of [] is sent as [], a change to no
 // resource, which the API keeps distinct from an absent one.
 export function useProposeChange(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -166,7 +171,7 @@ export function useProposeChange(registrationId: string) {
       readonly expectedVersion: number;
       readonly reason: string;
     }) =>
-      apiPost<RegistrationChange>(
+      post<RegistrationChange>(
         `${registrationPath(registrationId)}/changes`,
         kind === 'audience'
           ? { audience: values, expected_version: expectedVersion }
@@ -179,6 +184,7 @@ export function useProposeChange(registrationId: string) {
 
 // useDecideChange approves, rejects or withdraws one change, with a reason.
 export function useDecideChange(registrationId: string) {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -191,7 +197,7 @@ export function useDecideChange(registrationId: string) {
       readonly decision: ChangeDecision;
       readonly reason: string;
     }) =>
-      apiPost<RegistrationChange>(
+      post<RegistrationChange>(
         `${registrationPath(registrationId)}/changes/${encodeURIComponent(changeId)}:${decision}`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -212,6 +218,7 @@ export function useStanding() {
 // useRegister creates a registration under an Idempotency-Key the caller holds, so the same request
 // retried after an outage creates nothing new.
 export function useRegister() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -222,7 +229,7 @@ export function useRegister() {
       readonly request: RegisterRequest;
       readonly idempotencyKey: string;
     }) =>
-      apiPost<Registration>('/v1/registrations', request, {
+      post<Registration>('/v1/registrations', request, {
         csrfToken: requireToken(token),
         headers: { 'idempotency-key': idempotencyKey },
       }),
@@ -253,6 +260,7 @@ export function useMyRequests(enabled: boolean) {
 
 // useProposeRegistration requests a production registration, naming its owners, with a reason.
 export function useProposeRegistration() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -265,7 +273,7 @@ export function useProposeRegistration() {
       readonly owners: readonly string[];
       readonly reason: string;
     }) =>
-      apiPost<RegistrationRequestRecord>(
+      post<RegistrationRequestRecord>(
         '/v1/registration-requests',
         { ...request, owners },
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
@@ -276,6 +284,7 @@ export function useProposeRegistration() {
 
 // useDecideRequest approves, rejects or withdraws one request, with a reason.
 export function useDecideRequest() {
+  const post = useCommandPost();
   const queryClient = useQueryClient();
   const token = useCsrfToken();
   return useMutation({
@@ -288,7 +297,7 @@ export function useDecideRequest() {
       readonly decision: ChangeDecision;
       readonly reason: string;
     }) =>
-      apiPost<RegistrationRequestRecord>(
+      post<RegistrationRequestRecord>(
         `/v1/registration-requests/${encodeURIComponent(requestId)}:${decision}`,
         {},
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },

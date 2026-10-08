@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.7.0
+  version: 1.8.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-07
+  last_reviewed: 2026-10-08
   parent_sad: SAD-002
 ---
 
@@ -190,7 +190,9 @@ replacement, then remove the old one.
   the API.
 
 **Commands.** Every command carries an Idempotency-Key kept per distinct request, and no reason
-and no version: the API takes neither for a person's own commands. A `202` is followed at
+and no version: the API takes neither for a person's own commands. 1.8.0 adds the key to the three
+that sent none, enrolling, proving an address and removing one, as STD-GLB-001 1.4.0 asks of every
+command (`TDD-identity-experience-003` §API / Interface states how the key is kept). A `202` is followed at
 `GET /api/v1/me/security-operations/{operation_id}`.
 
 **Getting there.** The shared frame's account menu links to `/account/` from the Portal and the
