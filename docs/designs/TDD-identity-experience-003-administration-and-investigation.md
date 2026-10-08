@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.22.0
+  version: 1.23.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -395,22 +395,27 @@ changes the summary, the counts, and the findings.
 
 ### Change Approval
 
-A production registration's redirect URI change, or audience change (1.20.0), waits until a provider
-other than its proposer approves it (`ADR-IAM-003 §5.2`, `TDD-identity-control-003` §Registration
+A production registration's redirect URI change, audience change (1.20.0), or a resource's
+lifetime-class change (1.23.0, `ADR-IAM-003 §5.9`) waits until a provider other than its proposer
+approves it (`ADR-IAM-003 §5.2`, `TDD-identity-control-003` §Registration
 Changes). The portal is where a provider does that.
 
 ```text
 approval queue (GET /v1/registrations:changes), oldest first:
-    each change: its client, linked to its registration; its kind, redirect URIs or audience; the
-        values before and after; who proposed it, why, and how long it has waited
+    each change: its client, linked to its registration; its kind, redirect URIs, audience or
+        lifetime class; the values before and after, a lifetime class as its token lifetime and
+        revocation target; who proposed it, why, and how long it has waited
     approve or reject, each with a reason, for a change the signed-in provider did not propose
     a change the provider proposed shows that another provider decides it, and offers nothing
     a superseded change is reported as such: the registration moved since, and it is proposed again
 
 registration page:
     the same changes panel the Developer Console shows, with approve and reject added
-    a provider proposes either kind there too, and adds any registered resource to an audience;
-        a workload's panel is its audience alone (`TDD-identity-experience-004` §Audience Changes)
+    a provider proposes any kind there too, and adds any registered resource to an audience;
+        a workload's panel is its audience alone (`TDD-identity-experience-004` §Audience Changes),
+        and a resource's its lifetime class (§Lifetime-Class Changes there, 1.23.0)
+    a confidential registration shows its back-channel logout URI, or that it has none and its
+        sessions end at the next refresh (`ADR-IAM-009`, 1.23.0)
 
 registration requests (GET /v1/registration-requests), on the same page, oldest first:
     each request: its client_key, profile, audience class, lifetime class, redirect URIs and
@@ -769,8 +774,8 @@ again and shows the user signed out rather than a page of errors.
   the section is absent while none is open.
 - The unmanaged list offers no adoption and no deletion: it names the adoption route and the
   Admin Console, and sends nothing.
-- The `client_keys` and `suspension` field classes and the `unmanaged` finding class are shown
-  as words.
+- The `client_keys`, `suspension` and `logout` (1.23.0) field classes and the `unmanaged` finding
+  class are shown as words.
 - A keyed registration lists its keys with state, thumbprint and dates, and a retiring key's time
   left. Rotation is offered only while the registration is active and no key is retiring; a pasted
   private key is refused before anything is sent; a 200 is reported as already rotated. Revocation
@@ -797,6 +802,8 @@ again and shows the user signed out rather than a page of errors.
 - A registration's page shows its changes and decides them as the queue does.
 - An audience change is shown by its kind, with the resources it adds and removes, and is approved
   as any other. A provider proposes a workload's audience from its page (1.20.0).
+- A lifetime-class change is shown by its kind, with the class it moves from and to, each as its
+  token lifetime and revocation target (1.23.0, `ChangeQueuePage.test.tsx`).
 - Registration requests are listed with their document and owners; approving one links to the
   registration it created, and neither decision is offered on one's own request.
 

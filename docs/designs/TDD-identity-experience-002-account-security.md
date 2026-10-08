@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.8.0
+  version: 1.9.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -194,6 +194,24 @@ and no version: the API takes neither for a person's own commands. 1.8.0 adds th
 that sent none, enrolling, proving an address and removing one, as STD-GLB-001 1.4.0 asks of every
 command (`TDD-identity-experience-003` §API / Interface states how the key is kept). A `202` is followed at
 `GET /api/v1/me/security-operations/{operation_id}`.
+
+**Why no version and no reason (1.9.0).** STD-GLB-001 1.5.0 §A Version Where an Update Can Be Lost, a
+Reason Where One Acts for Another decides it, and `TDD-identity-control-005` 2.11.1 follows it:
+
+- **No version.** Each command ends or adds one object, named by a handle from a fresh read: a
+  session, an authenticator, an address. Nothing is overwritten, so the "lost update" that `If-Match`
+  and `428 Precondition Required` exist for cannot happen (RFC 9110 §13.1.1, RFC 6585 §3). The API
+  re-checks at execution what the command depends on, such as the last authenticator, and a handle
+  expires. Microsoft Graph's `DELETE /me/authentication/...` and Okta's MyAccount API take none.
+- **No reason.** The person acts on their own account, so the actor and the subject are one Principal,
+  and the API's record already names them, the object and the outcome (NIST SP 800-53 AU-3). A reason
+  is asked where an administrator acts on someone else's account (`TDD-identity-experience-003`).
+- **What stands in for both.** The API reauthorizes every destructive command, with step-up where it
+  gains access, and every authenticator change is notified to every address the person holds.
+
+So the Week 3 exit holds for a person's own commands as reauthorization by the API and an
+Idempotency-Key; the version and the reason are the exit's for an administrator's commands, which
+`TDD-identity-experience-003` carries.
 
 **Getting there.** The shared frame's account menu links to `/account/` from the Portal and the
 console. The account application links back to neither, because most of the people who use it
@@ -392,4 +410,5 @@ change, and locked-out Principal recovery.
 | Conforms to | `TDD-identity-experience-001` — BFF session, step-up, containment |
 | Conforms to | STD-IAM-001 §3.1, §3.9 — authenticator policy, browser security |
 | Depends on | `TDD-identity-control-005` - every guard and refusal originates in the account-security API mediation contract |
+| Conforms to | STD-GLB-001 1.5.0 — a person's own command carries an Idempotency-Key, no version and no reason (1.9.0) |
 | Depends on | `identity-kernel` — recovery and MFA ceremonies are kernel-rendered |

@@ -20,16 +20,17 @@ account security experience at `/account/`. The BFF keeps its sessions in a loca
 
 The client:
 
-| Property              | Value                                                                                                                                     |
-| :-------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| Client                | `identity-experience-bff`                                                                                                                 |
-| Registered through    | identity-control's `POST /v1/registrations`, or adopted with `POST /v1/registrations:adopt`                                               |
-| Profile               | `confidential`: Authorization Code with PKCE `S256`, nothing else                                                                         |
-| Audience class        | `privileged`, in the `provider-scope` form: the kernel's `scnehaux-provider` scope. Never `internal`                                      |
-| Client authentication | `private_key_jwt`, PS256. The client has no secret (ADR-IAM-001 §5.12)                                                                    |
-| Audience              | `identity-control-api`, the Identity Control API's keyless resource (STD-IAM-002 §3.1)                                                    |
-| Redirect URI          | `http://127.0.0.1:8090/auth/callback`, exactly                                                                                            |
-| Back-channel logout   | none: Keycloak cannot reach a developer's machine, so a session removed in the kernel ends at the BFF's next refresh, within four minutes |
+| Property              | Value                                                                                                                                                          |
+| :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Client                | `identity-experience-bff`                                                                                                                                      |
+| Registered through    | identity-control's `POST /v1/registrations`, or adopted with `POST /v1/registrations:adopt`                                                                    |
+| Profile               | `confidential`: Authorization Code with PKCE `S256`, nothing else                                                                                              |
+| Audience class        | `privileged`, in the `provider-scope` form: the kernel's `scnehaux-provider` scope. Never `internal`                                                           |
+| Client authentication | `private_key_jwt`, PS256. The client has no secret (ADR-IAM-001 §5.12)                                                                                         |
+| Audience              | `identity-control-api`, the Identity Control API's keyless resource (STD-IAM-002 §3.1)                                                                         |
+| Redirect URI          | `http://127.0.0.1:8090/auth/callback`, exactly                                                                                                                 |
+| Back-channel logout   | none: Keycloak cannot reach a developer's machine, so a session removed in the kernel ends at the BFF's next refresh, within four minutes (`ADR-IAM-009 §5.3`) |
+| Front-channel logout  | off, written by identity-control on every client it creates (`ADR-IAM-009 §5.2`)                                                                               |
 
 `create-bff-client.sh` in this directory is the operator's script that made this client before
 identity-control could register a confidential client. It is superseded (its header says so) and is
@@ -79,7 +80,11 @@ From the server's operator: the client, registered or adopted with this laptop's
      ```
 
      The fields are those identity-control's `POST /v1/registrations` reads
-     (`internal/httpapi/registrations.go`, `TDD-identity-control-003`).
+     (`internal/httpapi/registrations.go`, `TDD-identity-control-003`). The body names no
+     `backchannel_logout_uri`, because the kernel cannot reach the laptop. A BFF deployed where the
+     kernel reaches it adds `"backchannel_logout_uri":"https://<its host>/auth/back-channel-logout"`,
+     and identity-control writes it on the client with front-channel logout off
+     (`TDD-identity-control-003` 1.37.0); identity-control's `deploy-dev` proves that path from zero.
 
    - **It exists, made by `create-bff-client.sh`.** Adopt it with identity-control's
      `scripts/dev-adopt-bff.ps1`, a plan first, then with `-Apply` (identity-control

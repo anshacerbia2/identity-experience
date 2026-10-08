@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.17.0
+  version: 1.18.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -110,7 +110,7 @@ A BFF registered before the resource existed moves by an audience change
 | `TokenHolder` | Holds access and refresh tokens per session; never serialized to the browser |
 | `ApiProxy` | Forwards browser requests to the Identity Control API, attaching the access token |
 | `CsrfGuard` | Origin and token checks on every state-changing request |
-| `LogoutController` | Front-channel logout, back-channel logout receiver, global sign-out |
+| `LogoutController` | Back-channel logout receiver, sign-out, global sign-out. No front-channel logout (§No Front-Channel Logout) |
 | `StepUpController` | Re-authentication for operations requiring elevated assurance |
 
 ### Sign-in
@@ -489,6 +489,40 @@ refresh path is the guaranteed one: it requires no callback to arrive and no req
 to be made, so it bounds the interval even when the browser is idle and the
 notification is lost.
 
+**Where the URL is registered (1.18.0).** The BFF's client is registered through identity-control's
+`POST /v1/registrations` with `backchannel_logout_uri` set to this BFF's `/auth/back-channel-logout`
+on an address the kernel's container reaches, or adopted declaring it (`TDD-identity-control-003`
+1.37.0). identity-control writes it with front-channel logout off and "session required" on, so the
+logout token names the session by `sid`, and its drift sweep holds both. identity-control's
+`deploy-dev` proves a client registered that way receives a PS256 `logout+jwt` naming the session the
+API ends. A BFF on a developer's machine registers none: the specification requires the URI to be
+"reachable from all the OPs used", and the kernel cannot reach the laptop (`ADR-IAM-009 §5.3`). There,
+the refresh path alone bounds the session, as it bounds every session.
+
+### No Front-Channel Logout
+
+1.0.0 named front-channel logout among `LogoutController`'s duties and specified no endpoint for it.
+1.18.0 removes it, by `ADR-IAM-009 §5.2`, and the BFF keeps its `frame-ancestors 'none'` and its
+`SameSite=Lax` cookie:
+
+- **The kernel ends sessions without a browser.** A person's own session end, a provider's
+  containment and a suspension all remove the session through the Admin API. The pinned kernel tells
+  a client of such a removal only by the back channel; front-channel logout reaches a client only
+  "when the logout is triggered in the same browser session" (`ADR-IAM-009` [R3]).
+- **The two are exclusive per client.** Keycloak 26.7.5 skips the back channel for a client with
+  front-channel logout on (`ADR-IAM-009` [R4]), so turning it on would remove the notification an
+  administrative removal sends.
+- **The frame would be refused, and could not read the session.** Front-channel logout renders the
+  logout URI in an iframe on the kernel's page, which this BFF's `frame-ancestors 'none'` refuses; a
+  `SameSite=Lax` cookie is not sent on navigations inside an iframe, and browsers partition or block
+  cross-site frame storage (`ADR-IAM-009` [R5]–[R7]). The specification says so of itself: the logout
+  URI "might not be able to access the RP's login state when rendered by the OP in an iframe"
+  (`ADR-IAM-009` [R1]).
+
+A sign-out here still reaches every other relying party of the kernel session: the BFF ends it at the
+kernel's logout endpoint, which sends the back channel to the session's other clients
+(`ADR-IAM-009 §5.4`).
+
 A tab whose session is destroyed receives 401 on its next call and redirects to
 sign-in. The design does not attempt to push a notification into an idle tab, because
 an idle tab makes no request and therefore exercises no authority.
@@ -854,7 +888,10 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |
 | Conforms to | STD-GLB-005 §Retry and Exponential Backoff Policy — a store outage answers 503, which a caller may retry; a refusal answers 4xx, which it may not (1.17.0) |
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |
-| Depends on | `identity-kernel` — hosted login, realm configuration, back-channel logout registration |
+| Depends on | `identity-kernel` — hosted login and realm configuration; `compat/back_channel_logout_test.go` proves the pinned kernel posts a logout token on an Admin API removal and none to a front-channel client |
+| Depends on | `identity-control` — the client's `backchannel_logout_uri` and front-channel logout held off (`TDD-identity-control-003` 1.37.0) |
+| Governed by | ADR-IAM-009 — logout reaches a relying party by the back channel; no front-channel logout (1.18.0) |
+| Conforms to | STD-IAM-001 2.7.0 §3.4 — back-channel logout for a reachable server-side relying party |
 | Depends on | `identity-control` — the Identity Control API, which reauthorizes every command |
 | Conforms to | `foundation-platform` problem registry — the same problem types, written in TypeScript |
 | Build-time dependency | `scnehaux-ui-platform` — design system packages, per SAD-002 §1 |
