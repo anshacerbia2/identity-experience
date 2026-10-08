@@ -151,13 +151,45 @@ The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
 the remaining access token lifetime of class `L0`; a lost back-channel notification does
 not extend it, because the refresh path bounds it independently.
 
-**Half met** (TDD-001 1.16.0). The bound is asserted: `bff/test/containment.test.ts` removes the
-kernel session at five points in a token's life, delivers no back-channel logout, and the session ends
-no later than the expiry of the token it held. The measurement is not: timing a real Membership
-revocation needs organization-control, identity-control and the kernel together with this BFF, which
-no job of this repository runs. It belongs in a stack-level proof. Note also that no repository
-registers the BFF's back-channel logout URL on a server yet, so today every server relies on the
-refresh path (`docs/runbooks/back-channel-logout-failure.md`).
+✅ **Met, measured against the stack** (TDD-001 1.19.0 §Revocation). The bound was asserted first
+(1.16.0): `bff/test/containment.test.ts` removes the kernel session at five points in a token's life,
+delivers no back-channel logout, and the session ends no later than the expiry of the token it held.
+The measurement is organization-experience's `stack-proof` workflow (STD-GLB-009 §Stack-Level Proofs),
+which brings up the kernel, identity-control, organization-control, this BFF and its applications at
+`identity_experience_ref`, and organization-experience's BFF, and drives them in Chromium. Its
+`stack-evidence` artifact holds each figure with its bound. In run
+[37853070937](https://github.com/anshacerbia2/organization-experience/actions/runs/37853070937), every
+repository at `main`:
+
+| Revoked                                                          | Session                                                             | Accepted to kernel applied | Accepted to session ended |   Bound | Ended by        |
+| :--------------------------------------------------------------- | :------------------------------------------------------------------ | -------------------------: | ------------------------: | ------: | :-------------- |
+| a Membership, at Organization Control                            | a Tenant session of this pattern, served by organization-experience |                      2.7 s |                   162.9 s | 192.6 s | refresh refused |
+| a kernel session, from another device in the account application | this BFF's                                                          |                      0.2 s |                   209.2 s | 238.9 s | refresh refused |
+
+- **A Membership revocation sends no back-channel logout.** It removes no kernel session
+  (`ADR-IAM-006 §5.5`), so the refresh path alone bounds it, and a lost notification cannot extend it.
+  No request was served after acceptance: Organization Control refused the token at once with `403`.
+  An idle tab's first request was refused, and one after its token expired found the session gone.
+  This BFF holds no Tenant session, so the session measured is the pattern's as organization-experience
+  serves it; its pattern files were this repository's byte for byte at the ref checked out.
+- **A removed kernel session, with and without the back channel.** At `main` no repository registers
+  this BFF's back-channel logout URL, and the refresh path ended the session, with no refresh succeeding
+  after the removal. Against the `logout-and-self-commands` branches of identity-kernel, identity-control
+  and this repository, which register it, run
+  [37853072129](https://github.com/anshacerbia2/organization-experience/actions/runs/37853072129) saw the
+  back channel end the session 0.9 s after acceptance, before identity-control's answer reached the other
+  device; the Membership revocation there took 167.7 s against 197.3 s.
+- **Two early runs did not end, and the cause is not established.** In runs
+  [37843816015](https://github.com/anshacerbia2/organization-experience/actions/runs/37843816015) and
+  [37846007225](https://github.com/anshacerbia2/organization-experience/actions/runs/37846007225) the
+  removed session's tab kept being answered `200` for five to six minutes after the kernel stopped
+  listing the session, past the expiry of the token it held then, so a refresh of the removed session
+  succeeded. Their evidence could not say more. Since run 37847908410 the evidence records every refresh
+  of the session and, when it does not end, the kernel's sessions and its own `REFRESH_TOKEN` and
+  `REFRESH_TOKEN_ERROR` events. The eight runs since, three of them repeats at `main` (37854786204,
+  37854789717, 37854793345), ended within the bound with no refresh after the removal. A recurrence
+  fails the proof with those records. Until one is explained, the refresh path's bound for a removed
+  kernel session is measured, not guaranteed.
 
 ## Week 3 · Account security
 
