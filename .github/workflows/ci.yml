@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Run by hand on a branch, to prove a change before its pull request exists.
+  workflow_dispatch:
 
 permissions:
   contents: read
