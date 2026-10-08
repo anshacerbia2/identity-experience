@@ -151,10 +151,11 @@ export function useChangeQueue() {
   });
 }
 
-// useProposeChange proposes the next set of redirect URIs, or the next audience, against the
-// version the caller read. The body names one kind and never both: the API refuses a change to both
-// (TDD-identity-control-003 §Registration Changes). An audience of [] is sent as [], a change to no
-// resource, which the API keeps distinct from an absent one.
+// useProposeChange proposes the next set of redirect URIs, the next audience, or a resource's next
+// lifetime class, against the version the caller read. The body names one kind and no other: the API
+// refuses a change to two (TDD-identity-control-003 §Registration Changes). An audience of [] is sent
+// as [], a change to no resource, which the API keeps distinct from an absent one. A lifetime class
+// is the one value given.
 export function useProposeChange(registrationId: string) {
   const post = useCommandPost();
   const queryClient = useQueryClient();
@@ -173,13 +174,22 @@ export function useProposeChange(registrationId: string) {
     }) =>
       post<RegistrationChange>(
         `${registrationPath(registrationId)}/changes`,
-        kind === 'audience'
-          ? { audience: values, expected_version: expectedVersion }
-          : { redirect_uris: values, expected_version: expectedVersion },
+        changeBody(kind, values, expectedVersion),
         { csrfToken: requireToken(token), headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: registrationKeys.all }),
   });
+}
+
+function changeBody(kind: ChangeKind, values: readonly string[], expectedVersion: number): object {
+  switch (kind) {
+    case 'audience':
+      return { audience: values, expected_version: expectedVersion };
+    case 'lifetime_class':
+      return { lifetime_class: values[0], expected_version: expectedVersion };
+    case 'redirect_uris':
+      return { redirect_uris: values, expected_version: expectedVersion };
+  }
 }
 
 // useDecideChange approves, rejects or withdraws one change, with a reason.

@@ -23,6 +23,9 @@ export interface Registration {
   readonly audience: readonly string[];
   readonly redirect_uris: readonly string[];
   readonly access_token_lifespan?: number;
+  // Where the kernel posts a confidential client's logout tokens; absent for a client the kernel
+  // cannot reach (ADR-IAM-009, TDD-identity-control-003 1.37.0).
+  readonly backchannel_logout_uri?: string;
   readonly state: RegistrationState;
   readonly version: number;
   readonly created_at: string;
@@ -287,12 +290,12 @@ export function ownerRevocable(
   return activeOwners(owners).length - 1 >= minProductionOwners;
 }
 
-// A change to a registration's redirect URIs or its audience (ADR-IAM-003 §5.2,
-// TDD-identity-control-003 §Registration Changes). The API records the set it replaces and the
-// version it was read at, so what an approver sees is what the proposer saw. Exactly one of the
-// two before/after pairs is set, by `kind`; the other pair is `null`, never `[]`.
+// A change to a registration's redirect URIs, its audience, or a resource's lifetime class
+// (ADR-IAM-003 §5.2, §5.9, TDD-identity-control-003 §Registration Changes). The API records what it
+// replaces and the version it was read at, so what an approver sees is what the proposer saw. Exactly
+// one of the before/after pairs is set, by `kind`; the others are `null`, never `[]`.
 export type ChangeState = 'proposed' | 'applied' | 'rejected' | 'withdrawn' | 'superseded';
-export type ChangeKind = 'redirect_uris' | 'audience';
+export type ChangeKind = 'redirect_uris' | 'audience' | 'lifetime_class';
 
 export interface RegistrationChange {
   readonly change_id: string;
@@ -304,6 +307,10 @@ export interface RegistrationChange {
   readonly redirect_uris: readonly string[] | null;
   readonly previous_audience: readonly string[] | null;
   readonly audience: readonly string[] | null;
+  // A lifetime_class change's before and after; null for every other kind, and absent from a change
+  // an API before TDD-identity-control-003 1.37.0 recorded.
+  readonly previous_lifetime_class?: string | null;
+  readonly lifetime_class?: string | null;
   readonly approval_required: boolean;
   readonly proposed_by: string;
   readonly proposal_reason: string;
@@ -320,9 +327,17 @@ export function changeValues(change: RegistrationChange): {
   readonly before: readonly string[];
   readonly after: readonly string[];
 } {
-  return change.kind === 'audience'
-    ? { before: change.previous_audience ?? [], after: change.audience ?? [] }
-    : { before: change.previous_redirect_uris ?? [], after: change.redirect_uris ?? [] };
+  switch (change.kind) {
+    case 'audience':
+      return { before: change.previous_audience ?? [], after: change.audience ?? [] };
+    case 'lifetime_class':
+      return {
+        before: change.previous_lifetime_class ? [change.previous_lifetime_class] : [],
+        after: change.lifetime_class ? [change.lifetime_class] : [],
+      };
+    case 'redirect_uris':
+      return { before: change.previous_redirect_uris ?? [], after: change.redirect_uris ?? [] };
+  }
 }
 
 export type ChangeDecision = 'approve' | 'reject' | 'withdraw';
@@ -336,6 +351,11 @@ export const hasRedirectUris = (registration: Pick<Registration, 'profile'>): bo
 export const hasAudience = (registration: Pick<Registration, 'profile'>): boolean =>
   registration.profile !== 'resource';
 
+// hasLifetimeClass is whether a registration carries a lifetime class: a resource, whose callers
+// derive their lifespan from it (STD-IAM-002 §3.3).
+export const hasLifetimeClass = (registration: Pick<Registration, 'profile'>): boolean =>
+  registration.profile === 'resource';
+
 // changeKinds are the changes the API accepts for a registration as it stands: only an active one
 // is changed, and only in what its profile carries. The API refuses the rest; this keeps a form
 // from being offered.
@@ -346,6 +366,7 @@ export function changeKinds(registration: Pick<Registration, 'profile' | 'state'
   return [
     ...(hasRedirectUris(registration) ? (['redirect_uris'] as const) : []),
     ...(hasAudience(registration) ? (['audience'] as const) : []),
+    ...(hasLifetimeClass(registration) ? (['lifetime_class'] as const) : []),
   ];
 }
 
@@ -404,18 +425,26 @@ export type DeveloperProfile = (typeof developerProfiles)[number];
 export const developerClasses = ['internal', 'external'] as const;
 export type DeveloperClass = (typeof developerClasses)[number];
 
-// The lifetime classes a developer's resource may carry, and what each means
-// (STD-IAM-002 §3.3, TDD-identity-experience-004 §Lifetime Class as an Interval). L3 is for workload
-// audiences, which a developer does not register.
+// The lifetime classes of STD-IAM-002 §3.3 and what each means: the access token lifetime and the
+// revocation target, in minutes (TDD-identity-experience-004 §Lifetime Class as an Interval).
+export const lifetimeClasses = ['L0', 'L1', 'L2', 'L3'] as const;
+export type LifetimeClass = (typeof lifetimeClasses)[number];
+export const isLifetimeClass = (value: unknown): value is LifetimeClass =>
+  typeof value === 'string' && (lifetimeClasses as readonly string[]).includes(value);
+export const classMinutes: Readonly<Record<LifetimeClass, { token: number; revocation: number }>> = {
+  L0: { token: 4, revocation: 5 },
+  L1: { token: 9, revocation: 10 },
+  L2: { token: 15, revocation: 16 },
+  L3: { token: 9, revocation: 10 },
+};
+
+// The lifetime classes a developer's resource may carry. L3 is for workload audiences, which a
+// developer does not register.
 export const developerLifetimeClasses = ['L0', 'L1', 'L2'] as const;
 export type DeveloperLifetimeClass = (typeof developerLifetimeClasses)[number];
 export const lifetimeMinutes: Readonly<
   Record<DeveloperLifetimeClass, { token: number; revocation: number }>
-> = {
-  L0: { token: 4, revocation: 5 },
-  L1: { token: 9, revocation: 10 },
-  L2: { token: 15, revocation: 16 },
-};
+> = classMinutes;
 
 export interface RegisterRequest {
   readonly client_key: string;

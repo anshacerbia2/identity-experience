@@ -20,6 +20,7 @@ const fieldLabels: Readonly<Record<string, MessageKey>> = {
   profile: 'findings.field.profile',
   client_keys: 'findings.field.client_keys',
   suspension: 'findings.field.suspension',
+  logout: 'findings.field.logout',
 };
 
 // A finding with no field class is about the whole client: it is missing, or was recreated.

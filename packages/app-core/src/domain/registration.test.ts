@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   changeable,
   changeKinds,
+  changeValues,
+  classMinutes,
   convergenceSeconds,
   daysLeft,
   lifecycleActions,
@@ -16,6 +18,7 @@ import {
   unmanagedEnabled,
   type Finding,
   type Registration,
+  type RegistrationChange,
   ownerRevocable,
   type Owner,
 } from './registration';
@@ -151,18 +154,37 @@ describe('redirect URI changes', () => {
 describe('audience changes', () => {
   // TDD-identity-control-003 §Registration Changes: an audience change is accepted on an active
   // public, confidential or workload client; a resource has no audience.
-  it('offers an audience change on every active client, and nothing on a resource', () => {
+  it('offers an audience change on every active client, and a lifetime-class change on a resource', () => {
     expect(changeKinds({ profile: 'public', state: 'active' })).toEqual(['redirect_uris', 'audience']);
     expect(changeKinds({ profile: 'confidential', state: 'active' })).toEqual(['redirect_uris', 'audience']);
     expect(changeKinds({ profile: 'workload', state: 'active' })).toEqual(['audience']);
-    expect(changeKinds({ profile: 'resource', state: 'active' })).toEqual([]);
+    expect(changeKinds({ profile: 'resource', state: 'active' })).toEqual(['lifetime_class']);
   });
 
   it('offers nothing on a registration that is not active', () => {
     for (const state of ['pending', 'suspended', 'retired'] as const) {
       expect(changeKinds({ profile: 'confidential', state })).toEqual([]);
       expect(changeKinds({ profile: 'workload', state })).toEqual([]);
+      expect(changeKinds({ profile: 'resource', state })).toEqual([]);
     }
+  });
+
+  // ADR-IAM-003 §5.9: a lifetime-class change's before and after are its two classes.
+  it('reads a lifetime-class change as its two classes', () => {
+    const lifetime = {
+      kind: 'lifetime_class',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+      previous_audience: null,
+      audience: null,
+      previous_lifetime_class: 'L1',
+      lifetime_class: 'L0',
+    } as const;
+    expect(changeValues(lifetime as unknown as RegistrationChange)).toEqual({
+      before: ['L1'],
+      after: ['L0'],
+    });
+    expect(classMinutes.L3).toEqual({ token: 9, revocation: 10 });
   });
 });
 

@@ -101,6 +101,17 @@ export function RegistrationDetails({ registration }: { readonly registration: R
         <Field label="registration.field.redirects">
           <List values={registration.redirect_uris} />
         </Field>
+        {registration.profile === 'confidential' ? (
+          <Field label="registration.field.backChannelLogout">
+            {registration.backchannel_logout_uri === undefined ? (
+              <span className={styles['quiet']}>
+                <CoreMessage id="registration.backChannelLogout.none" />
+              </span>
+            ) : (
+              <code>{registration.backchannel_logout_uri}</code>
+            )}
+          </Field>
+        ) : null}
         <Field label="registration.field.registeredBy">
           <code>{registration.registered_by}</code>
         </Field>

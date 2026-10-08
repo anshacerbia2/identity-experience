@@ -102,6 +102,7 @@ describe('SecurityPage', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  // STD-GLB-001 1.5.0: a person's own command carries no version and no reason, only its key.
   it('ends another session with only an Idempotency-Key, and says how long its access lasts', async () => {
     const { sent } = api(() => json(operation('applied')));
     renderApp('/account/');
@@ -114,6 +115,7 @@ describe('SecurityPage', () => {
     expect(command?.url.pathname).toBe('/api/v1/me/sessions/k1.there:terminate');
     expect(command?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
     expect(command?.headers['x-administrative-reason']).toBeUndefined();
+    expect(command?.headers['if-match']).toBeUndefined();
     expect(command?.headers['x-csrf-token']).toBe(csrfToken);
   });
 
