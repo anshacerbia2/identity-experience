@@ -167,6 +167,69 @@ describe('the approval queue', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
+  // ADR-IAM-009 §5.1, TDD-identity-control-003 1.38.0: a logout URI change is read as the URI it moves
+  // from and to, and a removal as removed.
+  it('shows a back-channel logout URI change as the URI it moves from and to, and a removal', async () => {
+    const moved = change({
+      change_id: 'c-5',
+      kind: 'backchannel_logout_uri',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+      previous_backchannel_logout_uri: 'https://billing.example.com/auth/back-channel-logout',
+      backchannel_logout_uri: 'https://bff.billing.example.com/auth/back-channel-logout',
+    });
+    const removed = change({
+      change_id: 'c-6',
+      client_key: 'reports-web',
+      registration_id: 'r-reports',
+      kind: 'backchannel_logout_uri',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+      previous_backchannel_logout_uri: 'https://reports.example.com/logout',
+      backchannel_logout_uri: null,
+    });
+    const { sent } = api([moved, removed], () => json({ ...moved, state: 'applied' }));
+    const { container } = renderApp('/changes');
+
+    expect(await screen.findAllByText('Back-channel logout URI')).toHaveLength(2);
+    expect(screen.getByText('https://billing.example.com/auth/back-channel-logout')).toBeInTheDocument();
+    expect(screen.getByText('https://bff.billing.example.com/auth/back-channel-logout')).toBeInTheDocument();
+    expect(screen.getByText('https://reports.example.com/logout')).toBeInTheDocument();
+    expect(screen.getByText('Removed: no back-channel logout')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+
+    const card = screen
+      .getByRole('link', { name: 'billing-web' })
+      .closest('section, div[class]') as HTMLElement;
+    await userEvent.click(within(card).getAllByRole('button', { name: 'Approve' })[0] as HTMLElement);
+    await userEvent.type(screen.getByRole('textbox', { name: /reason/i }), 'The BFF moved hosts');
+    const form = screen.getByRole('button', { name: 'Cancel' }).closest('form') as HTMLElement;
+    await userEvent.click(within(form).getByRole('button', { name: 'Approve' }));
+    await vi.waitFor(() => {
+      expect(posts(sent)[0]?.url.pathname).toBe('/api/v1/registrations/r-billing/changes/c-5:approve');
+    });
+  });
+
+  // TDD-identity-experience-004 §A Change Kind This Version Does Not Know: a kind added to the API
+  // before this version knows it renders with its kind and no values, and the queue keeps working.
+  it('renders a change of a kind it does not know, and the rest of the queue', async () => {
+    const unknown = {
+      ...change({ change_id: 'c-7', client_key: 'mystery-web', registration_id: 'r-mystery' }),
+      kind: 'post_logout_redirect_uris',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+    } as unknown as RegistrationChange;
+    api([unknown, change({})]);
+    const { container } = renderApp('/changes');
+
+    expect(
+      await screen.findByText('A change kind this version does not show yet: post_logout_redirect_uris'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'mystery-web' })).toBeInTheDocument();
+    expect(screen.getByText('https://pay.example.com/callback')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it('says nothing was applied when the change was superseded', async () => {
     api([change({})], () => json(change({ state: 'superseded', decided_by: me })));
     renderApp('/changes');

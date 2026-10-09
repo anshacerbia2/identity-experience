@@ -303,7 +303,11 @@ kind. ✅ Lifetime-class changes followed identity-control's `lifetime_class` ki
 TDD-004 1.11.0 §Lifetime-Class Changes, TDD-003 1.23.0): a resource's page proposes the next class,
 each of the four shown as its token lifetime and revocation target, and the approval queue shows the
 class a change moves from and to. A confidential registration shows its back-channel logout URI, or
-that it has none.
+that it has none. ✅ Back-channel logout URI changes followed identity-control's
+`backchannel_logout_uri` kind (identity-control#106, ADR-IAM-009 §5.1; TDD-004 1.12.0 §Back-Channel
+Logout URI Changes, TDD-003 1.25.0): a confidential client's page proposes the next URI, or its
+removal, and the approval queue shows the URI a change moves from and to. A change of a kind this
+version does not know renders with its kind and no values, and the page does not fail.
 
 - ✅ Identity administration and investigation surfaces
 - ✅ Application and client onboarding, redirect and audience configuration
@@ -390,7 +394,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.24.0 and 1.11.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.25.0 and 1.12.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

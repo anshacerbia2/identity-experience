@@ -10,6 +10,7 @@ import {
   StatusPill,
   Table,
   TextAreaField,
+  TextField,
   type StatusTone,
 } from '@identity-experience/ui';
 
@@ -23,8 +24,10 @@ import {
   changeValues,
   classMinutes,
   hasAudience,
+  hasBackChannelLogout,
   hasLifetimeClass,
   hasRedirectUris,
+  isKnownChangeKind,
   isLifetimeClass,
   lifetimeClasses,
   lineEntries,
@@ -51,14 +54,26 @@ const stateTones: Readonly<Record<ChangeState, StatusTone>> = {
   superseded: 'warning',
 };
 
-// kindLabel names what a change's before/after values are: redirect URIs, or an audience of
-// resource client_keys. A registration's own redirect URIs and audience class are shown
-// elsewhere; this is only ever used to label one change in a list that can hold both kinds.
+// kindLabel names what a change's before/after values are: redirect URIs, an audience of resource
+// client_keys, a lifetime class or a logout URI. A registration's own values are shown elsewhere;
+// this is only ever used to label one change in a list that can hold every kind.
 const kindLabel: Readonly<Record<ChangeKind, CoreMessageKey>> = {
   redirect_uris: 'changes.kind.redirect_uris',
   audience: 'changes.kind.audience',
   lifetime_class: 'changes.kind.lifetime_class',
+  backchannel_logout_uri: 'changes.kind.backchannel_logout_uri',
 };
+
+// KindLabel is a change's kind in words, or, for a kind this version does not know, the kind as the
+// API spells it and that this version does not show it (TDD-identity-experience-004 §A Change Kind
+// This Version Does Not Know).
+function KindLabel({ kind }: { readonly kind: string }): ReactElement {
+  return isKnownChangeKind(kind) ? (
+    <CoreMessage id={kindLabel[kind]} />
+  ) : (
+    <CoreMessage id="changes.kind.unknown" values={{ kind }} />
+  );
+}
 
 // ClassMeaning is a lifetime class as a proposer and an approver read it: its access token lifetime
 // and the revocation target it sets (STD-IAM-002 §3.3), the delay the standard requires a change to
@@ -82,21 +97,35 @@ function Who({ principal, me }: { readonly principal: string; readonly me: strin
 
 // ChangeDiffList is a change's before and after as the API recorded them when it was proposed: what
 // it adds, removes and keeps, each said in words and not by colour alone.
-function ChangeDiffList({ change }: { readonly change: RegistrationChange }): ReactElement {
+function ChangeDiffList({ change }: { readonly change: RegistrationChange }): ReactElement | null {
+  if (!isKnownChangeKind(change.kind)) {
+    return null;
+  }
   const { before, after } = changeValues(change);
-  if (change.kind === 'lifetime_class') {
-    const rows: readonly (readonly [CoreMessageKey, string | undefined])[] = [
-      ['changes.lifetime.from', before[0]],
-      ['changes.lifetime.to', after[0]],
+  if (change.kind === 'lifetime_class' || change.kind === 'backchannel_logout_uri') {
+    const logout = change.kind === 'backchannel_logout_uri';
+    const rows: readonly (readonly [CoreMessageKey, string | undefined, CoreMessageKey])[] = [
+      ['changes.lifetime.from', before[0], 'changes.logout.none'],
+      ['changes.lifetime.to', after[0], 'changes.logout.removed'],
     ];
     return (
       <ul className={styles['values']}>
-        {rows.map(([label, value]) => (
+        {rows.map(([label, value, absent]) => (
           <li key={label} className={styles['diffRow']}>
             <StatusPill tone={label === 'changes.lifetime.to' ? 'info' : 'neutral'}>
               <CoreMessage id={label} />
             </StatusPill>
-            <span>{value === undefined ? null : <ClassMeaning value={value} />}</span>
+            <span>
+              {value === undefined ? (
+                logout ? (
+                  <CoreMessage id={absent} />
+                ) : null
+              ) : logout ? (
+                value
+              ) : (
+                <ClassMeaning value={value} />
+              )}
+            </span>
           </li>
         ))}
       </ul>
@@ -157,7 +186,7 @@ export function ChangeCard({
             <CoreMessage id="changes.card.reason" values={{ reason: change.proposal_reason }} />
           </span>
           <span className={styles['quiet']}>
-            <CoreMessage id={kindLabel[change.kind]} />
+            <KindLabel kind={change.kind} />
           </span>
           <ChangeDiffList change={change} />
           {change.state === 'proposed' && change.approval_required ? (
@@ -350,6 +379,13 @@ const proposeCopy: Readonly<
     rulesTitle: 'changes.rules.title.lifetime',
     rules: ['changes.rules.lifetime.callers', 'changes.rules.lifetime.longer', 'changes.rules.lifetime.same'],
   },
+  backchannel_logout_uri: {
+    title: 'changes.propose.title.logout',
+    body: 'changes.propose.body.logout',
+    field: 'changes.propose.field.logout',
+    rulesTitle: 'changes.rules.title.logout',
+    rules: ['changes.rules.logout.tokens', 'changes.rules.logout.remove', 'changes.rules.logout.uri'],
+  },
 };
 
 const registered = (registration: Registration, kind: ChangeKind): readonly string[] => {
@@ -360,6 +396,8 @@ const registered = (registration: Registration, kind: ChangeKind): readonly stri
       return registration.lifetime_class === undefined ? [] : [registration.lifetime_class];
     case 'redirect_uris':
       return registration.redirect_uris;
+    case 'backchannel_logout_uri':
+      return registration.backchannel_logout_uri === undefined ? [] : [registration.backchannel_logout_uri];
   }
 };
 
@@ -416,6 +454,15 @@ function ProposeForm({
               value,
               label: t('changes.lifetime.meaning', { value, ...classMinutes[value] }),
             }))}
+          />
+        ) : kind === 'backchannel_logout_uri' ? (
+          <TextField
+            {...form.register('values')}
+            label={<CoreMessage id={copy.field} />}
+            hint={<CoreMessage id="changes.propose.hint.logout" />}
+            type="url"
+            spellCheck={false}
+            autoComplete="off"
           />
         ) : (
           <TextAreaField
@@ -501,7 +548,7 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
             </Table.Cell>
             <Table.Cell mono>
               <span className={styles['quiet']}>
-                <CoreMessage id={kindLabel[change.kind]} />
+                <KindLabel kind={change.kind} />
               </span>
               <ul className={styles['values']}>
                 {changeValues(change).after.map((value) => (
@@ -509,6 +556,11 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
                     {change.kind === 'lifetime_class' ? <ClassMeaning value={value} /> : value}
                   </li>
                 ))}
+                {change.kind === 'backchannel_logout_uri' && changeValues(change).after.length === 0 ? (
+                  <li>
+                    <CoreMessage id="changes.logout.removed" />
+                  </li>
+                ) : null}
               </ul>
             </Table.Cell>
             <Table.Cell mono>
@@ -531,6 +583,7 @@ type Notice =
   | 'applied.redirect_uris'
   | 'applied.audience'
   | 'applied.lifetime_class'
+  | 'applied.backchannel_logout_uri'
   | 'proposed'
   | 'approved'
   | 'rejected'
@@ -541,6 +594,7 @@ const noticeCopy: Readonly<Record<Notice, CoreMessageKey>> = {
   'applied.redirect_uris': 'changes.done.applied',
   'applied.audience': 'changes.done.applied.audience',
   'applied.lifetime_class': 'changes.done.applied.lifetime',
+  'applied.backchannel_logout_uri': 'changes.done.applied.logout',
   proposed: 'changes.done.proposed',
   approved: 'changes.done.approved',
   rejected: 'changes.done.rejected',
@@ -559,6 +613,7 @@ const openCopy: Readonly<Record<ChangeKind, CoreMessageKey>> = {
   redirect_uris: 'changes.propose.open',
   audience: 'changes.propose.open.audience',
   lifetime_class: 'changes.propose.open.lifetime',
+  backchannel_logout_uri: 'changes.propose.open.logout',
 };
 
 // Registered shows one kind's set as it stands, and says so when an audience names no resource.
@@ -607,6 +662,7 @@ export function RegistrationChanges({
   const redirects = hasRedirectUris(registration);
   const audience = hasAudience(registration);
   const lifetime = hasLifetimeClass(registration);
+  const logout = hasBackChannelLogout(registration);
   const changes = useChanges(registration.registration_id, audience || lifetime);
   const [proposing, setProposing] = useState<ChangeKind | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -667,7 +723,13 @@ export function RegistrationChanges({
             kind={proposing}
             onDone={(outcome) => {
               setProposing(null);
-              setNotice(outcome.state === 'applied' ? `applied.${outcome.kind}` : 'proposed');
+              setNotice(
+                outcome.state !== 'applied'
+                  ? 'proposed'
+                  : isKnownChangeKind(outcome.kind)
+                    ? `applied.${outcome.kind}`
+                    : 'approved',
+              );
             }}
             onCancel={() => {
               setProposing(null);
@@ -683,7 +745,15 @@ export function RegistrationChanges({
     <section className={styles['section']} aria-labelledby="changes-title">
       <h2 id="changes-title" className={styles['sectionTitle']}>
         <CoreMessage
-          id={lifetime ? 'changes.title.lifetime' : redirects ? 'changes.title' : 'changes.title.audience'}
+          id={
+            lifetime
+              ? 'changes.title.lifetime'
+              : logout
+                ? 'changes.title.confidential'
+                : redirects
+                  ? 'changes.title'
+                  : 'changes.title.audience'
+          }
         />
       </h2>
       <p className={styles['quiet']}>
@@ -691,9 +761,11 @@ export function RegistrationChanges({
           id={
             lifetime
               ? 'changes.description.lifetime'
-              : redirects
-                ? 'changes.description'
-                : 'changes.description.audience'
+              : logout
+                ? 'changes.description.confidential'
+                : redirects
+                  ? 'changes.description'
+                  : 'changes.description.audience'
           }
         />
       </p>
@@ -703,6 +775,13 @@ export function RegistrationChanges({
           label="changes.current.audience"
           values={registration.audience}
           empty="changes.current.audience.none"
+        />
+      ) : null}
+      {logout ? (
+        <Registered
+          label="changes.current.logout"
+          values={registered(registration, 'backchannel_logout_uri')}
+          empty="changes.current.logout.none"
         />
       ) : null}
       {lifetime && registration.lifetime_class !== undefined ? (

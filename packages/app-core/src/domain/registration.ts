@@ -290,12 +290,25 @@ export function ownerRevocable(
   return activeOwners(owners).length - 1 >= minProductionOwners;
 }
 
-// A change to a registration's redirect URIs, its audience, or a resource's lifetime class
-// (ADR-IAM-003 §5.2, §5.9, TDD-identity-control-003 §Registration Changes). The API records what it
+// A change to a registration's redirect URIs, its audience, a resource's lifetime class, or a
+// confidential client's back-channel logout URI (ADR-IAM-003 §5.2, §5.9, ADR-IAM-009 §5.1,
+// TDD-identity-control-003 §Registration Changes). The API records what it
 // replaces and the version it was read at, so what an approver sees is what the proposer saw. Exactly
 // one of the before/after pairs is set, by `kind`; the others are `null`, never `[]`.
 export type ChangeState = 'proposed' | 'applied' | 'rejected' | 'withdrawn' | 'superseded';
-export type ChangeKind = 'redirect_uris' | 'audience' | 'lifetime_class';
+export const changeKindNames = [
+  'redirect_uris',
+  'audience',
+  'lifetime_class',
+  'backchannel_logout_uri',
+] as const;
+export type ChangeKind = (typeof changeKindNames)[number];
+
+// isKnownChangeKind is whether this version knows a kind the API sent. The API can add a kind before
+// the applications know it (TDD-identity-experience-004 §A Change Kind This Version Does Not Know):
+// such a change is typed as a ChangeKind and is not one at run time.
+export const isKnownChangeKind = (kind: string): kind is ChangeKind =>
+  (changeKindNames as readonly string[]).includes(kind);
 
 export interface RegistrationChange {
   readonly change_id: string;
@@ -311,6 +324,11 @@ export interface RegistrationChange {
   // an API before TDD-identity-control-003 1.37.0 recorded.
   readonly previous_lifetime_class?: string | null;
   readonly lifetime_class?: string | null;
+  // A backchannel_logout_uri change's before and after: null before when none was registered, null
+  // after when the change removes it. Null for every other kind, and absent from a change an API
+  // before TDD-identity-control-003 1.38.0 recorded.
+  readonly previous_backchannel_logout_uri?: string | null;
+  readonly backchannel_logout_uri?: string | null;
   readonly approval_required: boolean;
   readonly proposed_by: string;
   readonly proposal_reason: string;
@@ -321,24 +339,42 @@ export interface RegistrationChange {
   readonly decided_at: string | null;
 }
 
-// changeValues is a change's before and after, picked by its kind: the API leaves the other kind's
-// pair `null`.
+// changeValues is a change's before and after, picked by its kind: the API leaves the other kinds'
+// pairs `null`. A single value (a lifetime class, a logout URI) is a set of one, and an empty set is
+// no value: a logout URI change whose after is empty removes the URI. A kind this version does not
+// know has neither: the compiler holds every known kind to a case, and the default answers a kind
+// that arrives at run time without one.
 export function changeValues(change: RegistrationChange): {
   readonly before: readonly string[];
   readonly after: readonly string[];
 } {
+  const one = (value: string | null | undefined): readonly string[] =>
+    value === null || value === undefined || value === '' ? [] : [value];
   switch (change.kind) {
     case 'audience':
       return { before: change.previous_audience ?? [], after: change.audience ?? [] };
     case 'lifetime_class':
-      return {
-        before: change.previous_lifetime_class ? [change.previous_lifetime_class] : [],
-        after: change.lifetime_class ? [change.lifetime_class] : [],
-      };
+      return { before: one(change.previous_lifetime_class), after: one(change.lifetime_class) };
     case 'redirect_uris':
       return { before: change.previous_redirect_uris ?? [], after: change.redirect_uris ?? [] };
+    case 'backchannel_logout_uri':
+      return {
+        before: one(change.previous_backchannel_logout_uri),
+        after: one(change.backchannel_logout_uri),
+      };
+    default:
+      return noValues(change.kind);
   }
 }
+
+// noValues is a change of a kind this version does not know. It takes `never`, so a kind added to
+// ChangeKind without a case in changeValues does not compile; at run time it answers no values.
+const noValues = (
+  _kind: never,
+): { readonly before: readonly string[]; readonly after: readonly string[] } => ({
+  before: [],
+  after: [],
+});
 
 export type ChangeDecision = 'approve' | 'reject' | 'withdraw';
 
@@ -350,6 +386,11 @@ export const hasRedirectUris = (registration: Pick<Registration, 'profile'>): bo
 
 export const hasAudience = (registration: Pick<Registration, 'profile'>): boolean =>
   registration.profile !== 'resource';
+
+// hasBackChannelLogout is whether a registration carries a back-channel logout URI: a confidential
+// client, the only one the kernel posts logout tokens to (ADR-IAM-009 §5.1).
+export const hasBackChannelLogout = (registration: Pick<Registration, 'profile'>): boolean =>
+  registration.profile === 'confidential';
 
 // hasLifetimeClass is whether a registration carries a lifetime class: a resource, whose callers
 // derive their lifespan from it (STD-IAM-002 §3.3).
@@ -367,6 +408,7 @@ export function changeKinds(registration: Pick<Registration, 'profile' | 'state'
     ...(hasRedirectUris(registration) ? (['redirect_uris'] as const) : []),
     ...(hasAudience(registration) ? (['audience'] as const) : []),
     ...(hasLifetimeClass(registration) ? (['lifetime_class'] as const) : []),
+    ...(hasBackChannelLogout(registration) ? (['backchannel_logout_uri'] as const) : []),
   ];
 }
 

@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.11.0
+  version: 1.12.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-08
+  last_reviewed: 2026-10-09
   parent_sad: SAD-002
 ---
 
@@ -121,7 +121,8 @@ GET   /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys/{key_id}:revoke   owner of {id}, with a reason
 GET   /api/v1/registrations/{id}/owners                 owner of {id}
-POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason; redirect URIs, audience or lifetime class
+POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason; redirect URIs, audience, lifetime class
+                                                        or back-channel logout URI (1.12.0)
 GET   /api/v1/registrations/{id}/changes                owner of {id}
 POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
 GET   /api/v1/registrations:standing                    any signed-in person: its own standing
@@ -364,6 +365,47 @@ on an active resource registration:
 - **The callers are not listed.** No route lists the clients whose audience names a resource, so the
   page says which callers move without naming them (`ADR-IAM-003 §5.9`, Negative).
 
+### Back-Channel Logout URI Changes
+
+**Added in 1.12.0**, on `ADR-IAM-009 §5.1` and `TDD-identity-control-003` §Registration Changes (its
+1.38.0). Where the kernel posts a confidential client's logout tokens changes by the same recorded
+change, of kind `backchannel_logout_uri`. Until then a wrong URI was corrected only by retiring the
+registration and registering the client again.
+
+```text
+on an active confidential registration:
+    show the registered back-channel logout URI, or that it has none (the record already does)
+    propose the next URI, one line, with a reason, against the version shown; the body carries
+        backchannel_logout_uri alone, the URI to set or move it, "" to remove it
+    say what the change does: the kernel posts logout tokens, which name the person and the session,
+        to that URI; removing it leaves a session removal to reach the client at its next refresh;
+        the registered URI is refused
+    the API holds one open change per registration, of any kind: while one is open, no proposal is
+        offered
+    outside production it applies at once; in production it waits for a provider other than the
+        proposer, and the page says so
+    the open change is shown as the URI it moves from and the URI it moves to, "none" for no URI
+        before and "removed" for no URI after
+```
+
+- **Why it is governed.** identity-control's 1.38.0 makes it trust configuration in the sense of
+  `ADR-IAM-003 §5.2`, as a redirect URI is: "A URI moved to an endpoint the client's owners do not run
+  sends that to someone else, and a URI removed turns every session removal into one that reaches the
+  client only at its next refresh (`ADR-IAM-009 §5.3`)."
+- **Only a confidential client.** The API refuses the kind for any other profile, so the console
+  offers it on a confidential registration alone. "Session required" is not part of the change.
+- **Nothing is judged in the browser.** The URI's rules (absolute, no fragment, no credentials, no
+  wildcard, https in production) are the API's, and its sentence names the one broken
+  (§Validation Parity).
+
+### A Change Kind This Version Does Not Know
+
+The API can add a change kind before this console knows it. A change of an unknown kind is shown with
+its kind as the API spells it and "a change kind this console does not show yet", with no before and
+after. Its decisions are still offered, because they are the API's to accept, and the page does not
+fail. The type is checked exhaustively at compile time, so a kind added to the type and not to the
+page does not build.
+
 ### Lifetime Class as an Interval
 
 The selector does not render `L0` through `L3`. It renders what each means:
@@ -506,6 +548,16 @@ hand-maintained documentation always does.
   and offers no second proposal (1.11.0, `RegistrationPage.test.tsx`). The Admin Portal's queue
   shows the same (`ChangeQueuePage.test.tsx`).
 
+### Back-Channel Logout URI
+
+- A confidential registration offers the change, and no other profile does. The proposal sends
+  `backchannel_logout_uri` alone, the URI typed or `""` to remove it, with the version and a reason
+  (1.12.0, `RegistrationPage.test.tsx`).
+- An open change shows the URI it moves from and to, "none" before and "removed" after when there is
+  no URI. The Admin Portal's queue shows the same (`ChangeQueuePage.test.tsx`).
+- A change of a kind this version does not know renders with its kind and no values, and the page
+  does not fail (`ChangeQueuePage.test.tsx`, `registration.test.ts`).
+
 ### Key Handling
 
 - No response, page, storage, or telemetry of the console carries a secret or a private key.
@@ -571,6 +623,8 @@ and registration approval backlog.
 | Governed by | ADR-IAM-003 §5.8 — a workload's owner lists, reads and reviews it; another's workload is not found |
 | Governed by | ADR-IAM-003 §5.9 — a resource's lifetime class changes as a registration change (1.11.0) |
 | Depends on | `TDD-identity-control-003` 1.37.0 — the `lifetime_class` change kind |
+| Depends on | `TDD-identity-control-003` 1.38.0 — the `backchannel_logout_uri` change kind (1.12.0) |
+| Governed by | ADR-IAM-009 §5.1 — a confidential client's back-channel logout URI changes as a registration change (1.12.0) |
 | Depends on | `TDD-identity-control-004` 1.7.0 — `GET /v1/workloads:mine`, the owner's `GET /v1/workloads/{principal_id}` and `:review` |
 | Conforms to | SAD-002 §4.1 — the Developer Identity Console is its own container behind the same BFF |
 | Conforms to | STD-IAM-001 §3.2 — PKCE, exact redirect URIs, no secret in a public client, `private_key_jwt` for confidential and workload clients |

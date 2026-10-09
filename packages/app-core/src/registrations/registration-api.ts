@@ -189,6 +189,9 @@ function changeBody(kind: ChangeKind, values: readonly string[], expectedVersion
       return { lifetime_class: values[0], expected_version: expectedVersion };
     case 'redirect_uris':
       return { redirect_uris: values, expected_version: expectedVersion };
+    case 'backchannel_logout_uri':
+      // The whole next URI, or "" to remove it: absent and empty are different requests.
+      return { backchannel_logout_uri: values[0] ?? '', expected_version: expectedVersion };
   }
 }
 

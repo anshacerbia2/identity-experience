@@ -128,6 +128,9 @@ function api(
   });
 }
 
+// A confidential client's panel: its redirect URIs, its audience and its back-channel logout URI.
+const confidentialTitle = 'Redirect URIs, audience and back-channel logout';
+
 const posts = (sent: readonly Sent[]): Sent[] => sent.filter((request) => request.method === 'POST');
 
 async function section(name: string): Promise<HTMLElement> {
@@ -258,7 +261,7 @@ describe('the owner’s registration page', () => {
     const { sent } = api(billing, () => json(change({ state: 'applied', approval_required: false }), 201));
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs and audience');
+    const changes = await section(confidentialTitle);
     const user = userEvent.setup();
     await user.click(await within(changes).findByRole('button', { name: 'Propose redirect URIs' }));
     const field = within(changes).getByLabelText(/Redirect URIs, one per line/);
@@ -284,7 +287,7 @@ describe('the owner’s registration page', () => {
     );
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs and audience');
+    const changes = await section(confidentialTitle);
     const user = userEvent.setup();
     await user.click(await within(changes).findByRole('button', { name: 'Propose redirect URIs' }));
     await user.type(
@@ -313,7 +316,7 @@ describe('the owner’s registration page', () => {
     ]);
     renderApp(`/developer/registrations/${id}`);
 
-    const changes = await section('Redirect URIs and audience');
+    const changes = await section(confidentialTitle);
     expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
     expect(within(changes).getByText('Added')).toBeInTheDocument();
     expect(within(changes).getByText('Kept')).toBeInTheDocument();
@@ -355,7 +358,7 @@ describe('the owner’s registration page', () => {
       );
       const { container } = renderApp(`/developer/registrations/${id}`);
 
-      const changes = await section('Redirect URIs and audience');
+      const changes = await section(confidentialTitle);
       expect(within(changes).getByText('Audience registered now')).toBeInTheDocument();
       expect(within(changes).getByText('billing-api')).toBeInTheDocument();
       const user = userEvent.setup();
@@ -383,7 +386,7 @@ describe('the owner’s registration page', () => {
       );
       renderApp(`/developer/registrations/${id}`);
 
-      const changes = await section('Redirect URIs and audience');
+      const changes = await section(confidentialTitle);
       const user = userEvent.setup();
       await user.click(await within(changes).findByRole('button', { name: 'Propose an audience' }));
       await user.clear(within(changes).getByLabelText(/Resources, one client_key per line/));
@@ -412,7 +415,7 @@ describe('the owner’s registration page', () => {
       );
       renderApp(`/developer/registrations/${id}`);
 
-      const changes = await section('Redirect URIs and audience');
+      const changes = await section(confidentialTitle);
       const user = userEvent.setup();
       await user.click(await within(changes).findByRole('button', { name: 'Propose an audience' }));
       await user.type(within(changes).getByLabelText(/Resources, one client_key per line/), '\norders-api');
@@ -428,7 +431,7 @@ describe('the owner’s registration page', () => {
       api(billing, undefined, [audienceChange()]);
       renderApp(`/developer/registrations/${id}`);
 
-      const changes = await section('Redirect URIs and audience');
+      const changes = await section(confidentialTitle);
       expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
       expect(within(changes).getByText('Audience')).toBeInTheDocument();
       expect(within(changes).getByText('ledger-api')).toBeInTheDocument();
@@ -453,7 +456,7 @@ describe('the owner’s registration page', () => {
     it('offers no change on a suspended client, and has no section for a resource', async () => {
       api({ ...billing, state: 'suspended' });
       const { unmount } = renderApp(`/developer/registrations/${id}`);
-      const changes = await section('Redirect URIs and audience');
+      const changes = await section(confidentialTitle);
       expect(within(changes).queryByRole('button', { name: 'Propose an audience' })).not.toBeInTheDocument();
       unmount();
 
@@ -534,6 +537,102 @@ describe('the owner’s registration page', () => {
       ).toBeInTheDocument();
       expect(
         within(changes).queryByRole('button', { name: 'Propose a lifetime class' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+  // ADR-IAM-009 §5.1, TDD-identity-experience-004 §Back-Channel Logout URI Changes: a confidential
+  // client's owner proposes the next logout URI, or its removal.
+  describe('back-channel logout URI changes', () => {
+    const uri = 'https://billing.example.com/auth/back-channel-logout';
+    const logoutChange = (overrides: Partial<RegistrationChange> = {}): RegistrationChange =>
+      change({
+        kind: 'backchannel_logout_uri',
+        previous_redirect_uris: null,
+        redirect_uris: null,
+        previous_backchannel_logout_uri: uri,
+        backchannel_logout_uri: 'https://bff.billing.example.com/auth/back-channel-logout',
+        ...overrides,
+      });
+
+    it('shows the registered URI, and proposes the next one with the version read and a reason', async () => {
+      const { sent } = api({ ...billing, backchannel_logout_uri: uri }, () =>
+        json(logoutChange({ state: 'applied', approval_required: false }), 201),
+      );
+      const { container } = renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section(confidentialTitle);
+      expect(within(changes).getByText('Back-channel logout URI registered now')).toBeInTheDocument();
+      const user = userEvent.setup();
+      await user.click(
+        await within(changes).findByRole('button', { name: 'Propose a back-channel logout URI' }),
+      );
+      const field = within(changes).getByLabelText(/^Back-channel logout URI/);
+      expect(field).toHaveValue(uri);
+      await user.clear(field);
+      await user.type(field, 'https://bff.billing.example.com/auth/back-channel-logout');
+      await user.type(within(changes).getByLabelText(/Reason/), 'The BFF moved hosts');
+      expect(
+        within(changes).getByText(/a session ended elsewhere reaches this client only/),
+      ).toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('status')).toHaveTextContent(
+        'The back-channel logout URI is changed.',
+      );
+      const [command] = posts(sent);
+      expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes`);
+      expect(command?.body).toEqual({
+        backchannel_logout_uri: 'https://bff.billing.example.com/auth/back-channel-logout',
+        expected_version: 3,
+      });
+      expect(command?.headers['x-administrative-reason']).toBe('The BFF moved hosts');
+    });
+
+    it('sends an emptied URI as "", its removal', async () => {
+      const { sent } = api({ ...billing, backchannel_logout_uri: uri }, () =>
+        json(logoutChange({ backchannel_logout_uri: null }), 201),
+      );
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section(confidentialTitle);
+      const user = userEvent.setup();
+      await user.click(
+        await within(changes).findByRole('button', { name: 'Propose a back-channel logout URI' }),
+      );
+      await user.clear(within(changes).getByLabelText(/^Back-channel logout URI/));
+      await user.type(within(changes).getByLabelText(/Reason/), 'The BFF is retired');
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('status')).toHaveTextContent(
+        'The change is proposed. It waits for a provider other than you.',
+      );
+      expect(posts(sent)[0]?.body).toEqual({ backchannel_logout_uri: '', expected_version: 3 });
+    });
+
+    it('shows an open removal as the URI it moves from and "removed"', async () => {
+      api({ ...billing, backchannel_logout_uri: uri }, undefined, [
+        logoutChange({ backchannel_logout_uri: null }),
+      ]);
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section(confidentialTitle);
+      expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
+      expect(within(changes).getByText('Back-channel logout URI')).toBeInTheDocument();
+      expect(within(changes).getByText('Removed: no back-channel logout')).toBeInTheDocument();
+      expect(
+        within(changes).queryByRole('button', { name: 'Propose a back-channel logout URI' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers no logout URI change on a public client', async () => {
+      api({ ...billing, profile: 'public' });
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Redirect URIs and audience');
+      expect(await within(changes).findByRole('button', { name: 'Propose an audience' })).toBeInTheDocument();
+      expect(
+        within(changes).queryByRole('button', { name: 'Propose a back-channel logout URI' }),
       ).not.toBeInTheDocument();
     });
   });
