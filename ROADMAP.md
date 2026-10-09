@@ -135,18 +135,18 @@ The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
 - A sign-in returning to the Admin Portal asks for `aal2` by default.
 - A read challenged for its level offers the same sign-in.
 
-**Next:** the measured exit below.
+All four items are built, and the exit below is met.
 
-- Back-channel logout receiver, destroying the matching session and no other
-- 401 from the Identity Control API destroying the session
-- Front-channel logout and global sign-out. Global sign-out is built: sign-out ends the Keycloak
+- ✅ Back-channel logout receiver, destroying the matching session and no other
+- ✅ 401 from the Identity Control API destroying the session
+- ✅ Front-channel logout and global sign-out. Global sign-out is built: sign-out ends the Keycloak
   session server-side, and the account application's "Sign out everywhere" ends every one.
   ✅ **Front-channel logout is decided against** (ADR-IAM-009, TDD-001 1.18.0 §No Front-Channel
   Logout). The kernel removes sessions through the Admin API, which reaches a client only by the back
   channel, and Keycloak 26.7.5 skips the back channel for a client with front-channel logout on; the
   frame would be refused by `frame-ancestors 'none'` and denied its cookie by `SameSite=Lax` and
   browser partitioning. identity-control writes front-channel logout off on every client.
-- Step-up: reading the requirement from the API, driving the ceremony, never granting
+- ✅ Step-up: reading the requirement from the API, driving the ceremony, never granting
   assurance locally
 
 **Exit:** measured time from Membership revocation to session destruction stays within
@@ -183,17 +183,38 @@ repository at `main`:
   [37853072129](https://github.com/anshacerbia2/organization-experience/actions/runs/37853072129) saw the
   back channel end the session 0.9 s after acceptance, before identity-control's answer reached the other
   device; the Membership revocation there took 167.7 s against 197.3 s.
-- **Two early runs did not end, and the cause is not established.** In runs
+- **Two early runs did not end: the kernel accepted a refresh of a session it had removed.** In runs
   [37843816015](https://github.com/anshacerbia2/organization-experience/actions/runs/37843816015) and
   [37846007225](https://github.com/anshacerbia2/organization-experience/actions/runs/37846007225) the
   removed session's tab kept being answered `200` for five to six minutes after the kernel stopped
-  listing the session, past the expiry of the token it held then, so a refresh of the removed session
-  succeeded. Their evidence could not say more. Since run 37847908410 the evidence records every refresh
-  of the session and, when it does not end, the kernel's sessions and its own `REFRESH_TOKEN` and
-  `REFRESH_TOKEN_ERROR` events. The eight runs since, three of them repeats at `main` (37854786204,
-  37854789717, 37854793345), ended within the bound with no refresh after the removal. A recurrence
-  fails the proof with those records. Until one is explained, the refresh path's bound for a removed
-  kernel session is measured, not guaranteed.
+  listing the session. Read again on 2026-10-09, their logs and artifacts place the cause in the kernel,
+  not in this BFF:
+  - **A refresh succeeded after the removal.** Run 37846007225's evidence counts one refresh after the
+    kernel applied the removal (the session's token expiry moved from 21:30:42), and every answer after
+    acceptance was `200`. In run 37843816015 the tab was answered `200` until 21:13:43, 91 s past the
+    expiry of the token held at the removal (about 21:12:12, 240 s after the sign-in); the API refuses an expired token, so the
+    session held a refreshed one.
+  - **The kernel refused nothing.** Keycloak logs a refused refresh at `WARN` as `REFRESH_TOKEN_ERROR`
+    ("Session not active", run 37847908410 at 21:46:12). Both runs kept the kernel's whole log, 44 lines
+    each from start-up to the failure, below the 200 the job prints, and neither holds a
+    `REFRESH_TOKEN_ERROR`, or any line at all, between the removal and the end of the wait.
+  - **The BFF extends a session only on the kernel's grant.** `Sessions.fresh` keeps the session only
+    when the token endpoint answers the refresh with tokens; any refusal destroys it, and an outage
+    answers `503`, never `200` (`bff/src/session/sessions.ts`, `bff/src/auth/oidc.ts`).
+  - **The removal was the kernel's.** identity-control removed the session with `DELETE
+/admin/realms/scnehaux/sessions/{id}` (`internal/keycloak/containment.go`), and the kernel stopped
+    listing it 0.2 s after acceptance (run 37846007225's evidence).
+
+  The same code at every repository (kernel `126d684`, identity-control `4d6da9d`, this repository
+  `f7233ae`) then passed eight times, so the kernel's behaviour is intermittent. The removal came 1.3 to
+  1.5 s after the session's sign-in in both failures, and about 1.1 s after it in the passing runs, so
+  timing alone does not separate them. Why Keycloak 26.7.5 granted the refresh is identity-kernel's to
+  establish, with a compatibility test that removes a session through the Admin API shortly after
+  sign-in and then refreshes it, many times. Since run 37847908410 a recurrence fails the proof and
+  keeps the kernel's own `REFRESH_TOKEN` and `REFRESH_TOKEN_ERROR` events. Until the kernel's cause is
+  found, the refresh path's bound for a removed kernel session is measured, not guaranteed, where no
+  back-channel logout URL is registered.
+
 - **The development server.** A BFF on a developer's machine registers no back-channel logout URL,
   because the kernel cannot reach it (ADR-IAM-009 §5.3), so there the refresh path is the bound
   (`docs/runbooks/back-channel-logout-failure.md`).
@@ -215,10 +236,13 @@ The shared frame links to it from the Portal and the console. Enrolling an authe
 
 A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. Recovery codes followed ADR-IAM-005 (TDD-002 1.5.0, TDD-001 1.13.0): each set is listed with how many codes remain, a used set is pointed out, and "Get new recovery codes" drives `kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`. "Where you are told" followed ADR-IAM-007 and identity-control's TDD-008 1.2.0 (TDD-002 1.6.0): the person's notification addresses, a prompt for a second while there is one, adding and removing under step-up, and proving a pending address with the code sent to it, which this application never sees. **Next:** consents once the API's slice 3b exists.
 
-- Session and device inventory with termination
-- Authenticator enrollment, replacement, and removal
-- Consent inventory and withdrawal
-- Recovery entry points, handing off to the kernel-rendered pages
+- ✅ Session and device inventory with termination
+- ✅ Authenticator enrollment, replacement, and removal
+- Consent inventory and withdrawal: waits for identity-control's slice 3b, which serves no consent
+  route yet
+- ✅ Recovery entry points, handing off to the kernel-rendered pages: recovery codes are issued and
+  replaced on the kernel's page (`kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`), and a code is used at the
+  kernel's sign-in
 
 ✅ **Authenticator replacement** is enrollment, then removal (TDD-002 1.7.0). The last-authenticator
 refusal says so, and the ways to add one are beside it (`SecurityPage.test.tsx`).
@@ -281,19 +305,22 @@ each of the four shown as its token lifetime and revocation target, and the appr
 class a change moves from and to. A confidential registration shows its back-channel logout URI, or
 that it has none.
 
-- Identity administration and investigation surfaces
-- Application and client onboarding, redirect and audience configuration
-- Client public-key registration and rotation flow (TDD-004 1.2.0)
-- Privileged action reason and evidence capture
+- ✅ Identity administration and investigation surfaces
+- ✅ Application and client onboarding, redirect and audience configuration
+- ✅ Client public-key registration and rotation flow (TDD-004 1.2.0)
+- Privileged action reason and evidence capture: ✅ every command sends its reason; the evidence panel
+  waits for the Audit API (TDD-003 §Evidence)
 
 **Exit:** no administrative control is available in the interface that the Control API
 would refuse, and no control the API permits is hidden without a stated reason.
 
-**Not met yet; the 2026-10-07 list is closed.** The first half holds where tested: each control is
-offered from the state the API accepts it in (lifecycle, keys, changes, findings, workloads, owners, a
-Principal's containment). For the second, every control found on 2026-10-07 now has a screen
-(TDD-003 1.21.0, TDD-004 1.9.0), each sending its reason and an Idempotency-Key (STD-GLB-001 1.4.0),
-with no version where the API takes none:
+✅ **Met** (TDD-003 1.24.0). The first half holds where tested: each control is offered from the state
+the API accepts it in (lifecycle, keys, changes, findings, workloads, owners, a Principal's
+containment). For the second, every route identity-control serves at `main` `f2e140d`, 70 of them,
+was checked on 2026-10-09 against the applications: each has a screen, or a stated reason for none
+(adoption, TDD-003 §Registration Drift Oversight; a post to Organization Control, §Tenant Context
+Report). Every control found on 2026-10-07 has a screen (TDD-003 1.21.0, TDD-004 1.9.0), each sending
+its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the API takes none:
 
 - ✅ Granting and revoking a registration's owners: the Admin Portal's registration page
   (§Registration Ownership). Grant is not offered on a retired registration, and revoke not where
@@ -310,9 +337,17 @@ with no version where the API takes none:
 - ✅ The unmapped, orphan and duplicate kernel users: the Principals page, with no action, because the
   API has none. The kernel event sweep: a Principal's Events section.
 
-Checked again on 2026-10-08, four provider reads have no screen and no stated reason yet:
-`GET /v1/principals/{principal_id}/notification-addresses`, `…/security-notifications`,
-`GET /v1/projections/tenant-context/report` and `GET /v1/provider-grants:emergency-validation`.
+- ✅ The four provider reads found on 2026-10-08 (TDD-003 1.24.0):
+  - `GET /v1/principals/{principal_id}/notification-addresses` and `…/security-notifications`: two
+    sections of a Principal's page, read only when opened. A failed or addressless notification says
+    what it means; nothing is offered, because the addresses are the person's own and the record is
+    evidence.
+  - `GET /v1/provider-grants:emergency-validation`: Governance, **Emergency access**. Each grant with
+    its last use, an overdue one marked. No command, because the grants are Organization Control's; a
+    drill validates one.
+  - `GET /v1/projections/tenant-context/report`: Monitoring, **Tenant context**. The report, read when
+    asked, shown and copied unchanged. Posting it to Organization Control's reconcile route has no
+    screen here: that route is Organization Control's, behind its own sign-in.
 
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
@@ -355,7 +390,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, at 1.17.0, 1.8.0, 1.21.0 and 1.9.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.24.0 and 1.11.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,
@@ -367,11 +402,15 @@ Where the production gate stands:
 
 - ✅ Token containment: `bff/test/containment.test.ts` and `scripts/check-dist.mjs` (Week 1 exit).
 - ✅ The three forgery defences, each refusing on its own with the other two right
-  (`bff/test/containment.test.ts`). `SameSite` is asserted as the attribute set; its enforcement is the
-  browser's and is not exercised without a real browser.
-- Measured revocation: the bound is asserted, the measurement is not (Week 2 exit).
-- WCAG 2.2 AA: automated evidence only. axe runs against every page's rendered DOM in the component
-  tests (jsdom). It cannot check colour contrast or layout in jsdom, and no automated check covers
-  keyboard order, focus, zoom or a screen reader. A manual audit against WCAG 2.2 AA remains, and no
-  browser test runs in CI (`@playwright/test` is a dependency of `apps/admin` and is not used).
+  (`bff/test/containment.test.ts`). ✅ `SameSite=Lax` is enforced by the browser, in Chromium in CI
+  (`e2e/tests/same-site.spec.ts`, TDD-001 1.20.0): a cross-site form post, `fetch()` post and iframe
+  carry no session cookie, and a same-site post and a cross-site top-level link do.
+- ✅ Measured revocation (Week 2 exit), with one open question for identity-kernel: the two early runs
+  in which the kernel granted a refresh of a session it had removed.
+- WCAG 2.2 AA: automated evidence only. axe runs on every page's rendered DOM in the component tests
+  (jsdom), and in Chromium in CI on each main page of the three applications, signed in with data
+  (`e2e/tests/accessibility.spec.ts`, TDD-003 §Accessibility in a Browser), with no violation. axe
+  marks colour contrast "needs review" on every page, because the canvas is a gradient and the panels
+  are translucent over it. Keyboard order, focus, zoom, colour contrast and a screen reader need the
+  manual audit against WCAG 2.2 AA, which remains.
 - ✅ Runbooks: `docs/runbooks/`.

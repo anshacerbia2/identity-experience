@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.23.0
+  version: 1.24.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-08
+  last_reviewed: 2026-10-09
   parent_sad: SAD-002
 ---
 
@@ -29,7 +29,8 @@ it inherits the obligation to be safer than the console rather than merely prett
 **In scope**
 
 - Principal search, and why search is itself a privileged operation.
-- Security state inspection: sessions, authenticators, federation links, findings, events.
+- Security state inspection: sessions, authenticators, notification addresses and notifications,
+  federation links, findings, events.
 - Containment: suspension, session termination, authenticator revocation.
 - Reason and evidence capture on every privileged action.
 - The self-action boundary.
@@ -94,8 +95,8 @@ boundary between applications.
 | (none) | Overview | both |
 | Identities | Principals, and one Principal's security state: sessions, authenticators, consents, federation links, containment; Workloads | the kernel through the Identity Control API, and the Identity Control API |
 | Applications | Registrations, their keys, owners, changes and drift | the Identity Control API |
-| Governance | Approvals: registration changes and registration requests waiting for a provider | the Identity Control API |
-| Monitoring | Reconciler findings and runs, privileged-administration events | the Identity Control API |
+| Governance | Approvals: registration changes and registration requests waiting for a provider; Emergency access: the emergency grants and their validation (1.24.0) | the Identity Control API |
+| Monitoring | Tenant context: the projection's report (1.24.0); reconciler findings and runs, privileged-administration events | the Identity Control API |
 
 A group is not shown before it has a page, because a link to nothing is a dead end. A page belongs to
 the group of the object it acts on: a Principal's sessions are under Identities, not under a
@@ -138,6 +139,10 @@ GET   /api/v1/security-operations/{operation_id}
 GET   /api/v1/security-operations:unresolved                       1.21.0
 POST  /api/v1/security-operations/{operation_id}:redrive           1.21.0, X-Administrative-Reason
 POST  /api/v1/kernel-events:sweep                                  1.21.0
+GET   /api/v1/principals/{principal_id}/notification-addresses     1.24.0
+GET   /api/v1/principals/{principal_id}/security-notifications     1.24.0
+GET   /api/v1/provider-grants:emergency-validation                 1.24.0
+GET   /api/v1/projections/tenant-context/report                    1.24.0
 ```
 
 `GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
@@ -489,7 +494,7 @@ Built on `TDD-identity-control-005` 2.2.0: its reads (slice 1) and its containme
   rest.
 - There is no "show all" (§Search Is Not Listing).
 
-**A Principal's page** (`/principals/{principal_id}`). It reads the Principal, then four sections,
+**A Principal's page** (`/principals/{principal_id}`). It reads the Principal, then each section,
 each its own privileged read:
 - **Summary.** State, subject type, `principal_id`, the creation and activation times, and a
   quarantine with its reason.
@@ -497,6 +502,18 @@ each its own privileged read:
 - **Authenticators.** Each one's type, label and creation time.
 - **Federation links.** Each one's provider and username there.
 - **Findings.** Each one's class, when it was detected, and whether it is resolved.
+- **Notification addresses (1.24.0).** Each address the Principal holds or held
+  (`TDD-identity-control-008` §API), with its state (active, pending proof, removed), whether it came
+  from creation or the person added it, when it was added, and when it was proven or removed. When
+  none is active the section says the person is not told when the account changes. TDD-identity-control-008
+  shows an address to a provider "because assisted recovery needs to know where a person is told".
+  Adding or removing one is the person's own, in the account application, so nothing is offered here.
+- **Security notifications (1.24.0).** The hundred most recent, newest first: when, the event as a
+  sentence, its bounded details (the authenticator type, who acted, the recovery method), the delivery
+  state and how many addresses it went to. A `failed` request says the person was not told after its
+  attempts, and a `no_address` one says to give them an address: the two signals
+  TDD-identity-control-008 §Operational Notes names for an operator. The record is evidence the API
+  never rewrites, so there is no command.
 
 The page renders a section when it is opened, not before. A read the operator did not ask for is a
 disclosure nobody needed (§Reads Are Privileged Too).
@@ -696,6 +713,45 @@ identifier an operator quotes. It never renders the server's detail text as the
 application's own. A 401 means the BFF ended the session, so the shell reads the session
 again and shows the user signed out rather than a page of errors.
 
+### Emergency Grants (1.24.0)
+
+**The page.** Governance, **Emergency access** (`/emergency-grants`), reads
+`GET /v1/provider-grants:emergency-validation` (`TDD-identity-control-006` §Emergency Grant Validation,
+`ADR-ORG-002 §5.2`) when it opens. It shows:
+
+- the scope and the validation period the API answers, and how many grants are overdue;
+- each active emergency grant, the oldest due first as the API orders them: its holder linked to the
+  Principal's page, held since, last used or never used, the number of uses, and the date validation
+  is due, marked overdue or in date.
+
+**No command, by decision.** The grants are Organization Control's records, projected here; this
+service grants and revokes none, and the API offers no command on them. Validating a grant is a drill:
+its holder makes a request under it on purpose, with an `X-Administrative-Reason` that says so, and
+the API records the use (`TDD-identity-control-006`). The page says that an overdue grant is still in
+force, and that a grant no longer needed is revoked in Organization Control. Microsoft's guidance for
+break-glass accounts is the same practice: "Regularly conduct drills to validate the functionality of
+the accounts", "At least every 90 days" [R5].
+
+### Tenant Context Report (1.24.0)
+
+**The page.** Monitoring, **Tenant context** (`/projections`), reads
+`GET /v1/projections/tenant-context/report` (`TDD-identity-control-002` §The Report an Operator Posts)
+only when **Read the report** is pressed, because it lists every active Membership and is read to be
+posted, not watched. It shows the consumer, the position applied (`mark`), how many active
+Memberships the report holds, and the report itself as JSON in a keyboard-reachable region, with
+**Copy the report**.
+
+**Posting has no screen here, by decision.** identity-control's projection-drift-repair runbook posts
+the report "unchanged" to Organization Control's `POST /v1/projections/reconcile`, and "The mark must
+be the report's own". That route is Organization Control's, reached with an Organization Control
+provider token this BFF does not hold, and organization-experience shows each consumer's last
+reconciliation. The page therefore shows the report exactly as answered, copies it unchanged, and
+says where it goes.
+
+| Ref | Source |
+| :-- | :-- |
+| R5 | Microsoft, *Manage emergency access admin accounts*, Validate accounts regularly, <https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access>, accessed 2026-10-09: "Regularly conduct drills to validate the functionality of the accounts and to confirm that monitoring and alerting rules are triggered in case an account is misused"; "Perform these steps at regular intervals and for key changes: At least every 90 days". |
+
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -804,6 +860,11 @@ again and shows the user signed out rather than a page of errors.
   as any other. A provider proposes a workload's audience from its page (1.20.0).
 - A lifetime-class change is shown by its kind, with the class it moves from and to, each as its
   token lifetime and revocation target (1.23.0, `ChangeQueuePage.test.tsx`).
+- The emergency grants are listed with their holder linked, last use or never, uses and due date,
+  an overdue one marked, and no command offered; none in force says so (1.24.0,
+  `ProviderAuthority.test.tsx`).
+- The Tenant context report is read only when asked, and shown exactly as answered with its mark; no
+  post is offered (1.24.0).
 - Registration requests are listed with their document and owners; approving one links to the
   registration it created, and neither decision is offered on one's own request.
 
@@ -815,6 +876,9 @@ again and shows the user signed out rather than a page of errors.
   followed to its final state, and a refusal shows the API's sentence (1.21.0).
 - The Events section's kernel sweep reports what it read and recorded per kind, then reads the events
   again (1.21.0).
+- The notification addresses and the security notifications are each read only when opened. An
+  address shows its state and origin, and the section says when none is active; a `failed` or
+  `no_address` notification says what it means (1.24.0, `PrincipalDetailPage.test.tsx`).
 - The application developer grants are listed newest first. A grant and a revocation each send
   their reason, and a refusal shows the API's sentence.
 - Only the dangling mappings are read: no request lists the Principal population.
@@ -823,6 +887,29 @@ again and shows the user signed out rather than a page of errors.
 - The same request resubmitted after an outage reuses its key, and a changed one takes a new key.
 - Relink requires a reason and states whether the Principal ended active or pending.
 - A refused relink is shown with the API's sentence.
+
+### Accessibility in a Browser (1.24.0)
+
+The component tests run axe against each page's rendered DOM in jsdom, which has no layout.
+`e2e/tests/accessibility.spec.ts` runs axe in Chromium (`@axe-core/playwright`, the integration
+Playwright's accessibility guide uses) on each main page of the three applications this BFF serves:
+the Admin Portal's Overview, Principals, a Principal, Workloads, Registrations, a registration,
+Approvals, Emergency access and Tenant context (with its report read), the Developer Console's home and
+the account application. Each page is served by the BFF from the built bundle, signed in through the
+stand-in kernel, with its reads answered by fixtures (`e2e/stack.ts`), and runs in CI.
+
+- It fails on any violation of the WCAG 2.0, 2.1 and 2.2 A and AA rules axe implements.
+- What axe cannot decide is recorded as "needs review" on the test, not passed. Colour contrast is
+  among it on every page: the canvas is painted with gradients and the panels are translucent over
+  it, so axe resolves no single background colour.
+- It is automated evidence only. Playwright's guide: "automated testing cannot detect all types of
+  WCAG violations", and "many accessibility problems can only be discovered through manual testing"
+  [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
+  AA audit.
+
+| Ref | Source |
+| :-- | :-- |
+| R6 | Playwright, *Accessibility testing*, <https://playwright.dev/docs/accessibility-testing>, accessed 2026-10-09: "Note that automated testing cannot detect all types of WCAG violations"; "But many accessibility problems can only be discovered through manual testing"; "We recommend using a combination of automated testing, manual accessibility assessments, and inclusive user testing." |
 
 ## Security Notes
 

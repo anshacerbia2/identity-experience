@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.19.0
+  version: 1.20.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-08
+  last_reviewed: 2026-10-09
   parent_sad: SAD-002
 ---
 
@@ -764,8 +764,16 @@ the build emits styles and fonts as files served from this origin, never inline.
 - **Each defence refuses on its own (1.16.0, `bff/test/containment.test.ts`).** With the other two
   right, a foreign `Origin` is refused, a wrong token is refused, and a request without the cookie, as
   a browser sends a cross-site post under `SameSite=Lax`, finds no session. The control case with all
-  three passes. The browser's enforcement of `SameSite` is asserted only as the attribute set: proving
-  it needs a real browser, which this repository's tests do not run.
+  three passes.
+- **The browser enforces `SameSite=Lax` (1.20.0, `e2e/tests/same-site.spec.ts`, in CI).** Chromium,
+  signed in to the BFF serving the built applications (`e2e/stack.ts`), holds the session cookie
+  `HttpOnly`, `Secure`, `SameSite=Lax`, host-only on `/`. From a page on another site it sends no
+  session cookie with a form post to `/auth/logout`, a credentialed `fetch()` post to the API, or a
+  read inside an iframe, and the session outlives each. A same-site post carries it, and so does a
+  cross-site top-level link, a safe navigation Lax allows, so the cookie is held and the site alone
+  withholds it. What is asserted is the cookie header Chromium sent. MDN: Lax sends the cookie
+  cross-site only for "a top-level navigation" that "uses a safe method", which "excludes POST" and
+  excludes "requests made using the fetch() API" and "navigations inside <iframe> elements" [R13].
 
 ### Revocation
 
@@ -815,6 +823,13 @@ the build emits styles and fonts as files served from this origin, never inline.
     registered wherever identity-control takes it.
   Both go to the `stack-evidence` artifact as JSON, with the bound beside the measurement, and to the
   job summary. The figures are in the ROADMAP's Week 2 exit.
+- **Two early runs in which the kernel granted a removed session's refresh (1.20.0).** In two runs of
+  2026-10-08 a refresh of a kernel session removed through the Admin API was granted: the session's
+  token was renewed after the removal, and the kernel's complete log holds no `REFRESH_TOKEN_ERROR`,
+  which it writes for every refusal. This BFF keeps a session only on the kernel's grant, so its part
+  held; why the kernel granted it is identity-kernel's to establish. Where no back-channel logout URL
+  is registered, the refresh path's bound for a removed kernel session is therefore measured, not
+  guaranteed, until it is. The runs and their evidence are in the ROADMAP's Week 2 exit.
 
 ### Session-Store Outage
 
@@ -949,3 +964,4 @@ outbox.
 | R10 | IETF RFC 9110, *HTTP Semantics*, §15.5.2, <https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2>, accessed 2026-10-08: "The 401 (Unauthorized) status code indicates that the request has not been applied because it lacks valid authentication credentials for the target resource." |
 | R11 | PostgreSQL 17 Documentation, *Appendix A. PostgreSQL Error Codes*, <https://www.postgresql.org/docs/17/errcodes-appendix.html>, accessed 2026-10-08: "According to the standard, the first two characters of an error code denote a class of errors, while the last three characters indicate a specific condition within that class. Thus, an application that does not recognize the specific error code might still be able to infer what to do from the error class." Classes "08 — Connection Exception", "53 — Insufficient Resources", "57 — Operator Intervention", "58 — System Error (errors external to PostgreSQL itself)". |
 | R12 | OpenID Foundation, *OpenID Connect Back-Channel Logout 1.0*, §2.8, <https://openid.net/specs/openid-connect-backchannel-1_0.html>, accessed 2026-10-08: "If the logout request was invalid or the logout failed, the RP MUST respond with HTTP 400 Bad Request." |
+| R13 | MDN Web Docs, *Set-Cookie*, `SameSite=Lax`, <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie>, accessed 2026-10-09: "Send the cookie only for requests originating from the same site that set the cookie, and for cross-site requests that meet both of the following criteria: The request is a top-level navigation … This would exclude, for example, requests made using the fetch() API, or requests for subresources from <img> or <script> elements, or navigations inside <iframe> elements … The request uses a safe method: in particular, this excludes POST, PUT, and DELETE." |
