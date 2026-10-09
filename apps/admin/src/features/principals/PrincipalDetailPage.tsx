@@ -6,7 +6,7 @@ import { FormattedDate } from 'react-intl';
 import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
-import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Button, Icon, Panel, StatusPill, Table, type StatusTone } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
@@ -14,9 +14,12 @@ import {
   canRevoke,
   containmentActions,
   firstFactorsAfter,
+  isNotifiedEvent,
   revocable,
   type Authenticator,
   type ContainmentAction,
+  type NotificationAddress,
+  type NotificationState,
   type PrincipalDetail,
   type SecurityOperation,
 } from '@/domain/security';
@@ -361,6 +364,191 @@ function AuthenticatorsSection({
   );
 }
 
+const addressTones: Readonly<Record<NotificationAddress['state'], StatusTone>> = {
+  active: 'success',
+  pending: 'warning',
+  removed: 'neutral',
+};
+
+// Where the Principal is told that their account changed (TDD-identity-control-008): each address
+// it holds or held, read only when opened. Assisted recovery starts here: a person with no active
+// address cannot be told, and the account application asks them for one.
+function NotificationAddressesSection({ principalId }: { readonly principalId: string }): ReactElement {
+  const [open, setOpen] = useState(false);
+  const addresses = useSecuritySection(principalId, 'notification-addresses', open);
+  return (
+    <Section
+      title="principals.addresses.title"
+      open={open}
+      onOpen={() => {
+        setOpen(true);
+      }}
+    >
+      {addresses.isPending ? (
+        <div aria-busy="true" />
+      ) : addresses.isError ? (
+        <ApiErrorPanel error={addresses.error} onRetry={() => void addresses.refetch()} />
+      ) : addresses.data.length === 0 ? (
+        <p className={styles['quiet']}>
+          <Message id="principals.addresses.none" />
+        </p>
+      ) : (
+        <>
+          {addresses.data.some((address) => address.state === 'active') ? null : (
+            <p className={styles['quiet']} role="status">
+              <Message id="principals.addresses.noneActive" />
+            </p>
+          )}
+          <Table.Root caption={<Message id="principals.addresses.title" />} captionHidden>
+            <Table.Head>
+              <Table.Row>
+                <Table.HeaderCell>
+                  <Message id="principals.addresses.address" />
+                </Table.HeaderCell>
+                <Table.HeaderCell>
+                  <Message id="principals.addresses.state" />
+                </Table.HeaderCell>
+                <Table.HeaderCell>
+                  <Message id="principals.addresses.origin" />
+                </Table.HeaderCell>
+                <Table.HeaderCell>
+                  <Message id="principals.addresses.added" />
+                </Table.HeaderCell>
+                <Table.HeaderCell>
+                  <Message id="principals.addresses.changed" />
+                </Table.HeaderCell>
+              </Table.Row>
+            </Table.Head>
+            <Table.Body>
+              {addresses.data.map((address) => (
+                <Table.Row key={address.address_id}>
+                  <Table.Cell>{address.address}</Table.Cell>
+                  <Table.Cell>
+                    <StatusPill tone={addressTones[address.state]}>
+                      <Message id={`principals.addresses.state.${address.state}`} />
+                    </StatusPill>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Message id={`principals.addresses.origin.${address.origin}`} />
+                  </Table.Cell>
+                  <Table.Cell>
+                    <FormattedDate value={address.added_at} dateStyle="medium" timeStyle="short" />
+                  </Table.Cell>
+                  <Table.Cell>
+                    {address.removed_at !== undefined ? (
+                      <>
+                        <Message id="principals.addresses.removedAt" />{' '}
+                        <FormattedDate value={address.removed_at} dateStyle="medium" timeStyle="short" />
+                      </>
+                    ) : address.verified_at !== undefined ? (
+                      <>
+                        <Message id="principals.addresses.verifiedAt" />{' '}
+                        <FormattedDate value={address.verified_at} dateStyle="medium" timeStyle="short" />
+                      </>
+                    ) : null}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </>
+      )}
+    </Section>
+  );
+}
+
+const notificationTones: Readonly<Record<NotificationState, StatusTone>> = {
+  requested: 'info',
+  submitted: 'success',
+  failed: 'danger',
+  no_address: 'warning',
+};
+
+// What the Principal was told, and whether it reached the delivery platform (TDD-identity-control-008
+// §Operational Notes): the hundred most recent notifications, newest first. A failed request and one
+// with no address are the two an operator acts on, so each says what it means.
+function SecurityNotificationsSection({ principalId }: { readonly principalId: string }): ReactElement {
+  const [open, setOpen] = useState(false);
+  const notifications = useSecuritySection(principalId, 'security-notifications', open);
+  return (
+    <Section
+      title="principals.notifications.title"
+      open={open}
+      onOpen={() => {
+        setOpen(true);
+      }}
+    >
+      {notifications.isPending ? (
+        <div aria-busy="true" />
+      ) : notifications.isError ? (
+        <ApiErrorPanel error={notifications.error} onRetry={() => void notifications.refetch()} />
+      ) : notifications.data.length === 0 ? (
+        <p className={styles['quiet']}>
+          <Message id="principals.notifications.none" />
+        </p>
+      ) : (
+        <Table.Root caption={<Message id="principals.notifications.title" />} captionHidden>
+          <Table.Head>
+            <Table.Row>
+              <Table.HeaderCell>
+                <Message id="principals.notifications.when" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.notifications.event" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.notifications.state" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="principals.notifications.recipients" />
+              </Table.HeaderCell>
+            </Table.Row>
+          </Table.Head>
+          <Table.Body>
+            {notifications.data.map((notification) => (
+              <Table.Row key={notification.notification_id}>
+                <Table.Cell>
+                  <FormattedDate value={notification.occurred_at} dateStyle="medium" timeStyle="medium" />
+                </Table.Cell>
+                <Table.Cell>
+                  {isNotifiedEvent(notification.event) ? (
+                    <Message id={`principals.notifications.event.${notification.event}`} />
+                  ) : (
+                    <code>{notification.event}</code>
+                  )}
+                  {Object.entries(notification.details ?? {}).length === 0 ? null : (
+                    <span className={styles['quiet']}>
+                      {' '}
+                      {Object.entries(notification.details ?? {})
+                        .map(([key, value]) => `${key}: ${value}`)
+                        .join(', ')}
+                    </span>
+                  )}
+                </Table.Cell>
+                <Table.Cell>
+                  <StatusPill tone={notificationTones[notification.state]}>
+                    <Message id={`principals.notifications.state.${notification.state}`} />
+                  </StatusPill>
+                  {notification.state === 'failed' || notification.state === 'no_address' ? (
+                    <span className={styles['quiet']}>
+                      {' '}
+                      <Message
+                        id={`principals.notifications.state.${notification.state}.means`}
+                        values={{ attempts: notification.attempts }}
+                      />
+                    </span>
+                  ) : null}
+                </Table.Cell>
+                <Table.Cell>{notification.recipients}</Table.Cell>
+              </Table.Row>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      )}
+    </Section>
+  );
+}
+
 function FederationSection({ principalId }: { readonly principalId: string }): ReactElement {
   const [open, setOpen] = useState(false);
   const links = useSecuritySection(principalId, 'federation-links', open);
@@ -699,6 +887,8 @@ export function PrincipalDetailPage({ principalId }: { readonly principalId: str
           <Containment principal={principal.data} operator={operator} />
           <SessionsSection principalId={principalId} />
           <AuthenticatorsSection principal={principal.data} operator={operator} />
+          <NotificationAddressesSection principalId={principalId} />
+          <SecurityNotificationsSection principalId={principalId} />
           <FederationSection principalId={principalId} />
           <FindingsSection principalId={principalId} />
           <EventsSection principalId={principalId} />

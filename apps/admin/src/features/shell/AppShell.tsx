@@ -9,7 +9,8 @@ import type { MessageKey } from '@/core/i18n/messages';
 
 // A page in the navigation: where it goes, its icon, and its label.
 interface NavItem {
-  readonly to: '/' | '/principals' | '/workloads' | '/registrations' | '/changes';
+  readonly to:
+    '/' | '/principals' | '/workloads' | '/registrations' | '/changes' | '/emergency-grants' | '/projections';
   readonly icon: IconName;
   readonly label: MessageKey;
 }
@@ -38,7 +39,15 @@ const groups: readonly {
   {
     id: 'governance',
     label: 'shell.nav.section.governance',
-    items: [{ to: '/changes', icon: 'check', label: 'shell.nav.changes' }],
+    items: [
+      { to: '/changes', icon: 'check', label: 'shell.nav.changes' },
+      { to: '/emergency-grants', icon: 'shield', label: 'shell.nav.emergency' },
+    ],
+  },
+  {
+    id: 'monitoring',
+    label: 'shell.nav.section.monitoring',
+    items: [{ to: '/projections', icon: 'globe', label: 'shell.nav.projections' }],
   },
 ];
 
