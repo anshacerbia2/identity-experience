@@ -16,6 +16,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . && pnpm -r --if-present lint:styles && pnpm -r --if-present lint:boundaries",
     "test": "pnpm -r test",
+    "test:browser": "pnpm --filter @identity-experience/e2e test:browser",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
