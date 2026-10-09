@@ -58,6 +58,52 @@ export interface KernelEvent {
   readonly resource_type?: string;
 }
 
+// A notification address the Principal holds or held (GET …/notification-addresses,
+// TDD-identity-control-008 §API): where the person is told that their account changed. A provider
+// sees it because assisted recovery needs to know where a person is told.
+export interface NotificationAddress {
+  readonly address_id: string;
+  readonly channel: string;
+  readonly address: string;
+  readonly origin: 'creation' | 'added';
+  readonly state: 'pending' | 'active' | 'removed';
+  readonly added_at: string;
+  readonly verified_at?: string;
+  readonly removed_at?: string;
+}
+
+export type NotificationState = 'requested' | 'submitted' | 'failed' | 'no_address';
+
+// A security notification requested for the Principal (GET …/security-notifications, the hundred most
+// recent, newest first). Its details are bounded by the API: the authenticator type, who acted and the
+// recovery method, never a credential identifier, a label or a code.
+export interface SecurityNotification {
+  readonly notification_id: string;
+  readonly event: string;
+  readonly occurred_at: string;
+  readonly details: Readonly<Record<string, string>> | null;
+  readonly recipients: number;
+  readonly state: NotificationState;
+  readonly attempts: number;
+  readonly requested_at: string;
+  readonly submitted_at?: string;
+}
+
+// The notified events TDD-identity-control-008 names. Another is shown as the API spells it.
+export const notifiedEvents = [
+  'authenticator_bound',
+  'authenticator_removed',
+  'recovery_codes_issued',
+  'account_recovered',
+  'notification_address_changed',
+  'notification_address_proof',
+] as const;
+
+export type NotifiedEvent = (typeof notifiedEvents)[number];
+
+export const isNotifiedEvent = (event: string): event is NotifiedEvent =>
+  (notifiedEvents as readonly string[]).includes(event);
+
 export interface Finding {
   readonly finding_id: string;
   readonly class: string;

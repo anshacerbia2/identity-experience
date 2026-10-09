@@ -11,7 +11,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', '**/node_modules/**', 'apps/*/src/routeTree.gen.ts'],
+    ignores: [
+      '**/dist/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      'apps/*/src/routeTree.gen.ts',
+      'e2e/test-results/**',
+      'e2e/playwright-report/**',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
@@ -55,7 +62,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['bff/**/*.ts'],
+    files: ['bff/**/*.ts', 'e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
   },
   {

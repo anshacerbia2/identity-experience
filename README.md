@@ -169,6 +169,18 @@ The BFF's tests run against PostgreSQL too, in a throwaway schema they drop afte
 `IDENTITY_EXPERIENCE_TEST_DATABASE_URL` names a database they may create schemas in; without it
 the session tests fail rather than skip.
 
+The browser tests (`e2e/`) run Chromium against the BFF serving the built applications, with the
+identity kernel and the Identity Control API stood in: `SameSite` enforcement and axe on each main
+page. They need the build and the same database:
+
+```sh
+pnpm build
+pnpm --filter @identity-experience/e2e exec playwright install chromium
+pnpm test:browser
+```
+
+They listen on `127.0.0.1:18471` and `:18472`, or on `E2E_BFF_PORT` and `E2E_AUX_PORT`.
+
 ## Designs
 
 | TDD                           | Subject                                                      | Status   |

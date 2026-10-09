@@ -43,10 +43,14 @@ describe('AppShell navigation', () => {
       'nav-group-identities',
       'nav-group-applications',
       'nav-group-governance',
+      'nav-group-monitoring',
     ]);
     expect(within(nav).getByRole('list', { name: 'Identities' })).toHaveTextContent(/Principals.*Workloads/);
     expect(within(nav).getByRole('list', { name: 'Applications' })).toHaveTextContent('Registrations');
-    expect(within(nav).getByRole('list', { name: 'Governance' })).toHaveTextContent('Approvals');
+    expect(within(nav).getByRole('list', { name: 'Governance' })).toHaveTextContent(
+      /Approvals.*Emergency access/,
+    );
+    expect(within(nav).getByRole('list', { name: 'Monitoring' })).toHaveTextContent('Tenant context');
     expect(nav).not.toHaveTextContent(/keycloak|kernel/i);
   });
 });

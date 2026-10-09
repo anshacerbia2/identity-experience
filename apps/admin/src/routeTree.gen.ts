@@ -11,8 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChangesIndexRouteImport } from './routes/changes/index'
+import { Route as EmergencyGrantsIndexRouteImport } from './routes/emergency-grants/index'
 import { Route as PrincipalsIndexRouteImport } from './routes/principals/index'
 import { Route as PrincipalsPrincipalIdRouteImport } from './routes/principals/$principalId'
+import { Route as ProjectionsIndexRouteImport } from './routes/projections/index'
 import { Route as RegistrationsIndexRouteImport } from './routes/registrations/index'
 import { Route as RegistrationsRegistrationIdRouteImport } from './routes/registrations/$registrationId'
 import { Route as WorkloadsIndexRouteImport } from './routes/workloads/index'
@@ -27,6 +29,11 @@ const ChangesIndexRoute = ChangesIndexRouteImport.update({
   path: '/changes/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmergencyGrantsIndexRoute = EmergencyGrantsIndexRouteImport.update({
+  id: '/emergency-grants/',
+  path: '/emergency-grants/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrincipalsIndexRoute = PrincipalsIndexRouteImport.update({
   id: '/principals/',
   path: '/principals/',
@@ -35,6 +42,11 @@ const PrincipalsIndexRoute = PrincipalsIndexRouteImport.update({
 const PrincipalsPrincipalIdRoute = PrincipalsPrincipalIdRouteImport.update({
   id: '/principals/$principalId',
   path: '/principals/$principalId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectionsIndexRoute = ProjectionsIndexRouteImport.update({
+  id: '/projections/',
+  path: '/projections/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegistrationsIndexRoute = RegistrationsIndexRouteImport.update({
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes/': typeof ChangesIndexRoute
+  '/emergency-grants/': typeof EmergencyGrantsIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
   '/registrations/': typeof RegistrationsIndexRoute
   '/workloads/': typeof WorkloadsIndexRoute
 }
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes': typeof ChangesIndexRoute
+  '/emergency-grants': typeof EmergencyGrantsIndexRoute
   '/principals': typeof PrincipalsIndexRoute
+  '/projections': typeof ProjectionsIndexRoute
   '/registrations': typeof RegistrationsIndexRoute
   '/workloads': typeof WorkloadsIndexRoute
 }
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
   '/changes/': typeof ChangesIndexRoute
+  '/emergency-grants/': typeof EmergencyGrantsIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
+  '/projections/': typeof ProjectionsIndexRoute
   '/registrations/': typeof RegistrationsIndexRoute
   '/workloads/': typeof WorkloadsIndexRoute
 }
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes/'
+    | '/emergency-grants/'
     | '/principals/'
+    | '/projections/'
     | '/registrations/'
     | '/workloads/'
   fileRoutesByTo: FileRoutesByTo
@@ -98,7 +118,9 @@ export interface FileRouteTypes {
     | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes'
+    | '/emergency-grants'
     | '/principals'
+    | '/projections'
     | '/registrations'
     | '/workloads'
   id:
@@ -107,7 +129,9 @@ export interface FileRouteTypes {
     | '/principals/$principalId'
     | '/registrations/$registrationId'
     | '/changes/'
+    | '/emergency-grants/'
     | '/principals/'
+    | '/projections/'
     | '/registrations/'
     | '/workloads/'
   fileRoutesById: FileRoutesById
@@ -117,7 +141,9 @@ export interface RootRouteChildren {
   PrincipalsPrincipalIdRoute: typeof PrincipalsPrincipalIdRoute
   RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
   ChangesIndexRoute: typeof ChangesIndexRoute
+  EmergencyGrantsIndexRoute: typeof EmergencyGrantsIndexRoute
   PrincipalsIndexRoute: typeof PrincipalsIndexRoute
+  ProjectionsIndexRoute: typeof ProjectionsIndexRoute
   RegistrationsIndexRoute: typeof RegistrationsIndexRoute
   WorkloadsIndexRoute: typeof WorkloadsIndexRoute
 }
@@ -138,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChangesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/emergency-grants/': {
+      id: '/emergency-grants/'
+      path: '/emergency-grants'
+      fullPath: '/emergency-grants/'
+      preLoaderRoute: typeof EmergencyGrantsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/principals/': {
       id: '/principals/'
       path: '/principals'
@@ -150,6 +183,13 @@ declare module '@tanstack/react-router' {
       path: '/principals/$principalId'
       fullPath: '/principals/$principalId'
       preLoaderRoute: typeof PrincipalsPrincipalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projections/': {
+      id: '/projections/'
+      path: '/projections'
+      fullPath: '/projections/'
+      preLoaderRoute: typeof ProjectionsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/registrations/': {
@@ -181,7 +221,9 @@ const rootRouteChildren: RootRouteChildren = {
   PrincipalsPrincipalIdRoute: PrincipalsPrincipalIdRoute,
   RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
   ChangesIndexRoute: ChangesIndexRoute,
+  EmergencyGrantsIndexRoute: EmergencyGrantsIndexRoute,
   PrincipalsIndexRoute: PrincipalsIndexRoute,
+  ProjectionsIndexRoute: ProjectionsIndexRoute,
   RegistrationsIndexRoute: RegistrationsIndexRoute,
   WorkloadsIndexRoute: WorkloadsIndexRoute,
 }

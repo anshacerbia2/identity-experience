@@ -103,6 +103,54 @@ function api(options: {
             },
           ],
         });
+      case `/api/v1/principals/${subject}/notification-addresses`:
+        return json({
+          notification_addresses: [
+            {
+              address_id: '0192f0e0-aaaa-7000-8000-000000000001',
+              channel: 'email',
+              address: 'alice@example.com',
+              origin: 'creation',
+              state: 'removed',
+              added_at: '2026-10-01T08:00:00Z',
+              verified_at: '2026-10-01T08:00:00Z',
+              removed_at: '2026-10-02T08:00:00Z',
+            },
+            {
+              address_id: '0192f0e0-aaaa-7000-8000-000000000002',
+              channel: 'email',
+              address: 'alice@home.example',
+              origin: 'added',
+              state: 'pending',
+              added_at: '2026-10-02T09:00:00Z',
+            },
+          ],
+        });
+      case `/api/v1/principals/${subject}/security-notifications`:
+        return json({
+          security_notifications: [
+            {
+              notification_id: '0192f0e0-bbbb-7000-8000-000000000002',
+              event: 'authenticator_removed',
+              occurred_at: '2026-10-03T08:10:00Z',
+              details: { authenticator: 'otp', actor: 'administrator' },
+              recipients: 0,
+              state: 'no_address',
+              attempts: 0,
+              requested_at: '2026-10-03T08:10:01Z',
+            },
+            {
+              notification_id: '0192f0e0-bbbb-7000-8000-000000000001',
+              event: 'authenticator_bound',
+              occurred_at: '2026-10-03T08:00:00Z',
+              details: { authenticator: 'otp' },
+              recipients: 1,
+              state: 'failed',
+              attempts: 10,
+              requested_at: '2026-10-03T08:00:01Z',
+            },
+          ],
+        });
       case '/api/v1/security-operations/0192f0e0-9999-7000-8000-000000000001':
         return json(operation('applied'));
       default:
@@ -186,6 +234,49 @@ describe('PrincipalDetailPage', () => {
     expect(reads(requests)).toEqual([
       `/api/v1/principals/${subject}`,
       `/api/v1/principals/${subject}/events`,
+    ]);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('reads where the Principal is told only when opened, and says when no address is active', async () => {
+    const { requests } = api({});
+    const { container } = renderApp(`/principals/${subject}`);
+    expect(await screen.findByRole('heading', { name: 'alice' })).toBeInTheDocument();
+    const shows = screen.getAllByRole('button', { name: 'Show — this read is recorded' });
+    await userEvent.click(shows[2] as HTMLElement);
+    const table = await screen.findByRole('table', { name: 'Notification addresses' });
+    expect(within(table).getByText('alice@home.example')).toBeInTheDocument();
+    expect(within(table).getByText('Pending proof')).toBeInTheDocument();
+    expect(within(table).getByText('Added by the person')).toBeInTheDocument();
+    // The removed address: its state, and when it was removed.
+    expect(within(table).getByText('Removed')).toBeInTheDocument();
+    expect(within(table).getByText(/^Removed\s.*2026/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'No address is active: this Principal is not told when its account changes. The account application asks them for one.',
+      ),
+    ).toBeInTheDocument();
+    expect(reads(requests)).toEqual([
+      `/api/v1/principals/${subject}`,
+      `/api/v1/principals/${subject}/notification-addresses`,
+    ]);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('reads what the Principal was told only when opened, with each delivery and what a failure means', async () => {
+    const { requests } = api({});
+    const { container } = renderApp(`/principals/${subject}`);
+    expect(await screen.findByRole('heading', { name: 'alice' })).toBeInTheDocument();
+    const shows = screen.getAllByRole('button', { name: 'Show — this read is recorded' });
+    await userEvent.click(shows[3] as HTMLElement);
+    const table = await screen.findByRole('table', { name: 'Security notifications' });
+    expect(within(table).getByText('An authenticator removed')).toBeInTheDocument();
+    expect(within(table).getByText('authenticator: otp, actor: administrator')).toBeInTheDocument();
+    expect(within(table).getByText('The person had no address to tell: give them one.')).toBeInTheDocument();
+    expect(within(table).getByText('Refused 10 times: the person was not told.')).toBeInTheDocument();
+    expect(reads(requests)).toEqual([
+      `/api/v1/principals/${subject}`,
+      `/api/v1/principals/${subject}/security-notifications`,
     ]);
     expect(await axe(container)).toHaveNoViolations();
   });
