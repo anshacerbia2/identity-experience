@@ -139,6 +139,34 @@ describe('the approval queue', () => {
     expect(posts(sent)[0]?.url.pathname).toBe('/api/v1/registrations/r-billing/changes/c-3:approve');
   });
 
+  // ADR-IAM-003 §5.9: the approver reads both classes with the token lifetime and the revocation
+  // target each sets, the increase STD-IAM-002 §3.3 requires a change to state.
+  it('shows a lifetime-class change with what each class means', async () => {
+    const lifetime = change({
+      change_id: 'c-4',
+      client_key: 'orders-api',
+      registration_id: 'r-orders-api',
+      kind: 'lifetime_class',
+      previous_redirect_uris: null,
+      redirect_uris: null,
+      previous_lifetime_class: 'L1',
+      lifetime_class: 'L2',
+    });
+    api([lifetime]);
+    const { container } = renderApp('/changes');
+
+    expect(await screen.findByText('Lifetime class')).toBeInTheDocument();
+    expect(
+      screen.getByText('L1: token valid 9 minutes, a revocation takes effect within about 10 minutes'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('L2: token valid 15 minutes, a revocation takes effect within about 16 minutes'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('From')).toBeInTheDocument();
+    expect(screen.getByText('To')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
   it('says nothing was applied when the change was superseded', async () => {
     api([change({})], () => json(change({ state: 'superseded', decided_by: me })));
     renderApp('/changes');

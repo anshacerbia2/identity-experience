@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.17.0
+  version: 1.19.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -110,7 +110,7 @@ A BFF registered before the resource existed moves by an audience change
 | `TokenHolder` | Holds access and refresh tokens per session; never serialized to the browser |
 | `ApiProxy` | Forwards browser requests to the Identity Control API, attaching the access token |
 | `CsrfGuard` | Origin and token checks on every state-changing request |
-| `LogoutController` | Front-channel logout, back-channel logout receiver, global sign-out |
+| `LogoutController` | Back-channel logout receiver, sign-out, global sign-out. No front-channel logout (§No Front-Channel Logout) |
 | `StepUpController` | Re-authentication for operations requiring elevated assurance |
 
 ### Sign-in
@@ -428,9 +428,12 @@ destroys the session: ending every open session because the identity kernel was
 unreachable for a minute would turn an outage into a mass sign-out.
 
 The failure branch is an enforcement mechanism, not an error path. When a Membership
-is revoked, `identity-control` removes the Keycloak session; the next refresh from
-this BFF fails, and the session is destroyed. That is the second of the four
-revocation mechanisms reaching a browser tab.
+is revoked, `identity-control` removes the Principal from the Tenant's Organization in
+the kernel, and removes no session (`ADR-IAM-006 §5.5`). The kernel then refuses the
+next refresh of a session for that Tenant with `invalid_grant`, and this BFF destroys
+the session. When a Keycloak session is removed, the next refresh fails the same way.
+That is the second of the four revocation mechanisms reaching a browser tab (1.19.0:
+until then this paragraph said a Membership revocation removed the Keycloak session).
 
 ### Session-Store Outage
 
@@ -481,6 +484,7 @@ The BFF is affected by three of the four mechanisms, at three different latencie
 | Mechanism | Effect here | Latency |
 | :-- | :-- | :-- |
 | Keycloak session removed | The next server-side refresh fails and the session is destroyed | Up to the remaining access token lifetime, four minutes at class `L0` |
+| Membership revoked, for a Tenant session | The kernel refuses the next refresh for that Tenant, and the session is destroyed. No kernel session ends, so no back-channel logout is sent (1.19.0) | The propagation to the kernel, plus the remaining access token lifetime |
 | Back-channel logout | Keycloak notifies the BFF directly; the session is destroyed immediately | Propagation time |
 | Control API rejects the token | The proxied request returns 401 and the session is destroyed | Next request |
 
@@ -488,6 +492,40 @@ Back-channel logout is the fast path and is registered for exactly that reason. 
 refresh path is the guaranteed one: it requires no callback to arrive and no request
 to be made, so it bounds the interval even when the browser is idle and the
 notification is lost.
+
+**Where the URL is registered (1.18.0).** The BFF's client is registered through identity-control's
+`POST /v1/registrations` with `backchannel_logout_uri` set to this BFF's `/auth/back-channel-logout`
+on an address the kernel's container reaches, or adopted declaring it (`TDD-identity-control-003`
+1.37.0). identity-control writes it with front-channel logout off and "session required" on, so the
+logout token names the session by `sid`, and its drift sweep holds both. identity-control's
+`deploy-dev` proves a client registered that way receives a PS256 `logout+jwt` naming the session the
+API ends. A BFF on a developer's machine registers none: the specification requires the URI to be
+"reachable from all the OPs used", and the kernel cannot reach the laptop (`ADR-IAM-009 §5.3`). There,
+the refresh path alone bounds the session, as it bounds every session.
+
+### No Front-Channel Logout
+
+1.0.0 named front-channel logout among `LogoutController`'s duties and specified no endpoint for it.
+1.18.0 removes it, by `ADR-IAM-009 §5.2`, and the BFF keeps its `frame-ancestors 'none'` and its
+`SameSite=Lax` cookie:
+
+- **The kernel ends sessions without a browser.** A person's own session end, a provider's
+  containment and a suspension all remove the session through the Admin API. The pinned kernel tells
+  a client of such a removal only by the back channel; front-channel logout reaches a client only
+  "when the logout is triggered in the same browser session" (`ADR-IAM-009` [R3]).
+- **The two are exclusive per client.** Keycloak 26.7.5 skips the back channel for a client with
+  front-channel logout on (`ADR-IAM-009` [R4]), so turning it on would remove the notification an
+  administrative removal sends.
+- **The frame would be refused, and could not read the session.** Front-channel logout renders the
+  logout URI in an iframe on the kernel's page, which this BFF's `frame-ancestors 'none'` refuses; a
+  `SameSite=Lax` cookie is not sent on navigations inside an iframe, and browsers partition or block
+  cross-site frame storage (`ADR-IAM-009` [R5]–[R7]). The specification says so of itself: the logout
+  URI "might not be able to access the RP's login state when rendered by the OP in an iframe"
+  (`ADR-IAM-009` [R1]).
+
+A sign-out here still reaches every other relying party of the kernel session: the BFF ends it at the
+kernel's logout endpoint, which sends the back channel to the session's other clients
+(`ADR-IAM-009 §5.4`).
 
 A tab whose session is destroyed receives 401 on its next call and redirects to
 sign-in. The design does not attempt to push a notification into an idle tab, because
@@ -751,9 +789,32 @@ the build emits styles and fonts as files served from this origin, never inline.
   remaining access token lifetime of class `L0`. **The bound is asserted (1.16.0):**
   `bff/test/containment.test.ts` removes the kernel session at several points in a token's life, with
   no back-channel logout delivered, and an active tab's session ends no later than the expiry of the
-  token it held at removal. An idle tab's first request after it is refused. **The measurement is
-  not:** timing a real Membership revocation through organization-control, identity-control and the
-  kernel to this BFF needs those services together, which only a stack-level job can run.
+  token it held at removal. An idle tab's first request after it is refused.
+- **Measured against the stack (1.19.0)**, in organization-experience's `stack-proof` workflow, the
+  stack-level proof of STD-GLB-009 §Stack-Level Proofs. That repository holds it because it consumes
+  every stack the measurement needs: the kernel, identity-control and organization-control, wired as a
+  development server is, this repository's BFF and applications at `identity_experience_ref`, and its
+  own BFF. Two measurements, each from the authority's accepted instant to the instant the BFF answers
+  a tab in use `401`, on the runner's one clock, read once a second by the page itself:
+  - **A Membership revoked**, through Organization Control's API in a browser, ends a Tenant session.
+    This BFF holds no Tenant session (§Context Switch: tenant sign-in is off), so the session measured
+    is the pattern's, served by organization-experience, whose pattern files are this repository's byte
+    for byte; the evidence records whether they equal this repository's at the ref checked out. No
+    kernel session ends (`ADR-IAM-006 §5.5`), so no back-channel logout is sent: the refresh path alone
+    bounds it, and a lost notification cannot extend it because there is none to lose. The bound is
+    SAD-001 §7.7's for that session: the propagation from acceptance to the kernel's removal of the
+    member, plus the remaining lifetime of the token the session held then. The proof fails above it,
+    and above the `L0` revocation target of 300 seconds. No request is served after acceptance, an
+    idle tab's first request is refused, and one after its token expired finds the session gone.
+  - **A kernel session removed** ends this BFF's session: a person signed in on two devices ends the
+    first from the second in the account application. Where the kernel holds a back-channel logout URL
+    for this BFF's client, the logout token ends it at once, and the proof fails if it takes longer than
+    10 seconds after the kernel's removal. Where it holds none, the next refresh is refused, within the
+    remaining lifetime of the token held, and no refresh succeeds after the removal. In the stack the
+    kernel reaches this BFF on its network's gateway, as it reaches a deployed one, so the URL is
+    registered wherever identity-control takes it.
+  Both go to the `stack-evidence` artifact as JSON, with the bound beside the measurement, and to the
+  job summary. The figures are in the ROADMAP's Week 2 exit.
 
 ### Session-Store Outage
 
@@ -853,8 +914,12 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Governed by | ADR-IAM-006 §5.2, ADR-IAM-008 — the Tenant chosen per sign-in, one form per sign-in, checked on the callback (1.15.0) |
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |
 | Conforms to | STD-GLB-005 §Retry and Exponential Backoff Policy — a store outage answers 503, which a caller may retry; a refusal answers 4xx, which it may not (1.17.0) |
+| Conforms to | STD-GLB-009 §Stack-Level Proofs — the revocation to session destruction measured in organization-experience's `stack-proof` workflow (1.19.0) |
 | Enterprise constraint | EAD-006 — default deny; a valid artifact is not an authorization decision |
-| Depends on | `identity-kernel` — hosted login, realm configuration, back-channel logout registration |
+| Depends on | `identity-kernel` — hosted login and realm configuration; `compat/back_channel_logout_test.go` proves the pinned kernel posts a logout token on an Admin API removal and none to a front-channel client |
+| Depends on | `identity-control` — the client's `backchannel_logout_uri` and front-channel logout held off (`TDD-identity-control-003` 1.37.0) |
+| Governed by | ADR-IAM-009 — logout reaches a relying party by the back channel; no front-channel logout (1.18.0) |
+| Conforms to | STD-IAM-001 2.7.0 §3.4 — back-channel logout for a reachable server-side relying party |
 | Depends on | `identity-control` — the Identity Control API, which reauthorizes every command |
 | Conforms to | `foundation-platform` problem registry — the same problem types, written in TypeScript |
 | Build-time dependency | `scnehaux-ui-platform` — design system packages, per SAD-002 §1 |

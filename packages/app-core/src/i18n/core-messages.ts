@@ -216,6 +216,29 @@ export const coreEn = {
   'changes.column.decided': 'Decided',
   'changes.kind.redirect_uris': 'Redirect URIs',
   'changes.kind.audience': 'Audience',
+  'changes.kind.lifetime_class': 'Lifetime class',
+  'changes.title.lifetime': 'Lifetime class',
+  'changes.description.lifetime':
+    'How long a token for this resource is valid, which bounds how long a revoked person keeps access to it. Every client whose audience names it takes its token lifetime from it. Outside production a change applies at once; in production a provider other than its proposer approves it.',
+  'changes.current.lifetime': 'Lifetime class registered now',
+  'changes.lifetime.meaning':
+    '{value}: token valid {token, number} minutes, a revocation takes effect within about {revocation, number} minutes',
+  'changes.lifetime.from': 'From',
+  'changes.lifetime.to': 'To',
+  'changes.propose.open.lifetime': 'Propose a lifetime class',
+  'changes.propose.title.lifetime': 'Propose the next lifetime class',
+  'changes.propose.body.lifetime':
+    'Choose one of the four classes. A token lifetime is never set per client: each client takes the shortest class among the resources it calls.',
+  'changes.propose.field.lifetime': 'Lifetime class',
+  'changes.rules.title.lifetime': 'What a lifetime-class change does',
+  'changes.rules.lifetime.callers':
+    'Every client whose audience names this resource, and no resource with a shorter class, moves to the new token lifetime when the change applies.',
+  'changes.rules.lifetime.longer':
+    'A longer class is a longer window in which a revoked person keeps access to this resource.',
+  'changes.rules.lifetime.same': 'The class registered now is refused: it would change nothing.',
+  'changes.done.applied.lifetime': 'The lifetime class is changed.',
+  'registration.field.backChannelLogout': 'Back-channel logout',
+  'registration.backChannelLogout.none': 'None: a session ends here at the next token refresh',
 } as const;
 
 export type CoreMessageKey = keyof typeof coreEn;
@@ -431,6 +454,29 @@ export const coreId: CoreMessages = {
   'changes.column.decided': 'Diputuskan',
   'changes.kind.redirect_uris': 'Redirect URI',
   'changes.kind.audience': 'Audiens',
+  'changes.kind.lifetime_class': 'Kelas umur',
+  'changes.title.lifetime': 'Kelas umur',
+  'changes.description.lifetime':
+    'Berapa lama token untuk resource ini berlaku, yang membatasi berapa lama orang yang sudah dicabut tetap bisa mengaksesnya. Setiap client yang audiensnya menyebut resource ini mengambil umur tokennya dari sini. Di luar produksi perubahan langsung diterapkan; di produksi provider selain pengusulnya yang menyetujui.',
+  'changes.current.lifetime': 'Kelas umur terdaftar sekarang',
+  'changes.lifetime.meaning':
+    '{value}: token berlaku {token, number} menit, pencabutan berlaku dalam sekitar {revocation, number} menit',
+  'changes.lifetime.from': 'Dari',
+  'changes.lifetime.to': 'Menjadi',
+  'changes.propose.open.lifetime': 'Usulkan kelas umur',
+  'changes.propose.title.lifetime': 'Usulkan kelas umur berikutnya',
+  'changes.propose.body.lifetime':
+    'Pilih salah satu dari empat kelas. Umur token tidak pernah diatur per client: setiap client mengambil kelas terpendek di antara resource yang dipanggilnya.',
+  'changes.propose.field.lifetime': 'Kelas umur',
+  'changes.rules.title.lifetime': 'Apa yang dilakukan perubahan kelas umur',
+  'changes.rules.lifetime.callers':
+    'Setiap client yang audiensnya menyebut resource ini, dan tidak menyebut resource dengan kelas lebih pendek, pindah ke umur token yang baru saat perubahan diterapkan.',
+  'changes.rules.lifetime.longer':
+    'Kelas yang lebih panjang berarti jendela yang lebih panjang bagi orang yang sudah dicabut untuk tetap mengakses resource ini.',
+  'changes.rules.lifetime.same': 'Kelas yang terdaftar sekarang ditolak: tidak ada yang berubah.',
+  'changes.done.applied.lifetime': 'Kelas umur sudah diubah.',
+  'registration.field.backChannelLogout': 'Back-channel logout',
+  'registration.backChannelLogout.none': 'Tidak ada: sesi di sini berakhir pada penyegaran token berikutnya',
 };
 
 export const coreMessages: Readonly<Record<Locale, CoreMessages>> = { en: coreEn, id: coreId };

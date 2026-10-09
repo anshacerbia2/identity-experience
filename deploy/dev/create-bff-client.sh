@@ -25,8 +25,9 @@
 # localhost:8080: the dev tunnel forwards the server's port 8080 and rewrites any redirect to
 # localhost:8080 into the tunnel's own URL, which sent the first real sign-in back to Keycloak
 # instead of the BFF. A port the tunnel does not forward is left alone. Keycloak
-# cannot reach that machine, so no back-channel logout URL is registered; a session removed in the
-# kernel still ends the BFF session at its next refresh, within four minutes.
+# cannot reach that machine, so no back-channel logout URL is registered (ADR-IAM-009 §5.3); a
+# session removed in the kernel still ends the BFF session at its next refresh, within four minutes.
+# Front-channel logout is off (ADR-IAM-009 §5.2), as identity-control writes it on every client.
 #
 # It creates this one client and changes nothing else: no realm setting, no scope, no other client.
 # It refuses when the client exists. A second developer's key, or a new key, is installed with the

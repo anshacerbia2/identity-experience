@@ -51,13 +51,19 @@ warning on any occurrence.
 
 ## Steps
 
-1. **Is a back-channel logout URL registered on the BFF's client?** In the kernel's Admin Console or
-   Admin API, the client `identity-experience-bff`, attribute `backchannel.logout.url`. It must be the
-   BFF's `/auth/back-channel-logout` on an address Keycloak can reach. On a developer's machine none is
-   registered, by design: Keycloak cannot reach the laptop (`README.md`, Signing in against the
-   development kernel). As of this runbook no repository sets it on a server either: neither
-   identity-control's registration nor identity-kernel's realm configuration writes it. Until one does,
-   every server relies on the refresh path, and this runbook's first step is the whole fix.
+1. **Is a back-channel logout URL registered on the BFF's client?** Read the BFF's registration in
+   the Admin Portal, or `GET /v1/registrations/{registration_id}`: it names `backchannel_logout_uri`
+   when one is registered. It must be the BFF's `/auth/back-channel-logout` on an address Keycloak can
+   reach. On a developer's machine none is registered, by design: Keycloak cannot reach the laptop
+   (`ADR-IAM-009 §5.3`, `README.md`). On a server, the registration or the adoption names it
+   (`deploy/dev/README.md`, step 2), and identity-control writes it on the kernel client with
+   front-channel logout off (`TDD-identity-control-003` 1.37.0). A URI is not changed after
+   registration yet: a wrong one is corrected by registering the client again. Never set it in the
+   Admin Console: the drift sweep reads a console change as a `logout` finding and puts the registered
+   value back.
+   Also check that front-channel logout is off on the client: Keycloak 26.7.5 sends no back-channel
+   logout to a client with front-channel logout on (`ADR-IAM-009` [R4]). The sweep records it as a
+   `logout` finding, and repairs it when an admin event names who turned it on.
 2. **Can Keycloak reach it?** From the kernel's network, post an empty form to the URL. A `400` with
    `A logout_token form parameter is required` means the route is reached. A timeout, a TLS error or a
    `404` is the network or the address.

@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.10.0
+  version: 1.11.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -36,7 +36,8 @@ form fields.
   review dates and the owner's periodic review (`ADR-IAM-003 §5.8`, 1.10.0).
 - The registration request flow and where approval is required.
 - Redirect URI and audience configuration, validated before submission.
-- Lifetime class selection, and how its consequence is shown.
+- Lifetime class selection, and how its consequence is shown; a resource's lifetime-class change
+  (`ADR-IAM-003 §5.9`, 1.11.0).
 - Public-key registration, rotation, and revocation. No secret exists to issue or show.
 - Integration guidance rendered from the registration itself.
 
@@ -120,7 +121,7 @@ GET   /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys                   owner of {id}
 POST  /api/v1/registrations/{id}/keys/{key_id}:revoke   owner of {id}, with a reason
 GET   /api/v1/registrations/{id}/owners                 owner of {id}
-POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason; redirect URIs or audience
+POST  /api/v1/registrations/{id}/changes                owner of {id}, with a reason; redirect URIs, audience or lifetime class
 GET   /api/v1/registrations/{id}/changes                owner of {id}
 POST  /api/v1/registrations/{id}/changes/{c}:withdraw   its proposer, with a reason
 GET   /api/v1/registrations:standing                    any signed-in person: its own standing
@@ -316,7 +317,8 @@ on an active public, confidential or workload registration:
     outside production it applies at once; in production it waits for a provider other than the
         proposer, and the page says so
     the open change is shown as the resources it adds, removes and keeps, labelled as an audience
-a resource registration has no audience: nothing is offered on it
+a resource registration has no audience: its lifetime class is offered instead (§Lifetime-Class
+    Changes)
 ```
 
 - **Why the audience is governed.** A token that names a resource can be presented to it, and RFC 8707
@@ -330,11 +332,37 @@ a resource registration has no audience: nothing is offered on it
   A picker would have to list what the person may add, which is a rule of the API's: an owner's own
   resources, or for a provider every resource, which only the provider's paged list holds. The API
   names a refused entry, and §Validation Parity holds.
-- **Lifetime-class changes are not offered.** The API does not accept them yet
-  (`TDD-identity-control-003` §Registration Changes), and nothing here asks for one.
 
 The Admin Portal shows the same panel, as for redirect URIs (`TDD-identity-experience-003` §Change
 Approval). On a workload registration, which has no redirect URIs, the panel is the audience alone.
+
+### Lifetime-Class Changes
+
+**Added in 1.11.0**, on `ADR-IAM-003 §5.9` and `TDD-identity-control-003` §Registration Changes (its
+1.37.0). A resource's lifetime class changes by the same recorded change, of kind `lifetime_class`.
+
+```text
+on an active resource registration:
+    show the registered class as an interval (§Lifetime Class as an Interval)
+    propose the next class, chosen from L0 to L3, each rendered as its interval, with a reason,
+        against the version shown; the body carries lifetime_class alone
+    say what the change does: every caller with no shorter resource moves to the new lifetime,
+        a longer class is a longer window for a revoked person, the registered class is refused
+    the API holds one open change per registration: while one is open, no proposal is offered
+    outside production it applies at once; in production it waits for a provider other than the
+        proposer, and the page says so
+    the open change is shown as the class it moves from and the class it moves to, each as its
+        interval
+```
+
+- **All four classes are offered.** The API accepts any of them for a resource, and a resource a
+  provider registered for workloads is `L3`. Registration still offers a developer `L0` to `L2`
+  (§Registering a Client), because a developer registers no workload audience.
+- **The interval, not the letter, is what is approved.** STD-IAM-002 §3.3 requires an increase to be
+  carried into the stated enforcement delay, so the card in the console and in the Admin Portal's
+  approval queue states both classes' token lifetime and revocation target.
+- **The callers are not listed.** No route lists the clients whose audience names a resource, so the
+  page says which callers move without naming them (`ADR-IAM-003 §5.9`, Negative).
 
 ### Lifetime Class as an Interval
 
@@ -473,6 +501,10 @@ hand-maintained documentation always does.
 - A resource registration cannot be submitted without a class.
 - Each class renders its enforcement interval, not its identifier.
 - Selecting `L2` for an internal audience is refused.
+- A resource's page shows its class as an interval and proposes the next class with the version and
+  a reason, the body carrying `lifetime_class` alone; an open change shows both classes as intervals
+  and offers no second proposal (1.11.0, `RegistrationPage.test.tsx`). The Admin Portal's queue
+  shows the same (`ChangeQueuePage.test.tsx`).
 
 ### Key Handling
 
@@ -537,6 +569,8 @@ and registration approval backlog.
 | Governed by | ADR-IAM-001 §5.12 — confidential and workload clients authenticate with registered keys |
 | Governed by | ADR-IAM-003 — a registration's owners act on it; a production change is approved by another provider |
 | Governed by | ADR-IAM-003 §5.8 — a workload's owner lists, reads and reviews it; another's workload is not found |
+| Governed by | ADR-IAM-003 §5.9 — a resource's lifetime class changes as a registration change (1.11.0) |
+| Depends on | `TDD-identity-control-003` 1.37.0 — the `lifetime_class` change kind |
 | Depends on | `TDD-identity-control-004` 1.7.0 — `GET /v1/workloads:mine`, the owner's `GET /v1/workloads/{principal_id}` and `:review` |
 | Conforms to | SAD-002 §4.1 — the Developer Identity Console is its own container behind the same BFF |
 | Conforms to | STD-IAM-001 §3.2 — PKCE, exact redirect URIs, no secret in a public client, `private_key_jwt` for confidential and workload clients |

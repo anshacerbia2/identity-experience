@@ -141,9 +141,11 @@ The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
 - 401 from the Identity Control API destroying the session
 - Front-channel logout and global sign-out. Global sign-out is built: sign-out ends the Keycloak
   session server-side, and the account application's "Sign out everywhere" ends every one.
-  **Front-channel logout is an open decision**, not built: TDD-001 names it in `LogoutController` and
-  specifies no endpoint for it, and its own `frame-ancestors 'none'` refuses the frame OpenID Connect
-  Front-Channel Logout 1.0 renders the logout URI in.
+  ✅ **Front-channel logout is decided against** (ADR-IAM-009, TDD-001 1.18.0 §No Front-Channel
+  Logout). The kernel removes sessions through the Admin API, which reaches a client only by the back
+  channel, and Keycloak 26.7.5 skips the back channel for a client with front-channel logout on; the
+  frame would be refused by `frame-ancestors 'none'` and denied its cookie by `SameSite=Lax` and
+  browser partitioning. identity-control writes front-channel logout off on every client.
 - Step-up: reading the requirement from the API, driving the ceremony, never granting
   assurance locally
 
@@ -151,13 +153,50 @@ The challenge's level followed ADR-IAM-004 (TDD-001 1.10.0):
 the remaining access token lifetime of class `L0`; a lost back-channel notification does
 not extend it, because the refresh path bounds it independently.
 
-**Half met** (TDD-001 1.16.0). The bound is asserted: `bff/test/containment.test.ts` removes the
-kernel session at five points in a token's life, delivers no back-channel logout, and the session ends
-no later than the expiry of the token it held. The measurement is not: timing a real Membership
-revocation needs organization-control, identity-control and the kernel together with this BFF, which
-no job of this repository runs. It belongs in a stack-level proof. Note also that no repository
-registers the BFF's back-channel logout URL on a server yet, so today every server relies on the
-refresh path (`docs/runbooks/back-channel-logout-failure.md`).
+✅ **Met, measured against the stack** (TDD-001 1.19.0 §Revocation). The bound was asserted first
+(1.16.0): `bff/test/containment.test.ts` removes the kernel session at five points in a token's life,
+delivers no back-channel logout, and the session ends no later than the expiry of the token it held.
+The measurement is organization-experience's `stack-proof` workflow (STD-GLB-009 §Stack-Level Proofs),
+which brings up the kernel, identity-control, organization-control, this BFF and its applications at
+`identity_experience_ref`, and organization-experience's BFF, and drives them in Chromium. Its
+`stack-evidence` artifact holds each figure with its bound. In run
+[37853070937](https://github.com/anshacerbia2/organization-experience/actions/runs/37853070937), every
+repository at `main`:
+
+| Revoked                                                          | Session                                                             | Accepted to kernel applied | Accepted to session ended |   Bound | Ended by        |
+| :--------------------------------------------------------------- | :------------------------------------------------------------------ | -------------------------: | ------------------------: | ------: | :-------------- |
+| a Membership, at Organization Control                            | a Tenant session of this pattern, served by organization-experience |                      2.7 s |                   162.9 s | 192.6 s | refresh refused |
+| a kernel session, from another device in the account application | this BFF's                                                          |                      0.2 s |                   209.2 s | 238.9 s | refresh refused |
+
+- **A Membership revocation sends no back-channel logout.** It removes no kernel session
+  (`ADR-IAM-006 §5.5`), so the refresh path alone bounds it, and a lost notification cannot extend it.
+  No request was served after acceptance: Organization Control refused the token at once with `403`.
+  An idle tab's first request was refused, and one after its token expired found the session gone.
+  This BFF holds no Tenant session, so the session measured is the pattern's as organization-experience
+  serves it; its pattern files were this repository's byte for byte at the ref checked out.
+- **A removed kernel session, with and without the back channel.** Without a registered back-channel
+  logout URL, the refresh path ended the session, with no refresh succeeding after the removal. The URL
+  is registered through identity-control's `backchannel_logout_uri` (TDD-identity-control-003 1.37.0),
+  and identity-control's `deploy-dev` proves a client registered that way from zero receives the logout
+  token for the session the API ends. With it registered (the `logout-and-self-commands` branches of
+  identity-kernel, identity-control and this repository), run
+  [37853072129](https://github.com/anshacerbia2/organization-experience/actions/runs/37853072129) saw the
+  back channel end the session 0.9 s after acceptance, before identity-control's answer reached the other
+  device; the Membership revocation there took 167.7 s against 197.3 s.
+- **Two early runs did not end, and the cause is not established.** In runs
+  [37843816015](https://github.com/anshacerbia2/organization-experience/actions/runs/37843816015) and
+  [37846007225](https://github.com/anshacerbia2/organization-experience/actions/runs/37846007225) the
+  removed session's tab kept being answered `200` for five to six minutes after the kernel stopped
+  listing the session, past the expiry of the token it held then, so a refresh of the removed session
+  succeeded. Their evidence could not say more. Since run 37847908410 the evidence records every refresh
+  of the session and, when it does not end, the kernel's sessions and its own `REFRESH_TOKEN` and
+  `REFRESH_TOKEN_ERROR` events. The eight runs since, three of them repeats at `main` (37854786204,
+  37854789717, 37854793345), ended within the bound with no refresh after the removal. A recurrence
+  fails the proof with those records. Until one is explained, the refresh path's bound for a removed
+  kernel session is measured, not guaranteed.
+- **The development server.** A BFF on a developer's machine registers no back-channel logout URL,
+  because the kernel cannot reach it (ADR-IAM-009 §5.3), so there the refresh path is the bound
+  (`docs/runbooks/back-channel-logout-failure.md`).
 
 ## Week 3 · Account security
 
@@ -187,12 +226,14 @@ refusal says so, and the ways to add one are beside it (`SecurityPage.test.tsx`)
 **Exit:** every destructive action is reauthorized by the Identity Control API and
 carries an idempotency key, an optimistic version, and a reason.
 
-**Not met as written, by the API's design.** Every action is reauthorized by the Identity Control
-API, and the BFF decides nothing. Ending a session, signing out everywhere and removing an
-authenticator carry an Idempotency-Key, asserted in `SecurityPage.test.tsx`, and since TDD-002 1.8.0
-so does every other command, notification addresses included. None carries a version or a reason:
-identity-control's `/v1/me` commands take neither (TDD-002 §Commands, `TDD-identity-control-005`). Meeting it needs either
-identity-control to accept them, or the owner to restate the exit for a person's own commands.
+**Met, with the exit restated for a person's own commands** (STD-GLB-001 1.5.0, TDD-002 1.9.0
+§Commands). Every action is reauthorized by the Identity Control API, and the BFF decides nothing.
+Every command carries an Idempotency-Key, asserted in `SecurityPage.test.tsx`. A person's own command
+carries no version and no reason, by decision: it ends or adds one object named by a fresh handle, so
+there is no lost update for a version to guard (RFC 9110 §13.1.1, RFC 6585 §3), and the actor is the
+subject, so the audit record already says who and what (NIST SP 800-53 AU-3); Microsoft Graph's and
+Okta's self-service APIs take neither. The version and the reason stay required on an administrator's
+commands, which act on someone else's record.
 
 ## Week 4 · Administration and developer console
 
@@ -234,8 +275,11 @@ with its document and owners, for a provider other than the requester to approve
 (TDD-003 1.15.0). ✅ Audience changes followed identity-control's `audience` kind (TDD-004 1.8.0
 §Audience Changes, TDD-003 1.20.0): an owner or a provider proposes the whole next audience with a
 reason, a workload's page offers its audience alone, and the approval queue shows each change by its
-kind. Lifetime-class changes are not offered: identity-control does not accept them, and they wait on
-an owner decision there.
+kind. ✅ Lifetime-class changes followed identity-control's `lifetime_class` kind (ADR-IAM-003 §5.9,
+TDD-004 1.11.0 §Lifetime-Class Changes, TDD-003 1.23.0): a resource's page proposes the next class,
+each of the four shown as its token lifetime and revocation target, and the approval queue shows the
+class a change moves from and to. A confidential registration shows its back-channel logout URI, or
+that it has none.
 
 - Identity administration and investigation surfaces
 - Application and client onboarding, redirect and audience configuration

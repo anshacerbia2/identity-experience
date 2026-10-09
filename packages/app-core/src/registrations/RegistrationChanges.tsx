@@ -6,6 +6,7 @@ import {
   Button,
   Icon,
   Panel,
+  SelectField,
   StatusPill,
   Table,
   TextAreaField,
@@ -20,8 +21,12 @@ import { MutationError } from '../api/MutationError';
 import {
   changeKinds,
   changeValues,
+  classMinutes,
   hasAudience,
+  hasLifetimeClass,
   hasRedirectUris,
+  isLifetimeClass,
+  lifetimeClasses,
   lineEntries,
   openChange,
   setDiff,
@@ -52,7 +57,19 @@ const stateTones: Readonly<Record<ChangeState, StatusTone>> = {
 const kindLabel: Readonly<Record<ChangeKind, CoreMessageKey>> = {
   redirect_uris: 'changes.kind.redirect_uris',
   audience: 'changes.kind.audience',
+  lifetime_class: 'changes.kind.lifetime_class',
 };
+
+// ClassMeaning is a lifetime class as a proposer and an approver read it: its access token lifetime
+// and the revocation target it sets (STD-IAM-002 §3.3), the delay the standard requires a change to
+// state. A value the table does not know is shown as it is.
+function ClassMeaning({ value }: { readonly value: string }): ReactElement {
+  return isLifetimeClass(value) ? (
+    <CoreMessage id="changes.lifetime.meaning" values={{ value, ...classMinutes[value] }} />
+  ) : (
+    <code>{value}</code>
+  );
+}
 
 function useMe(): string | null {
   const session = useSession();
@@ -67,6 +84,24 @@ function Who({ principal, me }: { readonly principal: string; readonly me: strin
 // it adds, removes and keeps, each said in words and not by colour alone.
 function ChangeDiffList({ change }: { readonly change: RegistrationChange }): ReactElement {
   const { before, after } = changeValues(change);
+  if (change.kind === 'lifetime_class') {
+    const rows: readonly (readonly [CoreMessageKey, string | undefined])[] = [
+      ['changes.lifetime.from', before[0]],
+      ['changes.lifetime.to', after[0]],
+    ];
+    return (
+      <ul className={styles['values']}>
+        {rows.map(([label, value]) => (
+          <li key={label} className={styles['diffRow']}>
+            <StatusPill tone={label === 'changes.lifetime.to' ? 'info' : 'neutral'}>
+              <CoreMessage id={label} />
+            </StatusPill>
+            <span>{value === undefined ? null : <ClassMeaning value={value} />}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
   const diff = setDiff(before, after);
   const rows: readonly { readonly uri: string; readonly label: CoreMessageKey; readonly tone: StatusTone }[] =
     [
@@ -308,15 +343,31 @@ const proposeCopy: Readonly<
     rulesTitle: 'changes.rules.title.audience',
     rules: ['changes.rules.audience.remove', 'changes.rules.audience.add', 'changes.rules.audience.entry'],
   },
+  lifetime_class: {
+    title: 'changes.propose.title.lifetime',
+    body: 'changes.propose.body.lifetime',
+    field: 'changes.propose.field.lifetime',
+    rulesTitle: 'changes.rules.title.lifetime',
+    rules: ['changes.rules.lifetime.callers', 'changes.rules.lifetime.longer', 'changes.rules.lifetime.same'],
+  },
 };
 
-const registered = (registration: Registration, kind: ChangeKind): readonly string[] =>
-  kind === 'audience' ? registration.audience : registration.redirect_uris;
+const registered = (registration: Registration, kind: ChangeKind): readonly string[] => {
+  switch (kind) {
+    case 'audience':
+      return registration.audience;
+    case 'lifetime_class':
+      return registration.lifetime_class === undefined ? [] : [registration.lifetime_class];
+    case 'redirect_uris':
+      return registration.redirect_uris;
+  }
+};
 
 // ProposeForm proposes the whole next set of one kind, against the version shown, with a reason.
 // Nothing is judged here beyond splitting the lines: the API's sentence names the rule
 // (TDD-identity-experience-004 §Validation Parity). Redirect URIs need at least one; an audience may
-// be empty, a client whose tokens name no resource.
+// be empty, a client whose tokens name no resource. A lifetime class is chosen from the four, each
+// with what it means; the registered one is offered too, and the API's refusal says why.
 function ProposeForm({
   registration,
   kind,
@@ -357,16 +408,27 @@ function ProposeForm({
         </Panel.Description>
       </Panel.Header>
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
-        <TextAreaField
-          {...form.register('values', {
-            validate: (value) =>
-              kind === 'audience' || lineEntries(value).length > 0 || t('changes.propose.empty'),
-          })}
-          label={<CoreMessage id={copy.field} />}
-          error={form.formState.errors.values?.message}
-          spellCheck={false}
-          required={kind === 'redirect_uris'}
-        />
+        {kind === 'lifetime_class' ? (
+          <SelectField
+            {...form.register('values')}
+            label={<CoreMessage id={copy.field} />}
+            options={lifetimeClasses.map((value) => ({
+              value,
+              label: t('changes.lifetime.meaning', { value, ...classMinutes[value] }),
+            }))}
+          />
+        ) : (
+          <TextAreaField
+            {...form.register('values', {
+              validate: (value) =>
+                kind === 'audience' || lineEntries(value).length > 0 || t('changes.propose.empty'),
+            })}
+            label={<CoreMessage id={copy.field} />}
+            error={form.formState.errors.values?.message}
+            spellCheck={false}
+            required={kind === 'redirect_uris'}
+          />
+        )}
         <ReasonField
           registration={form.register('reason', reasonRules)}
           error={form.formState.errors.reason}
@@ -443,7 +505,9 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
               </span>
               <ul className={styles['values']}>
                 {changeValues(change).after.map((value) => (
-                  <li key={value}>{value}</li>
+                  <li key={value}>
+                    {change.kind === 'lifetime_class' ? <ClassMeaning value={value} /> : value}
+                  </li>
                 ))}
               </ul>
             </Table.Cell>
@@ -466,6 +530,7 @@ function History({ changes }: { readonly changes: readonly RegistrationChange[] 
 type Notice =
   | 'applied.redirect_uris'
   | 'applied.audience'
+  | 'applied.lifetime_class'
   | 'proposed'
   | 'approved'
   | 'rejected'
@@ -475,6 +540,7 @@ type Notice =
 const noticeCopy: Readonly<Record<Notice, CoreMessageKey>> = {
   'applied.redirect_uris': 'changes.done.applied',
   'applied.audience': 'changes.done.applied.audience',
+  'applied.lifetime_class': 'changes.done.applied.lifetime',
   proposed: 'changes.done.proposed',
   approved: 'changes.done.approved',
   rejected: 'changes.done.rejected',
@@ -492,6 +558,7 @@ const decided = (decision: ChangeDecision, outcome: RegistrationChange): Notice 
 const openCopy: Readonly<Record<ChangeKind, CoreMessageKey>> = {
   redirect_uris: 'changes.propose.open',
   audience: 'changes.propose.open.audience',
+  lifetime_class: 'changes.propose.open.lifetime',
 };
 
 // Registered shows one kind's set as it stands, and says so when an audience names no resource.
@@ -524,12 +591,12 @@ function Registered({
   );
 }
 
-// RegistrationChanges is a registration's redirect URIs and audience, and the changes to them
-// (ADR-IAM-003 §5.2, TDD-identity-experience-004 §Redirect URI Changes and §Audience Changes): the
-// registered sets, a proposal of the next one of either kind, the open change with its before and
-// after, and the changes decided. The API holds one open change per registration, of either kind,
-// so nothing is proposed while one is open. provider adds approve and reject on a change the
-// signed-in provider did not propose.
+// RegistrationChanges is a registration's redirect URIs and audience, or a resource's lifetime class,
+// and the changes to them (ADR-IAM-003 §5.2, §5.9, TDD-identity-experience-004 §Redirect URI Changes,
+// §Audience Changes and §Lifetime-Class Changes): what is registered, a proposal of the next value of
+// one kind, the open change with its before and after, and the changes decided. The API holds one
+// open change per registration, of any kind, so nothing is proposed while one is open. provider adds
+// approve and reject on a change the signed-in provider did not propose.
 export function RegistrationChanges({
   registration,
   provider = false,
@@ -539,10 +606,11 @@ export function RegistrationChanges({
 }): ReactElement | null {
   const redirects = hasRedirectUris(registration);
   const audience = hasAudience(registration);
-  const changes = useChanges(registration.registration_id, audience);
+  const lifetime = hasLifetimeClass(registration);
+  const changes = useChanges(registration.registration_id, audience || lifetime);
   const [proposing, setProposing] = useState<ChangeKind | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  if (!audience) {
+  if (!audience && !lifetime) {
     return null;
   }
   const kinds = changeKinds(registration);
@@ -614,17 +682,39 @@ export function RegistrationChanges({
   return (
     <section className={styles['section']} aria-labelledby="changes-title">
       <h2 id="changes-title" className={styles['sectionTitle']}>
-        <CoreMessage id={redirects ? 'changes.title' : 'changes.title.audience'} />
+        <CoreMessage
+          id={lifetime ? 'changes.title.lifetime' : redirects ? 'changes.title' : 'changes.title.audience'}
+        />
       </h2>
       <p className={styles['quiet']}>
-        <CoreMessage id={redirects ? 'changes.description' : 'changes.description.audience'} />
+        <CoreMessage
+          id={
+            lifetime
+              ? 'changes.description.lifetime'
+              : redirects
+                ? 'changes.description'
+                : 'changes.description.audience'
+          }
+        />
       </p>
       {redirects ? <Registered label="changes.current" values={registration.redirect_uris} /> : null}
-      <Registered
-        label="changes.current.audience"
-        values={registration.audience}
-        empty="changes.current.audience.none"
-      />
+      {audience ? (
+        <Registered
+          label="changes.current.audience"
+          values={registration.audience}
+          empty="changes.current.audience.none"
+        />
+      ) : null}
+      {lifetime && registration.lifetime_class !== undefined ? (
+        <div className={styles['stack']}>
+          <span className={styles['quiet']}>
+            <CoreMessage id="changes.current.lifetime" />
+          </span>
+          <span>
+            <ClassMeaning value={registration.lifetime_class} />
+          </span>
+        </div>
+      ) : null}
       {notice === null ? null : (
         <p className={notice === 'superseded' ? styles['quiet'] : styles['success']} role="status">
           <Icon name={notice === 'superseded' ? 'alert' : 'check'} />

@@ -457,10 +457,84 @@ describe('the owner’s registration page', () => {
       expect(within(changes).queryByRole('button', { name: 'Propose an audience' })).not.toBeInTheDocument();
       unmount();
 
-      api({ ...billing, profile: 'resource', audience: [], redirect_uris: [] });
+      api({ ...billing, profile: 'resource', audience: [], redirect_uris: [], lifetime_class: 'L1' });
       renderApp(`/developer/registrations/${id}`);
       expect(await screen.findByRole('heading', { name: 'billing-web' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: /audience/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // ADR-IAM-003 §5.9, TDD-identity-experience-004 §Lifetime-Class Changes: a resource's owner proposes
+  // its next lifetime class, each class shown with what it means.
+  describe('lifetime-class changes', () => {
+    const resource: Registration = {
+      ...billing,
+      client_key: 'billing-api',
+      profile: 'resource',
+      audience: [],
+      redirect_uris: [],
+      lifetime_class: 'L1',
+    };
+    const lifetimeChange = (overrides: Partial<RegistrationChange> = {}): RegistrationChange =>
+      change({
+        client_key: 'billing-api',
+        kind: 'lifetime_class',
+        previous_redirect_uris: null,
+        redirect_uris: null,
+        previous_lifetime_class: 'L1',
+        lifetime_class: 'L0',
+        ...overrides,
+      });
+
+    it('shows the registered class, and proposes the next one with the version read and a reason', async () => {
+      const { sent } = api(resource, () =>
+        json(lifetimeChange({ state: 'applied', approval_required: false }), 201),
+      );
+      const { container } = renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Lifetime class');
+      expect(within(changes).getByText('Lifetime class registered now')).toBeInTheDocument();
+      expect(
+        within(changes).getByText(
+          'L1: token valid 9 minutes, a revocation takes effect within about 10 minutes',
+        ),
+      ).toBeInTheDocument();
+      for (const name of ['Propose redirect URIs', 'Propose an audience']) {
+        expect(within(changes).queryByRole('button', { name })).not.toBeInTheDocument();
+      }
+      const user = userEvent.setup();
+      await user.click(await within(changes).findByRole('button', { name: 'Propose a lifetime class' }));
+      const field = within(changes).getByLabelText(/^Lifetime class/);
+      expect(field).toHaveValue('L1');
+      expect(within(changes).getAllByRole('option')).toHaveLength(4);
+      await user.selectOptions(field, 'L0');
+      await user.type(within(changes).getByLabelText(/Reason/), 'The API now moves funds');
+      expect(within(changes).getByText(/A longer class is a longer window/)).toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+      await user.click(within(changes).getByRole('button', { name: 'Propose' }));
+
+      expect(await within(changes).findByRole('status')).toHaveTextContent('The lifetime class is changed.');
+      const [command] = posts(sent);
+      expect(command?.url.pathname).toBe(`/api/v1/registrations/${id}/changes`);
+      expect(command?.body).toEqual({ lifetime_class: 'L0', expected_version: 3 });
+      expect(command?.headers['x-administrative-reason']).toBe('The API now moves funds');
+    });
+
+    it('shows an open lifetime-class change from one class to the other, and offers no second proposal', async () => {
+      api(resource, undefined, [lifetimeChange()]);
+      renderApp(`/developer/registrations/${id}`);
+
+      const changes = await section('Lifetime class');
+      expect(await within(changes).findByText('Waiting for approval')).toBeInTheDocument();
+      expect(within(changes).getByText('From')).toBeInTheDocument();
+      expect(
+        within(changes).getByText(
+          'L0: token valid 4 minutes, a revocation takes effect within about 5 minutes',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        within(changes).queryByRole('button', { name: 'Propose a lifetime class' }),
+      ).not.toBeInTheDocument();
     });
   });
 });

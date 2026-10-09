@@ -150,8 +150,10 @@ so Keycloak's return never reached the laptop. Sign in as a Principal the
 kernel knows, such as the bootstrap operator. `/api/*` answers 503 until identity-control listens
 on `IDENTITY_CONTROL_BASE_URL`.
 
-Keycloak cannot reach this machine, so no back-channel logout is registered for this client: a
-session removed in the kernel ends the BFF session at its next refresh, within four minutes.
+Keycloak cannot reach this machine, so no back-channel logout is registered for this client
+(`ADR-IAM-009 §5.3`): a session removed in the kernel ends the BFF session at its next refresh, within
+four minutes. A BFF deployed where the kernel reaches it registers its `/auth/back-channel-logout` as
+the client's `backchannel_logout_uri` (`deploy/dev/README.md`, `TDD-identity-experience-001` 1.18.0).
 
 ### Migrations
 
