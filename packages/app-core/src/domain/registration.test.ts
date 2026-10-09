@@ -4,6 +4,7 @@ import {
   changeable,
   changeKinds,
   changeValues,
+  isKnownChangeKind,
   classMinutes,
   convergenceSeconds,
   daysLeft,
@@ -156,7 +157,11 @@ describe('audience changes', () => {
   // public, confidential or workload client; a resource has no audience.
   it('offers an audience change on every active client, and a lifetime-class change on a resource', () => {
     expect(changeKinds({ profile: 'public', state: 'active' })).toEqual(['redirect_uris', 'audience']);
-    expect(changeKinds({ profile: 'confidential', state: 'active' })).toEqual(['redirect_uris', 'audience']);
+    expect(changeKinds({ profile: 'confidential', state: 'active' })).toEqual([
+      'redirect_uris',
+      'audience',
+      'backchannel_logout_uri',
+    ]);
     expect(changeKinds({ profile: 'workload', state: 'active' })).toEqual(['audience']);
     expect(changeKinds({ profile: 'resource', state: 'active' })).toEqual(['lifetime_class']);
   });
@@ -185,6 +190,46 @@ describe('audience changes', () => {
       after: ['L0'],
     });
     expect(classMinutes.L3).toEqual({ token: 9, revocation: 10 });
+  });
+});
+
+describe('back-channel logout URI changes', () => {
+  const base = {
+    previous_redirect_uris: null,
+    redirect_uris: null,
+    previous_audience: null,
+    audience: null,
+  } as const;
+
+  // TDD-identity-control-003 1.38.0: the before and after are the URIs, null for none; a null after
+  // removes the URI.
+  it('reads a set, a move and a removal', () => {
+    const logout = (before: string | null, after: string | null): RegistrationChange =>
+      ({
+        ...base,
+        kind: 'backchannel_logout_uri',
+        previous_backchannel_logout_uri: before,
+        backchannel_logout_uri: after,
+      }) as unknown as RegistrationChange;
+    expect(changeValues(logout(null, 'https://a.example/logout'))).toEqual({
+      before: [],
+      after: ['https://a.example/logout'],
+    });
+    expect(changeValues(logout('https://a.example/logout', 'https://b.example/logout'))).toEqual({
+      before: ['https://a.example/logout'],
+      after: ['https://b.example/logout'],
+    });
+    expect(changeValues(logout('https://a.example/logout', null))).toEqual({
+      before: ['https://a.example/logout'],
+      after: [],
+    });
+  });
+
+  it('answers a kind it does not know with no values, rather than nothing', () => {
+    const unknown = { ...base, kind: 'post_logout_redirect_uris' } as unknown as RegistrationChange;
+    expect(isKnownChangeKind('post_logout_redirect_uris')).toBe(false);
+    expect(isKnownChangeKind('backchannel_logout_uri')).toBe(true);
+    expect(changeValues(unknown)).toEqual({ before: [], after: [] });
   });
 });
 

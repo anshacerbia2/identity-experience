@@ -239,6 +239,29 @@ export const coreEn = {
   'changes.done.applied.lifetime': 'The lifetime class is changed.',
   'registration.field.backChannelLogout': 'Back-channel logout',
   'registration.backChannelLogout.none': 'None: a session ends here at the next token refresh',
+  'changes.kind.backchannel_logout_uri': 'Back-channel logout URI',
+  'changes.kind.unknown': 'A change kind this version does not show yet: {kind}',
+  'changes.logout.none': 'None registered',
+  'changes.logout.removed': 'Removed: no back-channel logout',
+  'changes.title.confidential': 'Redirect URIs, audience and back-channel logout',
+  'changes.description.confidential':
+    'Where an authorization code may be delivered, which resources accept this client’s tokens, and where the kernel posts its logout tokens. A change names the whole next value. Outside production it applies at once; in production a provider other than its proposer approves it.',
+  'changes.current.logout': 'Back-channel logout URI registered now',
+  'changes.current.logout.none': 'None: a session ended elsewhere reaches this client at its next refresh.',
+  'changes.propose.open.logout': 'Propose a back-channel logout URI',
+  'changes.propose.title.logout': 'Propose the next back-channel logout URI',
+  'changes.propose.body.logout':
+    'Write the URI the kernel should post this client’s logout tokens to, or leave it empty to remove it. The Identity Control API checks it, and the change is recorded against the version you read.',
+  'changes.propose.field.logout': 'Back-channel logout URI',
+  'changes.propose.hint.logout': 'Empty removes the URI.',
+  'changes.rules.title.logout': 'What a back-channel logout URI change does',
+  'changes.rules.logout.tokens':
+    'When a session ends, the kernel posts a logout token naming the person and the session to this URI: it must be an endpoint this client’s owners run.',
+  'changes.rules.logout.remove':
+    'Without a URI, a session ended elsewhere reaches this client only at its next refresh.',
+  'changes.rules.logout.uri':
+    'An absolute URI with no fragment, credentials or wildcard, and https in production. The URI registered now is refused: it would change nothing.',
+  'changes.done.applied.logout': 'The back-channel logout URI is changed.',
 } as const;
 
 export type CoreMessageKey = keyof typeof coreEn;
@@ -477,6 +500,30 @@ export const coreId: CoreMessages = {
   'changes.done.applied.lifetime': 'Kelas umur sudah diubah.',
   'registration.field.backChannelLogout': 'Back-channel logout',
   'registration.backChannelLogout.none': 'Tidak ada: sesi di sini berakhir pada penyegaran token berikutnya',
+  'changes.kind.backchannel_logout_uri': 'URI back-channel logout',
+  'changes.kind.unknown': 'Jenis perubahan yang belum ditampilkan versi ini: {kind}',
+  'changes.logout.none': 'Tidak ada yang terdaftar',
+  'changes.logout.removed': 'Dihapus: tanpa back-channel logout',
+  'changes.title.confidential': 'Redirect URI, audiens, dan back-channel logout',
+  'changes.description.confidential':
+    'Ke mana authorization code boleh dikirim, resource mana yang menerima token client ini, dan ke mana kernel mengirim logout token-nya. Perubahan menyebut seluruh nilai berikutnya. Di luar production langsung berlaku; di production provider selain pengusulnya yang menyetujui.',
+  'changes.current.logout': 'URI back-channel logout terdaftar sekarang',
+  'changes.current.logout.none':
+    'Tidak ada: sesi yang diakhiri di tempat lain sampai ke client ini pada refresh berikutnya.',
+  'changes.propose.open.logout': 'Usulkan URI back-channel logout',
+  'changes.propose.title.logout': 'Usulkan URI back-channel logout berikutnya',
+  'changes.propose.body.logout':
+    'Tulis URI tempat kernel mengirim logout token client ini, atau kosongkan untuk menghapusnya. Identity Control API memeriksanya, dan perubahan dicatat terhadap versi yang kamu baca.',
+  'changes.propose.field.logout': 'URI back-channel logout',
+  'changes.propose.hint.logout': 'Kosong berarti URI dihapus.',
+  'changes.rules.title.logout': 'Apa yang dilakukan perubahan URI back-channel logout',
+  'changes.rules.logout.tokens':
+    'Saat sesi berakhir, kernel mengirim logout token yang menyebut orang dan sesinya ke URI ini: harus endpoint yang dijalankan owner client ini.',
+  'changes.rules.logout.remove':
+    'Tanpa URI, sesi yang diakhiri di tempat lain baru sampai ke client ini pada refresh berikutnya.',
+  'changes.rules.logout.uri':
+    'URI absolut tanpa fragment, kredensial, atau wildcard, dan https di production. URI yang terdaftar sekarang ditolak: tidak mengubah apa pun.',
+  'changes.done.applied.logout': 'URI back-channel logout sudah diubah.',
 };
 
 export const coreMessages: Readonly<Record<Locale, CoreMessages>> = { en: coreEn, id: coreId };
