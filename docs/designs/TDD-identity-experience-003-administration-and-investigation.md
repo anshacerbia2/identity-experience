@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.25.0
+  version: 1.26.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-09
+  last_reviewed: 2026-10-12
   parent_sad: SAD-002
 ---
 
@@ -896,7 +896,7 @@ says where it goes.
 - Relink requires a reason and states whether the Principal ended active or pending.
 - A refused relink is shown with the API's sentence.
 
-### Accessibility in a Browser (1.24.0)
+### Accessibility in a Browser (1.24.0, both themes since 1.26.0)
 
 The component tests run axe against each page's rendered DOM in jsdom, which has no layout.
 `e2e/tests/accessibility.spec.ts` runs axe in Chromium (`@axe-core/playwright`, the integration
@@ -904,20 +904,85 @@ Playwright's accessibility guide uses) on each main page of the three applicatio
 the Admin Portal's Overview, Principals, a Principal, Workloads, Registrations, a registration,
 Approvals, Emergency access and Tenant context (with its report read), the Developer Console's home and
 the account application. Each page is served by the BFF from the built bundle, signed in through the
-stand-in kernel, with its reads answered by fixtures (`e2e/stack.ts`), and runs in CI.
+stand-in kernel, with its reads answered by fixtures (`e2e/stack.ts`), and runs in CI. Since 1.26.0
+each page is scanned in the dark and in the light theme. Until then only dark was scanned, the
+default, and that is how the light theme's failures in §Contrast and Focus went unseen.
 
 - It fails on any violation of the WCAG 2.0, 2.1 and 2.2 A and AA rules axe implements.
 - What axe cannot decide is recorded as "needs review" on the test, not passed. Colour contrast is
-  among it on every page: the canvas is painted with gradients and the panels are translucent over
-  it, so axe resolves no single background colour.
+  among it on every page, in both themes: the canvas is painted with gradients and the panels are
+  translucent over it, so axe resolves no single background colour. At 1.26.0 it is the only rule
+  left undecided: 21 to 88 nodes a page, the same count in each theme. §Contrast and Focus computes
+  those pairs instead.
+- In each theme, with and without forced colours, a field and the button after it, reached by Tab,
+  show focus as a 2px solid outline 2px off the element. A link is underlined at rest. The pressed
+  language toggle has an edge the other has not.
 - It is automated evidence only. Playwright's guide: "automated testing cannot detect all types of
   WCAG violations", and "many accessibility problems can only be discovered through manual testing"
   [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
   AA audit.
 
+### Contrast and Focus (1.26.0)
+
+`packages/ui` holds the tokens and components every application here draws with, and identity-kernel
+copies them into the hosted login theme so the two read as one product (`TDD-identity-kernel-004`
+§Visual Language). The kernel measured them while copying and found three WCAG 2.2 AA failures in the
+light theme, and one departure from STD-GLB-FE-005 in both. They are fixed here, with the kernel's
+values, so the two stylesheets stay the same token for token.
+
+| Was | Now | Requirement |
+| :-- | :-- | :-- |
+| The light primary solid at L 0.55. Its near-white label was 4.15:1, and 3.42:1 on hover, which lightened it | L 0.5 (5.06:1). In light, hover darkens to L 0.46 (5.96:1) and pressed to L 0.44 (6.47:1). Every light solid's hover now darkens. Dark is unchanged | SC 1.4.3: "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1" [R7]. The label is 14px semibold, not large-scale text |
+| A field's edge was `border-default`, 16% alpha: 1.35:1 against the panel (1.39:1 in dark) | `border-strong`, now opaque: `oklch(0.62 0.02 262)` light, `oklch(0.55 0.02 262)` dark, at least 3.18:1 against the panel and the field's own fill. Hover takes `border-strong-hover`, a new name; an invalid field takes the danger solid (4.88:1, 5.88:1), not its 45% border (2.05:1) | SC 1.4.11: "Visual information required to identify user interface components and states" at "at least 3:1 against adjacent color(s)" [R7]. Its Understanding document: a visual boundary "is only required when there is no other visual way to identify the presence of the control", and of a text input, "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion" [R8]. An empty field has no other way |
+| Button and Field removed the outline on focus and drew a box-shadow ring | Every focusable element keeps the 2px outline in the focus colour, 2px off it (`foundations/_base.scss`). `--ds-shadow-focus` is now only the dark theme's glow, added to the outline; in light it is `none` | STD-GLB-FE-005 §3.9: "Every focusable element shows a `:focus-visible` indicator drawn with `outline`" and "A shadow may add emphasis but never replaces the outline, because forced-colors mode computes `box-shadow` as `none`." SC 2.4.7: "Any keyboard operable user interface has a mode of operation where the keyboard focus indicator is visible" [R7] |
+| A link the page did not style was plain text, by the reset. The styled links in tables were underlined only on hover | A link with no class of its own (or only TanStack Router's `active`) takes the link colour and an underline in `foundations/_base.scss`. The styled links are underlined at rest. Both thicken the underline on hover | SC 1.4.1: "Color is not used as the only visual means of conveying information, indicating an action, prompting a response, or distinguishing a visual element" [R7]. STD-GLB-FE-009 §3.3: "Color is not the sole means of conveying information." |
+| A pressed toggle (the language switch) looked like the one not pressed | Pressed takes the selected surface, strong text and the `border-strong` edge (3.03:1 against the bar in light, 3.91:1 in dark) | SC 1.4.11, "states", as above |
+
+The focus colour meets SC 1.4.11 against everything it sits on (STD-GLB-FE-009 §3.3: "Focus
+indicators meet SC 1.4.11 at 3:1 against the colors adjacent to the indicator"). The ring is a
+2px-thick outline whose every pixel changes from the background to the focus colour at 3.77:1 or
+more, which is the shape SC 2.4.13 Focus Appearance asks for: "at least as large as the area of a 2
+CSS pixel thick perimeter of the unfocused component" with "a contrast ratio of at least 3:1 between
+the same pixels in the focused and unfocused states" [R7]. SC 2.4.13 is Level AAA, and STD-GLB-FE-009
+§3.3 leaves it outside the AA target, so this is not a conformance claim.
+
+**Contrast is computed, not assumed.** axe-core leaves these pairs undecided (§Accessibility in a
+Browser), and STD-GLB-FE-009 §3.3 asks: "Tests use actual foreground/background pairs after alpha
+composition in each supported theme and state." `packages/ui/src/styles/contrast.test.ts` compiles
+the stylesheet the applications import and reads each theme's custom properties from it. It
+composites every pair the components draw over the plain canvas and over each aurora at full strength,
+and requires 4.5:1 for text and 3:1 for a field's edge, a pressed state and the focus indicator. It
+computes as identity-kernel's `internal/themecontrast` does, so the two report the same ratio for a
+pair. Its worst cases, light and dark:
+
+| Pair | Before, light / dark | Now, light / dark |
+| :-- | --: | --: |
+| Primary button label (default, hover, pressed) | 4.15, 3.42, 5.27 / 10.66, 12.52, 8.77 | 5.06, 5.96, 6.47 / 10.66, 12.52, 8.77 |
+| Skip link | 4.15 / 10.66 | 5.06 / 10.66 |
+| A field's edge against the panel, against its fill | 1.35, 1.34 / 1.39, 1.35 | 3.32, 3.18 / 3.53, 4.02 |
+| A field's edge, hover | 1.80 / 2.22 | 5.97 / 6.90 |
+| An invalid field's edge | 2.05 / 2.10 | 4.88 / 5.88 |
+| A pressed toggle's edge, in the bar | no edge | 3.03 / 3.91 |
+| Focus indicator on a panel, on the canvas, in the rail | 3.95, 3.08, 3.60 / 9.58, 8.15, 10.63 | 4.82, 3.77, 4.40 / 9.58, 8.15, 10.63 |
+| Hint and description text on the panel; placeholder in a field | 5.97; 5.71 / 6.90; 7.87 | unchanged |
+| Link on the panel; on the canvas; in a danger message | 6.85; 5.35; 5.90 / 11.59; 9.87; 10.30 | unchanged |
+| Navigation section label in the rail | 5.44 / 7.66 | unchanged |
+| Status pills and messages on their tint (lowest) | 6.08 / 7.77 | unchanged |
+
+The full list, 40 pairs a theme, is printed by the test. The computation clips to sRGB per channel. It
+leaves out the backdrop's 140% saturation, the 5%-opaque grid lines and the `prefers-contrast: more`
+rendering. It is evidence for the manual contrast check, not a replacement for it.
+
+**What changed for identity-kernel.** The light primary's tints (`primary-surface-subtle`,
+`primary-border-default`, `primary-shadow-default`) are now drawn from L 0.5, not L 0.55. The kernel's
+departures (`--scnx-login-action-*`, `--scnx-login-control-border`, `--scnx-login-focus*`) become
+these `--ds-*` values. Its tile's hover edge reads `border-strong`, which is now opaque.
+
 | Ref | Source |
 | :-- | :-- |
 | R6 | Playwright, *Accessibility testing*, <https://playwright.dev/docs/accessibility-testing>, accessed 2026-10-09: "Note that automated testing cannot detect all types of WCAG violations"; "But many accessibility problems can only be discovered through manual testing"; "We recommend using a combination of automated testing, manual accessibility assessments, and inclusive user testing." |
+| R7 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, W3C Recommendation 12 December 2024, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-12. SC 1.4.1 (A): "Color is not used as the only visual means of conveying information, indicating an action, prompting a response, or distinguishing a visual element." SC 1.4.3 (AA): "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following". SC 1.4.11 (AA): "The visual presentation of the following have a contrast ratio of at least 3:1 against adjacent color(s): User Interface Components: Visual information required to identify user interface components and states, except for inactive components or where the appearance of the component is determined by the user agent and not modified by the author". SC 2.4.7 (AA): "Any keyboard operable user interface has a mode of operation where the keyboard focus indicator is visible." SC 2.4.13 (AAA): "When the keyboard focus indicator is visible, an area of the focus indicator meets all the following: is at least as large as the area of a 2 CSS pixel thick perimeter of the unfocused component or sub-component, and has a contrast ratio of at least 3:1 between the same pixels in the focused and unfocused states." |
+| R8 | W3C, *Understanding SC 1.4.11: Non-text Contrast (Level AA)*, <https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html>, accessed 2026-10-12: "Having a visual boundary indicating the hit area is only required when there is no other visual way to identify the presence of the control"; "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion." |
 
 ## Security Notes
 
@@ -967,3 +1032,6 @@ review, and locked-out subject after authenticator revocation.
 | Depends on | `TDD-identity-control-003` - registrations, their findings, the reconciler's runs, and their suspension, restoration, and retirement |
 | Governed by | ADR-IAM-001 §5.13 — a registration stops by a suspension, and is removed only by a retirement after one |
 | Depends on | `TDD-identity-control-001` - Principal creation, dangling mappings, and relink |
+| Conforms to | STD-GLB-FE-005 §3.9 — focus indicators drawn with `outline` |
+| Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
+| Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |

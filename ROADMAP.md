@@ -413,8 +413,11 @@ Where the production gate stands:
   in which the kernel granted a refresh of a session it had removed.
 - WCAG 2.2 AA: automated evidence only. axe runs on every page's rendered DOM in the component tests
   (jsdom), and in Chromium in CI on each main page of the three applications, signed in with data
-  (`e2e/tests/accessibility.spec.ts`, TDD-003 §Accessibility in a Browser), with no violation. axe
-  marks colour contrast "needs review" on every page, because the canvas is a gradient and the panels
-  are translucent over it. Keyboard order, focus, zoom, colour contrast and a screen reader need the
-  manual audit against WCAG 2.2 AA, which remains.
+  (`e2e/tests/accessibility.spec.ts`, TDD-003 §Accessibility in a Browser), in the dark and the light
+  theme, with no violation. axe marks colour contrast "needs review" on every page, because the canvas
+  is a gradient and the panels are translucent over it; `packages/ui/src/styles/contrast.test.ts`
+  computes those pairs after alpha composition in both themes instead (TDD-003 §Contrast and Focus,
+  1.26.0, which also fixed the light primary button, the field edge and focus as an outline). Keyboard
+  order, focus, zoom, colour contrast and a screen reader need the manual audit against WCAG 2.2 AA,
+  which remains.
 - ✅ Runbooks: `docs/runbooks/`.
