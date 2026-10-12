@@ -37,8 +37,9 @@
       transform: translateY(1px);
     }
 
+    // Focus is the outline every focusable element takes (foundations/_base.scss); the dark theme's
+    // glow is added to it, never in its place (STD-GLB-FE-005 §3.9).
     &:focus-visible {
-      outline: none;
       box-shadow: var(--ds-shadow-focus);
     }
 
@@ -82,6 +83,15 @@
     &:hover:not([data-disabled]) {
       --btn-surface: var(--ds-color-danger-surface-default-hover);
     }
+  }
+
+  // A pressed toggle is told apart by an edge and a surface, not by colour alone: the edge meets
+  // 3:1 against the bar it sits in (WCAG 2.2 SC 1.4.11, "states"). After the variants, so it wins
+  // over the ghost variant the toggles use.
+  .root[aria-pressed='true'] {
+    --btn-surface: var(--ds-color-neutral-surface-default-selected);
+    --btn-text: var(--ds-color-neutral-text-strong-default);
+    --btn-border: var(--ds-color-neutral-border-strong-default);
   }
 
   .icon {

@@ -27,7 +27,7 @@ $schemes: (
     hue: 212,
     chroma: 0.14,
     dark: 0.8,
-    light: 0.55,
+    light: 0.5,
   ),
   accent: (
     hue: 298,
@@ -70,15 +70,21 @@ $schemes: (
     $contrast-l: 0.99;
     $glow: 0.22;
 
+    // Hover moves a solid away from its label, never towards it: in light the label is near-white,
+    // so hover darkens. A hover that lightened the light primary took its label to 3.42:1.
+    $hover-l: $l - 0.04;
+    $pressed-l: $l - 0.06;
+
     @if $mode == dark {
       $text-l: 0.86;
       $contrast-l: 0.17;
       $glow: 0.35;
+      $hover-l: $l + 0.05;
     }
 
     --ds-color-#{$name}-solid-default-default: #{ds-oklch($l, $c, $h)};
-    --ds-color-#{$name}-solid-default-hover: #{ds-oklch($l + 0.05, $c, $h)};
-    --ds-color-#{$name}-solid-default-pressed: #{ds-oklch($l - 0.06, $c, $h)};
+    --ds-color-#{$name}-solid-default-hover: #{ds-oklch($hover-l, $c, $h)};
+    --ds-color-#{$name}-solid-default-pressed: #{ds-oklch($pressed-l, $c, $h)};
     --ds-color-#{$name}-solid-default-disabled: #{ds-oklch($l, $c * 0.3, $h, 0.4)};
     --ds-color-#{$name}-text-default-default: #{ds-oklch($text-l, $c * 0.9, $h)};
     --ds-color-#{$name}-text-contrast-default: #{ds-oklch($contrast-l, 0.03, $h)};
@@ -179,7 +185,11 @@ $schemes: (
     --ds-color-neutral-surface-default-selected: #{ds-oklch(0.4, 0.05, 230, 0.35)};
     --ds-color-neutral-border-subtle-default: #{ds-oklch(0.72, 0.03, 262, 0.12)};
     --ds-color-neutral-border-default-default: #{ds-oklch(0.72, 0.03, 262, 0.2)};
-    --ds-color-neutral-border-strong-default: #{ds-oklch(0.78, 0.03, 262, 0.36)};
+
+    // A strong border identifies a component by its edge (a field, a pressed toggle), so it is opaque
+    // and meets 3:1 against every surface it meets (WCAG 2.2 SC 1.4.11).
+    --ds-color-neutral-border-strong-default: #{ds-oklch(0.55, 0.02, 262)};
+    --ds-color-neutral-border-strong-hover: #{ds-oklch(0.72, 0.02, 262)};
     --ds-color-neutral-border-default-focus: var(--ds-color-primary-solid-default-default);
     --ds-color-neutral-text-strong-default: #{ds-oklch(0.97, 0.008, 262)};
     --ds-color-neutral-text-default-default: #{ds-oklch(0.88, 0.014, 262)};
@@ -192,10 +202,10 @@ $schemes: (
     --ds-shadow-medium:
       0 1px 0 0 #{ds-oklch(1, 0, 0, 0.06)} inset,
       0 24px 48px -24px var(--ds-color-neutral-shadow-default-default);
-    --ds-shadow-focus:
-      0 0 0 2px var(--ds-color-neutral-canvas-default),
-      0 0 0 4px var(--ds-color-primary-solid-default-default),
-      0 0 18px 2px var(--ds-color-primary-shadow-default-default);
+
+    // Focus is an outline (foundations/_base.scss); this is only the glow added to it in dark.
+    // STD-GLB-FE-005 §3.9: a shadow "never replaces the outline".
+    --ds-shadow-focus: 0 0 18px 2px var(--ds-color-primary-shadow-default-default);
 
     @include chromatic(dark);
   }
@@ -215,7 +225,8 @@ $schemes: (
     --ds-color-neutral-surface-default-selected: #{ds-oklch(0.9, 0.05, 230, 0.6)};
     --ds-color-neutral-border-subtle-default: #{ds-oklch(0.3, 0.03, 262, 0.1)};
     --ds-color-neutral-border-default-default: #{ds-oklch(0.3, 0.03, 262, 0.16)};
-    --ds-color-neutral-border-strong-default: #{ds-oklch(0.3, 0.03, 262, 0.3)};
+    --ds-color-neutral-border-strong-default: #{ds-oklch(0.62, 0.02, 262)};
+    --ds-color-neutral-border-strong-hover: #{ds-oklch(0.48, 0.02, 262)};
     --ds-color-neutral-border-default-focus: var(--ds-color-primary-solid-default-default);
     --ds-color-neutral-text-strong-default: #{ds-oklch(0.18, 0.02, 262)};
     --ds-color-neutral-text-default-default: #{ds-oklch(0.3, 0.02, 262)};
@@ -224,9 +235,7 @@ $schemes: (
     --ds-color-neutral-shadow-default-default: #{ds-oklch(0.3, 0.04, 262, 0.18)};
     --ds-shadow-low: 0 1px 2px 0 var(--ds-color-neutral-shadow-default-default);
     --ds-shadow-medium: 0 16px 40px -20px var(--ds-color-neutral-shadow-default-default);
-    --ds-shadow-focus:
-      0 0 0 2px var(--ds-color-neutral-canvas-default),
-      0 0 0 4px var(--ds-color-primary-solid-default-default);
+    --ds-shadow-focus: none;
 
     @include chromatic(light);
   }
