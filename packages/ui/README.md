@@ -61,4 +61,15 @@ These follow STD-GLB-FE-005, and stylelint enforces them:
 - Nesting is at most two levels deep, and no `!important`.
 - Global classes carry the `scnx-iam-` prefix.
 
+- Focus is always the outline `foundations/_base.scss` draws. A component may add
+  `--ds-shadow-focus` (a glow, dark only) but never removes the outline (STD-GLB-FE-005 §3.9).
+
 Every state is conveyed by a word or a glyph as well as a colour (STD-GLB-FE-009).
+
+## Contrast
+
+`src/styles/contrast.test.ts` compiles `styles.scss`, reads each theme's tokens and holds every colour
+pair the components draw to WCAG 2.2 AA after alpha composition, over the worst part of the canvas:
+4.5:1 for text, 3:1 for a field's edge, a pressed state and the focus indicator. A new token pair a
+component draws belongs in its list. TDD-identity-experience-003 §Contrast and Focus records the
+ratios, and identity-kernel's login theme copies these tokens and measures them the same way.

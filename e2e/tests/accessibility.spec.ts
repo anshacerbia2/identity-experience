@@ -1,9 +1,9 @@
 // axe in Chromium on each main page of the three applications, rendered by the BFF from the built
-// bundles, with their data (TDD-identity-experience-003 §Accessibility in a Browser). The component
-// tests run axe in jsdom, which has no layout; here Chromium lays the pages out, so the rules that need
-// layout and computed style run too. This is automated evidence only. Playwright's guidance: "automated
-// testing cannot detect all types of WCAG violations". Keyboard order, focus, zoom, colour contrast
-// and a screen reader need the manual audit.
+// bundles, with their data, in the dark and the light theme (TDD-identity-experience-003
+// §Accessibility in a Browser). The component tests run axe in jsdom, which has no layout; here
+// Chromium lays the pages out, so the rules that need layout and computed style run too. This is
+// automated evidence only. Playwright's guidance: "automated testing cannot detect all types of WCAG
+// violations". Keyboard order, focus, zoom, colour contrast and a screen reader need the manual audit.
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
@@ -52,29 +52,99 @@ test.beforeEach(async ({ page }) => {
   await signIn(page, '/');
 });
 
-for (const main of pages) {
-  test(`${main.path} has no WCAG A or AA violation axe finds in Chromium`, async ({ page }) => {
-    await page.goto(main.path);
-    await expect(main.ready(page)).toBeVisible();
-    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
-    if (main.open !== undefined) {
-      await main.open(page);
-    }
-    const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
-    const violations = results.violations.map((violation) => ({
-      rule: violation.id,
-      impact: violation.impact,
-      nodes: violation.nodes.map((node) => node.target.join(' ')),
-    }));
-    expect(violations).toEqual([]);
-    // What axe could not decide is left for the manual audit, and said so in the report. Colour
-    // contrast is among it: the canvas is painted with gradients and the panels are translucent over
-    // it, and axe does not compute a background it cannot resolve to one colour.
-    for (const undecided of results.incomplete) {
-      test.info().annotations.push({
-        type: 'needs review',
-        description: `${undecided.id}: ${String(undecided.nodes.length)} node(s)`,
-      });
-    }
+// Both themes the applications offer. The theme is the viewer's stored preference, read before the
+// first render (packages/app-core preferences-store), so each page opens in it.
+const themes = ['dark', 'light'] as const;
+type Theme = (typeof themes)[number];
+
+async function useTheme(page: Page, theme: Theme): Promise<void> {
+  const stored = JSON.stringify({ state: { theme, locale: 'en' }, version: 0 });
+  await page.addInitScript({
+    content: `window.localStorage.setItem('scnx-iam-preferences', ${JSON.stringify(stored)});`,
+  });
+}
+
+for (const theme of themes) {
+  for (const main of pages) {
+    test(`${main.path} has no WCAG A or AA violation axe finds in Chromium, ${theme} theme`, async ({
+      page,
+    }) => {
+      await useTheme(page, theme);
+      await page.goto(main.path);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(main.ready(page)).toBeVisible();
+      await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+      if (main.open !== undefined) {
+        await main.open(page);
+      }
+      const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
+      const violations = results.violations.map((violation) => ({
+        rule: violation.id,
+        impact: violation.impact,
+        nodes: violation.nodes.map((node) => node.target.join(' ')),
+      }));
+      expect(violations).toEqual([]);
+      // What axe could not decide is left for the manual audit, and said so in the report. Colour
+      // contrast is among it: the canvas is painted with gradients and the panels are translucent over
+      // it, and axe does not compute a background it cannot resolve to one colour. The pairs are
+      // computed instead, after alpha composition (packages/ui src/styles/contrast.test.ts).
+      for (const undecided of results.incomplete) {
+        test.info().annotations.push({
+          type: 'needs review',
+          description: `${theme}: ${undecided.id}: ${String(undecided.nodes.length)} node(s)`,
+        });
+      }
+    });
+  }
+
+  // Focus is an outline on a field and on a button, reached from the keyboard, and stays one under
+  // forced colours, where a box-shadow is computed as none (STD-GLB-FE-005 §3.9 and §5).
+  for (const forcedColors of ['none', 'active'] as const) {
+    test(`a field and a button show focus as an outline, ${theme} theme, forced colours ${forcedColors}`, async ({
+      page,
+    }) => {
+      await useTheme(page, theme);
+      await page.emulateMedia({ forcedColors });
+      await page.goto('/principals');
+      const field = page.getByRole('textbox', { name: 'Username or email' });
+      await expect(field).toBeVisible();
+      // The selectors match only an element the browser shows focus on, so each assertion is about
+      // the indicator a keyboard user sees.
+      const ring = async (focused: ReturnType<Page['locator']>): Promise<void> => {
+        await expect(focused).toHaveCount(1);
+        await expect(focused).toHaveCSS('outline-style', 'solid');
+        await expect(focused).toHaveCSS('outline-width', '2px');
+        await expect(focused).toHaveCSS('outline-offset', '2px');
+      };
+      await field.focus();
+      await ring(page.locator('input:focus-visible'));
+      await page.keyboard.press('Tab');
+      await ring(page.locator('button[data-variant]:focus-visible'));
+    });
+  }
+
+  // The language in use is a pressed toggle, shown by an edge the other has not, not by colour alone
+  // (WCAG 2.2 SC 1.4.1 and SC 1.4.11).
+  test(`a pressed toggle shows by its edge, ${theme} theme`, async ({ page }) => {
+    await useTheme(page, theme);
+    await page.goto('/');
+    const pressed = page.getByRole('button', { name: 'EN', pressed: true });
+    const other = page.getByRole('button', { name: 'ID', pressed: false });
+    await expect(other).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    await expect(pressed).toHaveCSS('border-top-style', 'solid');
+    await expect(pressed).not.toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+  });
+
+  // A link is underlined at rest, so it is told from the text around it by more than its colour
+  // (WCAG 2.2 SC 1.4.1): one the page styles itself, and one left to the foundations.
+  test(`a link is underlined, ${theme} theme`, async ({ page }) => {
+    await useTheme(page, theme);
+    await page.goto('/registrations');
+    const styled = page.getByRole('link', { name: 'billing-portal' });
+    await expect(styled).toHaveCSS('text-decoration-line', 'underline');
+    await page.goto(`/principals/${subjectPrincipal}`);
+    await expect(page.getByRole('heading', { name: 'alice' })).toBeVisible();
+    const plain = page.getByRole('main').getByRole('link', { name: 'Principals', exact: true });
+    await expect(plain).toHaveCSS('text-decoration-line', 'underline');
   });
 }

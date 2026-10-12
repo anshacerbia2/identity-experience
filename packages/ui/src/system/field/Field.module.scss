@@ -17,7 +17,10 @@
     inline-size: 100%;
     min-block-size: var(--ds-size-control-md);
     padding: var(--ds-spacing-xs) var(--ds-spacing-sm);
-    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-default-default);
+
+    // A field is identified by its edge alone, so the edge meets 3:1 against the panel and against
+    // its own fill (WCAG 2.2 SC 1.4.11).
+    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-strong-default);
     border-radius: var(--ds-radius-md);
     font: inherit;
     font-size: var(--ds-font-size-sm);
@@ -28,17 +31,18 @@
       box-shadow var(--ds-duration-fast) var(--ds-easing-standard);
 
     &:hover {
-      border-color: var(--ds-color-neutral-border-strong-default);
+      border-color: var(--ds-color-neutral-border-strong-hover);
     }
 
+    // Focus is the outline every focusable element takes (foundations/_base.scss), with the dark
+    // theme's glow added to it, never in its place (STD-GLB-FE-005 §3.9).
     &:focus-visible {
       border-color: var(--ds-color-neutral-border-default-focus);
-      outline: none;
       box-shadow: var(--ds-shadow-focus);
     }
 
     &[aria-invalid='true'] {
-      border-color: var(--ds-color-danger-border-default-default);
+      border-color: var(--ds-color-danger-solid-default-default);
     }
   }
 

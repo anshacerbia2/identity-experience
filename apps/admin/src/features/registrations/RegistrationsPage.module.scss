@@ -112,11 +112,12 @@
   .clientLink {
     color: var(--ds-color-primary-text-default-default);
     text-decoration: underline;
-    text-decoration-color: transparent;
     text-underline-offset: 3px;
 
+    // Underlined at rest, not only on hover: a link is told apart by more than its colour
+    // (WCAG 2.2 SC 1.4.1).
     &:hover {
-      text-decoration-color: currentcolor;
+      text-decoration-thickness: 2px;
     }
   }
 

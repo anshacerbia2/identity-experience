@@ -27,9 +27,28 @@
     background: var(--ds-color-primary-solid-default-default);
   }
 
+  // Focus is always an outline: 2px of the focus colour, 2px off the element. A component may add
+  // a glow (--ds-shadow-focus) but never replaces the outline, because forced-colors mode computes
+  // box-shadow as none (STD-GLB-FE-005 §3.9). The colour meets 3:1 against every surface it sits
+  // on in both themes (WCAG 2.2 SC 1.4.11; src/styles/contrast.test.ts).
   :focus-visible {
     outline: var(--ds-stroke-default) solid var(--ds-color-neutral-border-default-focus);
     outline-offset: 2px;
+  }
+
+  // A link is told from the words around it by its underline as well as its colour (WCAG 2.2
+  // SC 1.4.1). A link a component styles itself (a navigation item, a button, the brand) carries its
+  // own class and is left alone. TanStack Router gives a link to the current route the class
+  // `active` and nothing else, so that one is still a plain link. :where() keeps the rule at no
+  // specificity, so any component's class wins.
+  :where(a[href]:not([class]), a[href][class='active']) {
+    color: var(--ds-color-primary-text-default-default);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  :where(a[href]:not([class]), a[href][class='active']):hover {
+    text-decoration-thickness: 2px;
   }
 
   code,
