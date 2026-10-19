@@ -118,6 +118,44 @@ const answers: Readonly<Record<string, unknown>> = {
   '/v1/principals:unmapped': { unmapped: [] },
   '/v1/principals:search': { principals: [] },
   '/v1/security-operations:unresolved': { operations: [] },
+  '/v1/principals:quarantined': {
+    quarantined: [
+      {
+        principal_id: '0192f0e0-3333-7000-8000-0000000000aa',
+        subject_type: 'human',
+        username: 'grace',
+        quarantined_at: at(3),
+        quarantine_reason: 'duplicate',
+        linked: true,
+      },
+    ],
+  },
+  '/v1/principals:pending': {
+    pending: [
+      {
+        principal_id: '0192f0e0-5555-7000-8000-0000000000bb',
+        subject_type: 'human',
+        username: 'new.joiner',
+        created_at: at(1),
+        overdue: true,
+      },
+    ],
+  },
+  '/v1/projections/tenant-context:unconverged': {
+    tenants: [
+      {
+        tenant_id: '0192f0e0-eeee-7000-8000-000000000001',
+        state: 'unresolved',
+        priority: true,
+        sweep: false,
+        attempts: 8,
+        last_error_class: 'forbidden',
+        marked_at: at(1),
+        delivered_at: at(1),
+        next_attempt_at: at(0),
+      },
+    ],
+  },
   [`/v1/principals/${subjectPrincipal}`]: {
     principal_id: subjectPrincipal,
     username: 'alice',

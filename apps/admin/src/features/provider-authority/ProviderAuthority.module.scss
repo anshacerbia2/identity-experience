@@ -55,6 +55,13 @@
     gap: var(--ds-spacing-sm);
   }
 
+  .form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-spacing-md);
+    max-inline-size: 40rem;
+  }
+
   .details {
     display: grid;
     grid-template-columns: minmax(8rem, max-content) 1fr;

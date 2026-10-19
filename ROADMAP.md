@@ -353,6 +353,19 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
     asked, shown and copied unchanged. Posting it to Organization Control's reconcile route has no
     screen here: that route is Organization Control's, behind its own sign-in.
 
+- ✅ The operator transitions found on 2026-10-19 (TDD-003 1.27.0), against identity-control 138f29d:
+  - `POST /v1/principals/{principal_id}:release` (TDD-identity-control-001 1.18.0): **Release** on a
+    quarantined person's page, naming the kernel user the triage kept, with a reason. It lands
+    suspended; Restore follows. TDD-003 no longer says a quarantine is something no administrator lifts.
+  - `GET /v1/principals:quarantined` and `:pending`: two lists on the Principals page, each read when
+    opened, each row linked to its Principal.
+  - `GET /v1/projections/tenant-context:unconverged`, the Tenant re-drive and the sweep on request
+    (TDD-identity-control-002 2.5.0): the Tenant context page.
+  - "Retire a Principal" is marked not built: identity-control has no human `:retire`.
+  - TDD-003 §Operator Transitions maps every route identity-control classifies to an action here or a
+    reason for none, and `apps/admin/src/domain/operator-transitions.test.ts` fails on a route with no
+    row.
+
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
 changes from the kernel event record, each with its outcome and error code and the client or
@@ -394,7 +407,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.25.0 and 1.12.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.27.0 and 1.12.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

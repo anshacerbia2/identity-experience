@@ -8,6 +8,7 @@ import { Message } from '@/core/i18n/Message';
 
 import { useTenantContextReport } from './provider-authority-api';
 import styles from './ProviderAuthority.module.scss';
+import { TenantConvergence } from './TenantConvergence';
 
 function Report(): ReactElement {
   const [asked, setAsked] = useState(false);
@@ -111,7 +112,8 @@ function Report(): ReactElement {
 // TenantContextPage serves the Tenant context projection's report (TDD-identity-control-002 §The
 // Report an Operator Posts; TDD-identity-experience-003 §Tenant Context Report): the active Memberships
 // identity-control holds, at the position it applied. An operator posts it unchanged to Organization
-// Control's reconcile route, which is Organization Control's and is not offered here.
+// Control's reconcile route, which is Organization Control's and is not offered here. Above it, the
+// Tenants whose convergence is not done, their re-drive and the sweep on request (2.5.0).
 export function TenantContextPage(): ReactElement {
   const session = useSession();
   return (
@@ -127,7 +129,14 @@ export function TenantContextPage(): ReactElement {
           <Message id="projections.lead" />
         </p>
       </header>
-      {session.data?.authenticated === true ? <Report /> : session.isPending ? null : <SignInRequired />}
+      {session.data?.authenticated === true ? (
+        <>
+          <TenantConvergence />
+          <Report />
+        </>
+      ) : session.isPending ? null : (
+        <SignInRequired />
+      )}
     </div>
   );
 }

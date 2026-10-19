@@ -272,7 +272,11 @@ describe('PrincipalDetailPage', () => {
     const table = await screen.findByRole('table', { name: 'Security notifications' });
     expect(within(table).getByText('An authenticator removed')).toBeInTheDocument();
     expect(within(table).getByText('authenticator: otp, actor: administrator')).toBeInTheDocument();
-    expect(within(table).getByText('The person had no address to tell: give them one.')).toBeInTheDocument();
+    expect(
+      within(table).getByText(
+        'The person had no address to tell. Ask them to add one in the account application; no administrator can add one for them.',
+      ),
+    ).toBeInTheDocument();
     expect(within(table).getByText('Refused 10 times: the person was not told.')).toBeInTheDocument();
     expect(reads(requests)).toEqual([
       `/api/v1/principals/${subject}`,
@@ -414,22 +418,130 @@ describe('PrincipalDetailPage', () => {
     expect(screen.getByText('One other way to sign in remains.')).toBeInTheDocument();
   });
 
-  it('offers nothing on a workload or a quarantined Principal', async () => {
+  it('offers nothing on a workload, a quarantined workload or a pending Principal', async () => {
     for (const [detail, sentence] of [
       [principal({ subject_type: 'workload' }), 'A workload is contained on its own page.'],
       [
-        principal({ state: 'quarantined', quarantined_at: '2026-10-02T00:00:00Z' }),
-        'Nothing is offered for a Principal that is quarantined.',
+        principal({ subject_type: 'workload', state: 'quarantined', quarantined_at: '2026-10-02T00:00:00Z' }),
+        'A workload is contained on its own page.',
       ],
+      [principal({ state: 'pending' }), 'Nothing is offered for a Principal that is pending.'],
     ] as const) {
       vi.unstubAllGlobals();
       api({ detail });
       const { unmount } = renderApp(`/principals/${subject}`);
       await screen.findByRole('heading', { name: detail.username });
       expect(screen.queryByRole('button', { name: 'Suspend' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
       expect(screen.getByText(sentence)).toBeInTheDocument();
       unmount();
     }
+  });
+
+  const quarantinedPrincipal = principal({
+    state: 'quarantined',
+    quarantined_at: '2026-10-02T00:00:00Z',
+    quarantine_reason: 'duplicate',
+  });
+
+  async function release(username: string): Promise<HTMLElement> {
+    await userEvent.click(await screen.findByRole('button', { name: 'Release' }));
+    const form = screen.getByRole('button', { name: 'Cancel' }).closest('form') as HTMLElement;
+    await userEvent.type(within(form).getByRole('textbox', { name: /Kernel username/ }), username);
+    await userEvent.type(
+      within(form).getByRole('textbox', { name: /reason/i }),
+      'Duplicate triaged, OPS-55.',
+    );
+    await userEvent.click(within(form).getByRole('button', { name: 'Release' }));
+    return form;
+  }
+
+  it('releases a quarantined person naming the kept user, with a reason and an Idempotency-Key', async () => {
+    let released = false;
+    const { sent } = stubFetch((url, request) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (request.method === 'POST') {
+        released = true;
+        return json({ principal_id: subject, state: 'suspended' });
+      }
+      if (url.pathname === `/api/v1/principals/${subject}`) {
+        return json(released ? principal({ state: 'suspended' }) : quarantinedPrincipal);
+      }
+      return undefined;
+    });
+    const { container } = renderApp(`/principals/${subject}`);
+    await screen.findByRole('button', { name: 'Release' });
+    expect(screen.queryByRole('button', { name: 'Suspend' })).toBeNull();
+    expect(await axe(container)).toHaveNoViolations();
+    await release(' alice ');
+
+    expect(
+      await screen.findByText(
+        'Released. The Principal is suspended: restore it once the sweep has resolved the duplicate finding.',
+      ),
+    ).toBeInTheDocument();
+    const [command] = sent.filter((r) => r.method === 'POST');
+    expect(command?.url.pathname).toBe(`/api/v1/principals/${subject}:release`);
+    expect(command?.body).toEqual({ username: 'alice' });
+    expect(command?.headers['x-administrative-reason']).toBe('Duplicate triaged, OPS-55.');
+    expect(command?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(command?.headers['x-csrf-token']).toBe(csrfToken);
+    // Read again, it is suspended: restore is offered, and release no longer is.
+    expect(await screen.findByRole('button', { name: 'Restore' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
+  });
+
+  it('requires the kernel username before sending a release', async () => {
+    const { sent } = api({ detail: quarantinedPrincipal });
+    renderApp(`/principals/${subject}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Release' }));
+    const form = screen.getByRole('button', { name: 'Cancel' }).closest('form') as HTMLElement;
+    await userEvent.type(
+      within(form).getByRole('textbox', { name: /reason/i }),
+      'Duplicate triaged, OPS-55.',
+    );
+    await userEvent.click(within(form).getByRole('button', { name: 'Release' }));
+    expect(await within(form).findByText('Name the kernel user the triage kept.')).toBeInTheDocument();
+    expect(sent.filter((r) => r.method === 'POST')).toHaveLength(0);
+  });
+
+  it('shows a refused release with the API sentence', async () => {
+    api({
+      detail: quarantinedPrincipal,
+      command: () =>
+        json(
+          {
+            status: 409,
+            detail: 'The kernel holds 2 users carrying the identifier; exactly one may remain',
+            correlation_id: 'c0ffee00-0000-4000-8000-000000000009',
+          },
+          409,
+        ),
+    });
+    renderApp(`/principals/${subject}`);
+    const form = await release('alice');
+    expect(
+      await within(form).findByText(
+        'The API said: The kernel holds 2 users carrying the identifier; exactly one may remain',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('offers no release on its own quarantined Principal', async () => {
+    stubFetch((url) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (url.pathname === `/api/v1/principals/${operator}`) {
+        return json({ ...quarantinedPrincipal, principal_id: operator, username: 'ada' });
+      }
+      return undefined;
+    });
+    renderApp(`/principals/${operator}`);
+    await screen.findByRole('heading', { name: 'ada' });
+    expect(screen.queryByRole('button', { name: 'Release' })).toBeNull();
   });
 
   it('says so when its own Principal is opened', async () => {

@@ -84,3 +84,33 @@ export interface ApplicationDeveloper {
   readonly revoke_reason?: string;
   readonly active: boolean;
 }
+
+// A mapping recovery has not resolved (GET /v1/principals:pending, TDD-identity-control-001 1.18.0),
+// oldest first, at most 500. overdue is past the age at which recovery takes a mapping up: recovery
+// has had at least one chance to resolve it.
+export interface PendingMapping {
+  readonly principal_id: string;
+  readonly subject_type: SubjectType;
+  readonly username: string;
+  readonly created_at: string;
+  readonly overdue: boolean;
+}
+
+// A mapping the reconciler holds (GET /v1/principals:quarantined, TDD-identity-control-001 1.18.0),
+// oldest first, at most 500. linked says whether it holds a kernel user; one recovery quarantined
+// holds none.
+export interface QuarantinedMapping {
+  readonly principal_id: string;
+  readonly subject_type: SubjectType;
+  readonly username: string;
+  readonly quarantined_at: string | null;
+  readonly quarantine_reason: string;
+  readonly linked: boolean;
+}
+
+// What a release answers (POST /v1/principals/{principal_id}:release): the mapping is bound to the
+// one kernel user left and lands in suspended, never active.
+export interface ReleaseResult {
+  readonly principal_id: string;
+  readonly state: 'suspended';
+}

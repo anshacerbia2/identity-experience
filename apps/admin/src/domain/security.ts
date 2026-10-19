@@ -178,6 +178,16 @@ export function containmentActions(principal: PrincipalDetail, operator: string 
   }
 }
 
+// canRelease is whether the API may accept a release of the reconciler's hold (TDD-identity-control-001
+// 1.18.0 §Leaving Quarantine): a quarantined human, never a workload, whose user is its client's
+// service account. The operator's own Principal is offered nothing, as for containment
+// (TDD-identity-experience-003 §The Self-Action Boundary). What the kernel holds, exactly one user
+// carrying the identifier and it the one named, is the API's to check, and its refusal is shown.
+export const canRelease = (principal: PrincipalDetail, operator: string | null): boolean =>
+  principal.state === 'quarantined' &&
+  principal.subject_type === 'human' &&
+  principal.principal_id !== operator;
+
 // Revocation is offered on the same terms as ending the sessions.
 export const canRevoke = (principal: PrincipalDetail, operator: string | null): boolean =>
   containmentActions(principal, operator).includes('terminate-all');

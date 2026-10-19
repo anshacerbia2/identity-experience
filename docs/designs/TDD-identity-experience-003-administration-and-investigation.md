@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.26.0
+  version: 1.27.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-12
+  last_reviewed: 2026-10-19
   parent_sad: SAD-002
 ---
 
@@ -32,6 +32,9 @@ it inherits the obligation to be safer than the console rather than merely prett
 - Security state inspection: sessions, authenticators, notification addresses and notifications,
   federation links, findings, events.
 - Containment: suspension, session termination, authenticator revocation.
+- Leaving the reconciler's quarantine, and the mappings held quarantined or pending (1.27.0).
+- Every operator transition identity-control serves, mapped to its action here or to the reason
+  there is none (1.27.0, §Operator Transitions).
 - Reason and evidence capture on every privileged action.
 - The self-action boundary.
 - Oversight of protocol client registrations and their drift.
@@ -143,6 +146,12 @@ GET   /api/v1/principals/{principal_id}/notification-addresses     1.24.0
 GET   /api/v1/principals/{principal_id}/security-notifications     1.24.0
 GET   /api/v1/provider-grants:emergency-validation                 1.24.0
 GET   /api/v1/projections/tenant-context/report                    1.24.0
+POST  /api/v1/principals/{principal_id}:release                    1.27.0, X-Administrative-Reason
+GET   /api/v1/principals:quarantined                               1.27.0
+GET   /api/v1/principals:pending                                   1.27.0
+GET   /api/v1/projections/tenant-context:unconverged               1.27.0
+POST  /api/v1/projections/tenant-context/tenants/{tenant_id}:redrive   1.27.0, X-Administrative-Reason
+POST  /api/v1/projections/tenant-context:sweep                     1.27.0
 ```
 
 `GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
@@ -240,13 +249,25 @@ applies.
 | Terminate sessions | The subject signs in again | Reason |
 | Suspend | Restore re-enables sign-in; no session comes back | Reason, and the effect stated plainly: sign-in stops, Memberships and ownerships are kept, a token already issued lives out its lifetime |
 | Revoke an authenticator | The subject re-enrolls, if another factor remains | Reason, and the remaining factor count shown |
-| Retire a Principal | **No** | Reason, typed confirmation of the identifier, and the count of Memberships that end |
+| Retire a Principal | **No** | **Not built** (1.27.0): identity-control has no human `:retire` (below) |
+
+**Retiring a person is not offered (1.27.0).** Up to 1.26.0 the table above described a retirement
+form. identity-control does not serve one: "`:quarantine` and `:retire` for a human are not built"
+(`TDD-identity-control-001` §API / Interface), and `TDD-identity-control-005` leaves `:retire` out
+of its containment, where it "waits for human retirement in `TDD-identity-control-001`". The count of
+Memberships that end, which the confirmation was to show, waits for Organization Control to serve it to
+a provider (`TDD-identity-control-005` §Containment Is Reversible). The page never offers an action the
+API would refuse, so no retirement is offered. A person who leaves is suspended. The row is kept so
+the confirmation it needs is designed when the route is: a reason, the identifier typed, and the
+Memberships that end.
 
 Suspension disables rather than deletes, on the same reasoning as the reconciler in
 `TDD-identity-control-001`: a false positive caused by a mistaken administrator is
-recoverable, and deletion of a Principal is not. It is not the reconciler's `quarantined`, which
-no administrator sets or lifts (`TDD-identity-control-005` §Containment Is Reversible). A
-quarantined Principal is shown as such, with no containment action offered.
+recoverable, and deletion of a Principal is not. It is not the reconciler's `quarantined`. No
+administrator sets a quarantine, and none lifts it by decision: since `TDD-identity-control-001`
+1.18.0 a provider releases one only when the kernel shows the broken invariant holds again
+(§Leaving Quarantine, 1.27.0). Up to 1.26.0 this section said that no administrator lifts it, which
+1.18.0 made stale.
 
 Revoking an authenticator shows the remaining count before the action, because revoking
 the last one locks the subject out and the administrator is the one person who will not
@@ -517,8 +538,10 @@ each its own privileged read:
 - **Security notifications (1.24.0).** The hundred most recent, newest first: when, the event as a
   sentence, its bounded details (the authenticator type, who acted, the recovery method), the delivery
   state and how many addresses it went to. A `failed` request says the person was not told after its
-  attempts, and a `no_address` one says to give them an address: the two signals
-  TDD-identity-control-008 §Operational Notes names for an operator. The record is evidence the API
+  attempts, and a `no_address` one says to ask the person to add one in the account application,
+  since no administrator can add one for them (1.27.0, `TDD-identity-control-008` 1.6.0 §A Person
+  With No Address): the two signals TDD-identity-control-008 §Operational Notes names for an
+  operator. The record is evidence the API
   never rewrites, so there is no command.
 
 The page renders a section when it is opened, not before. A read the operator did not ask for is a
@@ -530,7 +553,8 @@ disclosure nobody needed (§Reads Are Privileged Too).
 | :-- | :-- |
 | `active` | Suspend; end every session; revoke an authenticator |
 | `suspended` | Restore; end every session; revoke an authenticator |
-| `pending`, `quarantined`, `retired` | Nothing, with the state's sentence |
+| `quarantined` (1.27.0) | Release, for a person; nothing for a workload (§Leaving Quarantine) |
+| `pending`, `retired` | Nothing, with the state's sentence |
 | A workload | Nothing; a link to its Workloads page |
 | The operator's own Principal | Nothing; self-service is the place for one's own sessions (§The Self-Action Boundary) |
 
@@ -578,6 +602,55 @@ budget:
 
 The list is a finding list bounded by the executor, not a listing of Principals, so it is read when the
 page opens, as the dangling mappings are.
+
+### Leaving Quarantine (1.27.0)
+
+`TDD-identity-control-001` 1.18.0 §Leaving Quarantine gives a quarantined mapping a way out:
+`POST /v1/principals/{principal_id}:release`. Until 1.27.0 nothing here offered it, and the page
+said a quarantine was something no administrator lifts.
+
+**The duplicate runbook comes first.** A mapping is quarantined because two kernel users carried its
+identifier, or recovery found it ambiguous. identity-control's duplicate-identifier-containment
+runbook decides, with the Principal's owner and security, which user is the person, and deletes
+every other one in the kernel. The release is the last step of that triage, not a substitute for it.
+
+**On the Principal's page,** under Containment, for a quarantined person who is not the operator:
+
+| Collected | Why |
+| :-- | :-- |
+| The kernel username of the user the triage kept, required | The API takes it as `{"username": "..."}` and refuses unless the one user left has it: a deletion of the wrong user is caught before the Principal is bound to it |
+| A reason, sent as `X-Administrative-Reason` | The API requires it, and records it with the release |
+| An Idempotency-Key, from `useCommandPost` | The API replays it, as `:relink`'s (`TDD-identity-control-001` 1.18.0) |
+
+- **What the form states before it is sent.** The triage comes first. The API reads the kernel and
+  refuses unless exactly one user carries the identifier and its username is the one named. The
+  Principal lands `suspended`, not `active`: the user stays disabled, and access returns only through
+  Restore, which the API refuses while any finding about the Principal is open. A duplicate finding
+  resolves once a complete sweep no longer returns the deleted user.
+- **The page does not count the kernel's users.** Only the API reads them, and it names the count in
+  its `409`. The page shows that refusal with the API's sentence, as it shows every refusal.
+- **After a release** the page says the Principal is suspended and when to restore it, and reads the
+  Principal again, which then offers Restore. Its sections are not read again: each is a recorded read.
+- **Not offered** for a workload, whose user is its client's service account and which the API
+  refuses, and not for the operator's own Principal (§The Self-Action Boundary). The API does not
+  refuse the latter, but releasing one's own hold is acting on oneself as an administrator.
+- **No step-up of its own.** The API asks a provider route for `aal2`, as every other one here; a
+  challenge offers the sign-in (§Outcomes).
+
+**The lists (1.27.0).** The Principals page lists the mappings `GET /v1/principals:quarantined` and
+`GET /v1/principals:pending` serve, each oldest first and at most 500, each read only when its
+**Show** button is pressed:
+
+- **Quarantined Principals**: the Principal, linked to its page, where it is released; the kernel
+  username; the subject type; when and why it was quarantined; and whether it holds a kernel user.
+- **Pending Principals**: the Principal, linked; the kernel username; the subject type; when it was
+  created; and whether it is overdue, past the age at which recovery takes a mapping up. An overdue
+  mapping is triaged with identity-control's pending-mapping-recovery runbook.
+
+Neither is the Principal listing §Search Is Not Listing rules out: each is bounded by what recovery
+or the reconciler holds, not by the population. Each names kernel usernames, so each waits for its
+button, as the workload condition lists do. Neither offers a command: a pending mapping is finished by
+recovery or the Principal sweep, and a quarantined one is released from its page.
 
 **References stay in memory.** A `security_ref` lives in the authenticators query's cache for the
 rendered page. It is never written to browser storage (§Data Model).
@@ -754,6 +827,87 @@ provider token this BFF does not hold, and organization-experience shows each co
 reconciliation. The page therefore shows the report exactly as answered, copies it unchanged, and
 says where it goes.
 
+### Tenant Context Convergence (1.27.0)
+
+`TDD-identity-control-002` 2.5.0 §Operator Routes gives the projection drift runbook what it had
+only from the logs and a restart. The Tenant context page shows it above the report:
+
+- **Tenants not converged**, read when the page opens: `GET /v1/projections/tenant-context:unconverged`,
+  pending and unresolved, oldest mark first, at most 500. Each row shows the Tenant, its state as a word
+  (`Pending`, `Parked` for `unresolved`), a priority mark said in words (a suspension or a revocation
+  not yet in the kernel), the attempts and the last error class, and when it was marked. It names
+  Tenants, not people, and is bounded by the converger's work, so it is read without a button.
+- **Re-drive** on a row, with a reason sent as `X-Administrative-Reason`:
+  `POST /v1/projections/tenant-context/tenants/{tenant_id}:redrive`. The API answers `202`, and the page
+  says the Tenant is marked to converge again and reads the list again. A `404` for a Tenant the desired
+  state does not hold is shown with the API's sentence.
+- **Run the Tenant context sweep now**: `POST /v1/projections/tenant-context:sweep`, the scheduled
+  sweep run now. The page reports its outcome as a word, the Memberships read from Organization
+  Control's snapshot (or that it could not be read), the unknown Organizations, and the Tenants marked,
+  and reads the list again.
+- **Neither takes a version or a key.** identity-control classifies both `keyOptional`: convergence is
+  level-driven, so a repeat changes nothing a first did not. `useCommandPost` sends a key anyway, which
+  the API ignores (§API / Interface).
+- **The findings listing is not shown.** `GET /v1/projections/tenant-context:findings` names the
+  Principal of each finding. The runbook reads it to find a cause; the page offers what the runbook
+  acts with, the re-drive and the sweep. It is added when an operator needs it here.
+
+### Operator Transitions (1.27.0)
+
+Rendering each state honestly did not make each state reachable: until 1.27.0 identity-control served
+`:release` and the Tenant context re-drive and sweep, and nothing here sent them. This table closes
+that class of gap, as organization-experience's TDD-002 §Operator Transitions does for Tenants. It lists
+every mutating route identity-control classifies in `internal/httpapi/commands.go` (the three
+Idempotency-Key tables and the adoption), with each action the route serves, who drives it, and where
+these applications offer it, or `None` with the reason.
+
+| Route | Action | Driven by | Identity Experience action |
+| :-- | :-- | :-- | :-- |
+| `POST /v1/principals` | create a person | provider | Admin Portal, Principals: Create a Principal |
+| `POST /v1/principals/{target}` | `:suspend` | provider | Admin Portal, a Principal: Suspend |
+| `POST /v1/principals/{target}` | `:restore` | provider | Admin Portal, a Principal: Restore |
+| `POST /v1/principals/{target}` | `:relink` | provider | Admin Portal, Principals: Relink, on a dangling mapping |
+| `POST /v1/principals/{target}` | `:release` | provider | Admin Portal, a Principal: Release (§Leaving Quarantine) |
+| `POST /v1/principals/{target}` | `:retire`, `:quarantine` | not built | None: identity-control serves neither for a person (§Containment Is Reversible First) |
+| `POST /v1/principals/{principal_id}/sessions:terminate-all` | end every session | provider | Admin Portal, a Principal: End every session |
+| `POST /v1/principals/{principal_id}/authenticators/{authenticator_action}` | `:revoke` | provider | Admin Portal, a Principal: Revoke |
+| `POST /v1/principals:reconcile` | the Principal sweep | provider | Admin Portal, Principals: Run the Principal sweep now |
+| `POST /v1/security-operations/{operation_action}` | `:redrive` | provider | Admin Portal, Principals: Re-drive, on a parked operation |
+| `POST /v1/kernel-events:sweep` | the kernel event sweep | provider | Admin Portal, a Principal's Events: Read the kernel's latest events |
+| `POST /v1/projections/tenant-context:sweep` | the Tenant context sweep | provider | Admin Portal, Tenant context: Run the Tenant context sweep now |
+| `POST /v1/projections/tenant-context/tenants/{tenant_action}` | `:redrive` | provider | Admin Portal, Tenant context: Re-drive |
+| `POST /v1/registrations` | register | owner, provider | Developer Console: register an application; a production one is requested instead |
+| `POST /v1/registrations:adopt` | adopt a Keycloak client | provider | None, by decision: rare, once per bootstrap client, and its dry run is read before committing (§Registration Drift Oversight) |
+| `POST /v1/registrations:reconcile` | the registration sweep, or apply the registered state | provider | Admin Portal, Registrations: Run a sweep now; a registration: Apply the registered state |
+| `POST /v1/registrations/{registration_id}` | `:suspend`, `:restore`, `:retire` | provider | Admin Portal, a registration: Suspend, Restore, Retire |
+| `POST /v1/registrations/{registration_id}/drift-exceptions` | grant | provider | Admin Portal, a registration: Grant a drift exception |
+| `POST /v1/registrations/{registration_id}/keys` | rotate | owner, provider | Developer Console and Admin Portal, a registration: Rotate |
+| `POST /v1/registrations/{registration_id}/keys/{key_action}` | `:revoke` | owner, provider | Developer Console and Admin Portal, a registration: Revoke |
+| `POST /v1/registrations/{registration_id}/owners` | grant | provider | Admin Portal, a registration: Grant ownership |
+| `POST /v1/registrations/{registration_id}/owners/{owner_action}` | `:revoke` | provider | Admin Portal, a registration: Revoke ownership |
+| `POST /v1/registrations/{registration_id}/changes` | propose | owner, provider | Developer Console and Admin Portal, a registration's changes panel |
+| `POST /v1/registrations/{registration_id}/changes/{change_action}` | `:approve`, `:reject`, `:withdraw` | provider; the proposer withdraws | Admin Portal, Approvals and a registration: Approve, Reject; the changes panel: Withdraw |
+| `POST /v1/application-developers` | grant | provider | Admin Portal, Principals: Grant the standing |
+| `POST /v1/application-developers/{developer_action}` | `:revoke` | provider | Admin Portal, Principals: Revoke the standing |
+| `POST /v1/registration-requests` | request a registration | application developer | Developer Console: request a production registration |
+| `POST /v1/registration-requests/{request_action}` | `:approve`, `:reject`, `:withdraw` | provider; the proposer withdraws | Admin Portal, Approvals: Approve, Reject; Developer Console, my requests: Withdraw |
+| `POST /v1/workloads` | create | provider | Admin Portal, Workloads: Create a workload |
+| `POST /v1/workloads/{target}` | `:suspend`, `:restore`, `:retire`, `:rebuild`, `:reassign`, `:review` | provider; the owner reviews | Admin Portal, Workloads: each action; Developer Console: Review |
+| `POST /v1/workloads:sweep` | the workload sweep | provider | Admin Portal, Workloads: Run the workload sweep now |
+| `POST /v1/me/sessions/{session_action}` | `:terminate` | the person | Account application: end one session (`TDD-identity-experience-002`) |
+| `POST /v1/me/sessions:terminate-all` | end every session | the person | Account application: end every other session |
+| `POST /v1/me/authenticators/{authenticator_action}` | `:remove` | the person | Account application: remove an authenticator |
+| `POST /v1/me/authenticators:enroll` | enroll | the person | Account application: add an authenticator, through the kernel's action |
+| `POST /v1/me/notification-addresses` | add | the person | Account application: add a notification address |
+| `POST /v1/me/notification-addresses/{address_action}` | `:verify`, `:remove` | the person | Account application: prove or remove an address |
+| `POST /v1/deliveries` | Organization Control's delivery | Organization Control | None: a service's push, authenticated as Organization Control, never a person's (`TDD-identity-control-006`) |
+
+- `apps/admin/src/domain/operator-transitions.test.ts` holds identity-control's classified list as
+  it stands at identity-control `138f29d`, and fails when a route there has no row here, or a row
+  names a route it does not hold. When identity-control classifies a new route, it is added to the
+  test's list, which then fails until this table says what these applications offer for it.
+- A row whose last cell starts with `None` states its reason; every other row names an action.
+
 | Ref | Source |
 | :-- | :-- |
 | R5 | Microsoft, *Manage emergency access admin accounts*, Validate accounts regularly, <https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access>, accessed 2026-10-09: "Regularly conduct drills to validate the functionality of the accounts and to confirm that monitoring and alerting rules are triggered in case an account is misused"; "Perform these steps at regular intervals and for key changes: At least every 90 days". |
@@ -797,8 +951,11 @@ says where it goes.
   for a workload.
 - A `202` is followed to its final state. An `insufficient_user_authentication` challenge offers a
   sign-in with its `max_age` and keeps the session.
-- Retiring a Principal requires typed confirmation and shows the count of Memberships
-  that end.
+- No retirement is offered for a person, because identity-control has none (1.27.0).
+- A quarantined person offers Release, which requires the kernel username and a reason, sends them
+  with an Idempotency-Key, and then reads the Principal again, now suspended; a workload and the
+  operator's own Principal offer none, and a refusal shows the API's sentence (1.27.0,
+  `PrincipalDetailPage.test.tsx`).
 - Every mutation carries a reason; a request without one is refused by the API.
 
 ### Registrations and Drift
@@ -873,6 +1030,9 @@ says where it goes.
   `ProviderAuthority.test.tsx`).
 - The Tenant context report is read only when asked, and shown exactly as answered with its mark; no
   post is offered (1.24.0).
+- The Tenants not converged are listed with their state and priority as words; a re-drive sends its
+  reason and reads the list again, a refusal shows the API's sentence, and the sweep reports its counts
+  (1.27.0, `ProviderAuthority.test.tsx`).
 - Registration requests are listed with their document and owners; approving one links to the
   registration it created, and neither decision is offered on one's own request.
 
@@ -887,6 +1047,10 @@ says where it goes.
 - The notification addresses and the security notifications are each read only when opened. An
   address shows its state and origin, and the section says when none is active; a `failed` or
   `no_address` notification says what it means (1.24.0, `PrincipalDetailPage.test.tsx`).
+- The quarantined and the pending Principals are each read only when opened, each row linked to its
+  Principal, with no command (1.27.0, `PrincipalsPage.test.tsx`).
+- The operator transitions table has a row for every route identity-control classifies, and no
+  other (1.27.0, `operator-transitions.test.ts`).
 - The application developer grants are listed newest first. A grant and a revocation each send
   their reason, and a refusal shows the API's sentence.
 - Only the dangling mappings are read: no request lists the Principal population.
@@ -901,8 +1065,9 @@ says where it goes.
 The component tests run axe against each page's rendered DOM in jsdom, which has no layout.
 `e2e/tests/accessibility.spec.ts` runs axe in Chromium (`@axe-core/playwright`, the integration
 Playwright's accessibility guide uses) on each main page of the three applications this BFF serves:
-the Admin Portal's Overview, Principals, a Principal, Workloads, Registrations, a registration,
-Approvals, Emergency access and Tenant context (with its report read), the Developer Console's home and
+the Admin Portal's Overview, Principals (with its quarantined and pending lists opened, 1.27.0), a
+Principal, Workloads, Registrations, a registration, Approvals, Emergency access and Tenant context
+(with the Tenants not converged, 1.27.0, and its report read), the Developer Console's home and
 the account application. Each page is served by the BFF from the built bundle, signed in through the
 stand-in kernel, with its reads answered by fixtures (`e2e/stack.ts`), and runs in CI. Since 1.26.0
 each page is scanned in the dark and in the light theme. Until then only dark was scanned, the

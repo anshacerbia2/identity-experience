@@ -7,13 +7,15 @@ import { Message } from '@/core/i18n/Message';
 import { ApplicationDevelopers } from './ApplicationDevelopers';
 import { CreatePrincipalForm } from './CreatePrincipalForm';
 import { DanglingSection } from './DanglingSection';
+import { PendingSection, QuarantinedSection } from './HeldSections';
 import { ParkedOperations } from './ParkedOperations';
 import { PrincipalSearch } from './PrincipalSearch';
 import styles from './PrincipalsPage.module.scss';
 import { UnmappedSection } from './UnmappedSection';
 
 // PrincipalsPage finds a Principal, creates one, relinks one whose Keycloak user is gone, lists the
-// kernel users no Principal accounts for, and re-drives a parked security operation
+// kernel users no Principal accounts for and, when opened, the mappings held quarantined or pending,
+// and re-drives a parked security operation
 // (TDD-identity-experience-003 §Principal Search and Security State, §Principal Provisioning and
 // Portability). It lists no Principal population: the search lists nothing until it is asked, and
 // every other list is bounded by what a sweep or the executor found.
@@ -38,6 +40,8 @@ export function PrincipalsPage(): ReactElement {
           <CreatePrincipalForm />
           <DanglingSection />
           <UnmappedSection />
+          <QuarantinedSection />
+          <PendingSection />
           <ParkedOperations />
           <ApplicationDevelopers />
         </>

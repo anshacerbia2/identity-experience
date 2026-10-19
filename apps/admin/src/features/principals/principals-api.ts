@@ -8,8 +8,11 @@ import type {
   ApplicationDeveloper,
   CreatePrincipalRequest,
   DanglingMapping,
+  PendingMapping,
   PrincipalCreated,
   PrincipalSweep,
+  QuarantinedMapping,
+  ReleaseResult,
   RelinkResult,
   UnmappedUser,
 } from '@/domain/principal';
@@ -20,6 +23,8 @@ export const principalKeys = {
   all: ['principals'] as const,
   dangling: ['principals', 'dangling'] as const,
   unmapped: ['principals', 'unmapped'] as const,
+  pending: ['principals', 'pending'] as const,
+  quarantined: ['principals', 'quarantined'] as const,
   developers: ['principals', 'application-developers'] as const,
 };
 
@@ -44,6 +49,35 @@ export function useUnmapped() {
     queryFn: async ({ signal }) =>
       (await apiGet<{ readonly unmapped: readonly UnmappedUser[] | null }>('/v1/principals:unmapped', signal))
         .unmapped ?? [],
+  });
+}
+
+// usePending and useQuarantined read the mappings held in pending and in quarantined
+// (TDD-identity-control-001 1.18.0), each only once its list is opened: they name kernel usernames, and
+// they are bounded by recovery and the reconciler, not a listing of the Principal population.
+export function usePending(enabled: boolean) {
+  return useQuery({
+    queryKey: principalKeys.pending,
+    enabled,
+    refetchOnWindowFocus: false,
+    queryFn: async ({ signal }) =>
+      (await apiGet<{ readonly pending: readonly PendingMapping[] | null }>('/v1/principals:pending', signal))
+        .pending ?? [],
+  });
+}
+
+export function useQuarantined(enabled: boolean) {
+  return useQuery({
+    queryKey: principalKeys.quarantined,
+    enabled,
+    refetchOnWindowFocus: false,
+    queryFn: async ({ signal }) =>
+      (
+        await apiGet<{ readonly quarantined: readonly QuarantinedMapping[] | null }>(
+          '/v1/principals:quarantined',
+          signal,
+        )
+      ).quarantined ?? [],
   });
 }
 
@@ -84,6 +118,38 @@ export function useRelink() {
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: principalKeys.all }),
+  });
+}
+
+// useRelease ends the reconciler's hold on a quarantined Principal (TDD-identity-control-001 1.18.0
+// §Leaving Quarantine), naming the kernel user the triage decided is the person. It carries a reason
+// and, from useCommandPost, an Idempotency-Key the API replays. The Principal lands in suspended, so
+// it is read again, and so are the held lists; its sections are not, since each read is recorded.
+export function useRelease() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      principalId,
+      username,
+      reason,
+    }: {
+      readonly principalId: string;
+      readonly username: string;
+      readonly reason: string;
+    }) =>
+      post<ReleaseResult>(
+        `/v1/principals/${encodeURIComponent(principalId)}:release`,
+        { username: username.trim() },
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: (_data, _error, { principalId }) =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['principals', 'detail', principalId], exact: true }),
+        queryClient.invalidateQueries({ queryKey: principalKeys.quarantined }),
+        queryClient.invalidateQueries({ queryKey: principalKeys.pending }),
+      ]),
   });
 }
 

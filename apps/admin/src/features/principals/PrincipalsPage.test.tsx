@@ -44,6 +44,25 @@ const unmapped = [
     detected_at: '2026-10-03T08:00:00Z',
   },
 ];
+const quarantined = [
+  {
+    principal_id: duplicateOf,
+    subject_type: 'human',
+    username: 'grace',
+    quarantined_at: '2026-10-03T08:00:00Z',
+    quarantine_reason: 'duplicate',
+    linked: true,
+  },
+];
+const pending = [
+  {
+    principal_id: '0192f0e0-5555-7000-8000-000000000001',
+    subject_type: 'human',
+    username: 'new.joiner',
+    created_at: '2026-10-05T08:00:00Z',
+    overdue: true,
+  },
+];
 const parked = [
   {
     operation_id: parkedId,
@@ -77,6 +96,12 @@ function api(
     }
     if (url.pathname === '/api/v1/security-operations:unresolved') {
       return json({ operations: parked });
+    }
+    if (url.pathname === '/api/v1/principals:quarantined') {
+      return json({ quarantined });
+    }
+    if (url.pathname === '/api/v1/principals:pending') {
+      return json({ pending });
     }
     return undefined;
   });
@@ -301,5 +326,31 @@ describe('PrincipalsPage', () => {
         'The API said: The operation is not unresolved; it was already re-driven',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('reads the quarantined and the pending Principals only when each is opened, and links each', async () => {
+    const { requests } = api();
+    const { container } = renderApp('/principals');
+    await screen.findByRole('table', { name: 'Parked operations, oldest first' });
+    const paths = () => requests.map((url) => url.pathname);
+    expect(paths()).not.toContain('/api/v1/principals:quarantined');
+    expect(paths()).not.toContain('/api/v1/principals:pending');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show the quarantined Principals' }));
+    const held = await screen.findByRole('table', { name: 'Quarantined Principals, oldest first' });
+    expect(within(held).getByRole('link', { name: duplicateOf })).toHaveAttribute(
+      'href',
+      `/principals/${duplicateOf}`,
+    );
+    expect(within(held).getByText('grace')).toBeInTheDocument();
+    expect(within(held).getByText('Holds a kernel user')).toBeInTheDocument();
+    expect(within(held).queryByRole('button')).not.toBeInTheDocument();
+    expect(paths()).not.toContain('/api/v1/principals:pending');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show the pending Principals' }));
+    const waiting = await screen.findByRole('table', { name: 'Pending Principals, oldest first' });
+    expect(within(waiting).getByText('new.joiner')).toBeInTheDocument();
+    expect(within(waiting).getByText('Overdue')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });
