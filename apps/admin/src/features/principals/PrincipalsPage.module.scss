@@ -121,4 +121,25 @@
       color: var(--ds-color-primary-text-default-default);
     }
   }
+
+  /* A temporary password, shown once (TDD-identity-experience-003 1.28.0). Selected whole on a click, so
+     a manual copy takes all of it and nothing else. */
+  .secret {
+    font-family: var(--ds-font-family-mono);
+    font-size: var(--ds-font-size-lg);
+    letter-spacing: var(--ds-letter-spacing-wide);
+    overflow-wrap: anywhere;
+    user-select: all;
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .warning {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--ds-spacing-xs);
+    max-inline-size: 44rem;
+    font-size: var(--ds-font-size-sm);
+    line-height: var(--ds-line-height-relaxed);
+    color: var(--ds-color-neutral-text-strong-default);
+  }
 }

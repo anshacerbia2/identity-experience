@@ -1,7 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
-import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
+import { ApiError, ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { SignInRequired, useSession, useSignOut } from '@identity-experience/app-core/session';
 import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
@@ -16,8 +16,10 @@ import {
   useMySessions,
   useSelfCommand,
   type MyAuthenticator,
+  type NotificationAddress,
   type Operation,
   type SelfCommandRequest,
+  unproven,
   usedRecoveryCodes,
 } from './security-api';
 import styles from './SecurityPage.module.scss';
@@ -442,7 +444,9 @@ function Authenticators(): ReactElement {
 
 // NotificationAddresses is where a person is told when their account changes (ADR-IAM-007 §5.2,
 // TDD-identity-experience-002 1.6.0). Adding and removing ask for a recent sign-in, which the API
-// asks for itself; an added address is pending until the code sent to it is entered here.
+// asks for itself; an added address is pending until the code sent to it is entered here. An address in
+// use but never proven, such as the one a provider typed at creation, is sent a code on request and
+// proven the same way (1.10.0, ADR-ORG-007 §5.3).
 function NotificationAddresses(): ReactElement {
   const addresses = useMyAddresses();
   const command = useAddressCommand();
@@ -450,6 +454,9 @@ function NotificationAddresses(): ReactElement {
   const [address, setAddress] = useState('');
   const [codes, setCodes] = useState<Readonly<Record<string, string>>>({});
   const [done, setDone] = useState<MessageKey | null>(null);
+  // The addresses a code was sent to in this visit, or whose code the API says is still good: each shows
+  // the code field, as a pending address does.
+  const [awaiting, setAwaiting] = useState<Readonly<Record<string, true>>>({});
   const run = (request: Parameters<typeof command.mutate>[0], outcome: MessageKey, after?: () => void) => {
     setDone(null);
     command.mutate(request, {
@@ -457,8 +464,21 @@ function NotificationAddresses(): ReactElement {
         setDone(outcome);
         after?.();
       },
+      onError: (error) => {
+        // A code sent earlier is still good: the API sends no second one, and the person enters that one.
+        if (request.action === 'send-proof' && error instanceof ApiError && error.status === 409) {
+          setAwaiting((current) => ({ ...current, [request.addressId]: true }));
+        }
+      },
     });
   };
+  const stillValid =
+    command.isError &&
+    command.variables.action === 'send-proof' &&
+    command.error instanceof ApiError &&
+    command.error.status === 409;
+  const codeWanted = (held: NotificationAddress) =>
+    held.state === 'pending' || awaiting[held.address_id] === true || held.proof_expires_at !== undefined;
   let body: ReactElement;
   if (addresses.isPending) {
     body = <div aria-busy="true" />;
@@ -485,7 +505,11 @@ function NotificationAddresses(): ReactElement {
             <Table.Row key={held.address_id}>
               <Table.Cell mono>{held.address}</Table.Cell>
               <Table.Cell>
-                {held.state === 'active' ? (
+                {held.state === 'active' && unproven(held) ? (
+                  <StatusPill tone="warning">
+                    <Message id="security.addresses.unproven" />
+                  </StatusPill>
+                ) : held.state === 'active' ? (
                   <StatusPill tone="success">
                     <Message id="security.addresses.active" />
                   </StatusPill>
@@ -497,7 +521,25 @@ function NotificationAddresses(): ReactElement {
               </Table.Cell>
               <Table.Cell>
                 <div className={styles['actions']}>
-                  {held.state === 'pending' ? (
+                  {unproven(held) ? (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={command.isPending}
+                      onClick={() => {
+                        run(
+                          { action: 'send-proof', addressId: held.address_id },
+                          'security.addresses.proofSent',
+                          () => {
+                            setAwaiting((current) => ({ ...current, [held.address_id]: true }));
+                          },
+                        );
+                      }}
+                    >
+                      <Message id="security.addresses.sendProof" />
+                    </Button>
+                  ) : null}
+                  {codeWanted(held) ? (
                     <form
                       className={styles['inline']}
                       onSubmit={(event) => {
@@ -508,7 +550,7 @@ function NotificationAddresses(): ReactElement {
                             addressId: held.address_id,
                             code: codes[held.address_id] ?? '',
                           },
-                          'security.addresses.proven',
+                          unproven(held) ? 'security.addresses.provenHeld' : 'security.addresses.proven',
                         );
                       }}
                     >
@@ -556,6 +598,11 @@ function NotificationAddresses(): ReactElement {
       </Panel.Header>
       <Panel.Body>
         {body}
+        {addresses.data?.some(unproven) === true ? (
+          <p className={styles['quiet']}>
+            <Message id="security.addresses.unprovenNote" />
+          </p>
+        ) : null}
         {addresses.data !== undefined &&
         addresses.data.filter((held) => held.state === 'active').length < 2 ? (
           <p className={styles['quiet']} role="status">
@@ -585,7 +632,13 @@ function NotificationAddresses(): ReactElement {
             <Message id="security.addresses.add" />
           </Button>
         </form>
-        {command.isError ? <MutationError error={command.error} /> : null}
+        {stillValid ? (
+          <p className={styles['quiet']} role="alert">
+            <Message id="security.addresses.stillValid" />
+          </p>
+        ) : command.isError ? (
+          <MutationError error={command.error} />
+        ) : null}
         {done === null ? null : (
           <p className={styles['success']} role="status">
             <Icon name="check" />

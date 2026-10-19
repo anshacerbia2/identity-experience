@@ -38,6 +38,7 @@ function api(
       origin: 'creation',
       state: 'active',
       added_at: '2026-10-01T08:00:00Z',
+      verified_at: '2026-10-01T09:00:00Z',
     },
   ],
 ) {
@@ -327,6 +328,7 @@ describe('notification addresses', () => {
         origin: 'creation',
         state: 'active',
         added_at: '2026-10-01T08:00:00Z',
+        verified_at: '2026-10-01T09:00:00Z',
       },
       pending,
     ]);
@@ -369,5 +371,99 @@ describe('notification addresses', () => {
     const { container } = renderApp('/account/');
     await screen.findByRole('table', { name: 'Where you are told' });
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  // TDD-identity-experience-002 1.10.0: an address in use but never proven (ADR-ORG-007 §5.3).
+  const unprovenAddress = {
+    address_id: '01a0da74-0000-7000-8000-000000000009',
+    channel: 'email',
+    address: 'billy@example.com',
+    origin: 'creation',
+    state: 'active',
+    added_at: '2026-10-19T08:00:00Z',
+  };
+
+  it('marks an address in use but not proven, says why proving matters, and offers a code', async () => {
+    api(undefined, undefined, [unprovenAddress]);
+    const { container } = renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    expect(within(table).getByText('In use, not proven')).toBeInTheDocument();
+    expect(within(table).getByRole('button', { name: 'Send a code' })).toBeInTheDocument();
+    expect(within(table).queryByLabelText('Code sent to it')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/an invitation to an organization can be accepted only with a proven address/),
+    ).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('offers no code to a proven address', async () => {
+    api();
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    expect(within(table).queryByRole('button', { name: 'Send a code' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/can be accepted only with a proven address/)).not.toBeInTheDocument();
+  });
+
+  it('sends a code with an Idempotency-Key, then proves the address with :verify', async () => {
+    const stub = api(
+      (sent) =>
+        sent.url.pathname.endsWith(':send-proof')
+          ? json({
+              notification_address: { ...unprovenAddress, proof_expires_at: '2026-10-19T09:10:00Z' },
+            })
+          : new Response(null, { status: 204 }),
+      undefined,
+      [unprovenAddress],
+    );
+    const { container } = renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    await userEvent.click(within(table).getByRole('button', { name: 'Send a code' }));
+    await screen.findByText(/A code was sent to that address. Enter it beside the address to prove it./);
+    const [send] = posts(stub.sent);
+    expect(send?.url.pathname).toBe(
+      `/api/v1/me/notification-addresses/${unprovenAddress.address_id}:send-proof`,
+    );
+    expect(send?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
+    expect(send?.headers['x-csrf-token']).toBe(csrfToken);
+    expect(await axe(container)).toHaveNoViolations();
+
+    await userEvent.type(await within(table).findByLabelText('Code sent to it'), '87654321');
+    await userEvent.click(within(table).getByRole('button', { name: 'Confirm' }));
+    await screen.findByText('Proven. That address can now be used to accept an invitation.');
+    const verify = posts(stub.sent)[1];
+    expect(verify?.url.pathname).toBe(
+      `/api/v1/me/notification-addresses/${unprovenAddress.address_id}:verify`,
+    );
+    expect(verify?.body).toEqual({ code: '87654321' });
+  });
+
+  it('asks for the code already sent when the API says it is still good', async () => {
+    api(
+      () =>
+        new Response(
+          JSON.stringify({
+            type: 'https://problems.scnehaux.com/state-transition-refused',
+            status: 409,
+            detail: 'A code sent to this address is still valid',
+          }),
+          { status: 409, headers: { 'content-type': 'application/problem+json' } },
+        ),
+      undefined,
+      [unprovenAddress],
+    );
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    await userEvent.click(within(table).getByRole('button', { name: 'Send a code' }));
+    await screen.findByText(/A code sent to that address is still good, so no new one was sent/);
+    expect(within(table).getByLabelText('Code sent to it')).toBeInTheDocument();
+  });
+
+  it('shows the code field while a code the list reports is outstanding', async () => {
+    api(undefined, undefined, [
+      { ...unprovenAddress, proof_expires_at: new Date(Date.now() + 600_000).toISOString() },
+    ]);
+    renderApp('/account/');
+    const table = await screen.findByRole('table', { name: 'Where you are told' });
+    expect(within(table).getByLabelText('Code sent to it')).toBeInTheDocument();
   });
 });

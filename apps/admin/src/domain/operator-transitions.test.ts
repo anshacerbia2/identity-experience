@@ -4,7 +4,9 @@ import design from '../../../../docs/designs/TDD-identity-experience-003-adminis
 
 // TDD-identity-experience-003 1.27.0 §Operator Transitions. Every mutating route identity-control
 // classifies in internal/httpapi/commands.go (STD-GLB-001 1.4.0 §Commands Require an Idempotency-Key),
-// as it stands at identity-control 138f29d: the serviceKeyed, replayedKey and keyOptional tables, and
+// as it stands at identity-control 138f29d, with identity-control's adr-iam-010 branch (ADR-IAM-010,
+// ADR-ORG-007): :issue-temporary-password and :send-proof under routes already listed, and
+// identifiers:match, Organization Control's question (TDD-identity-experience-003 1.28.0): the serviceKeyed, replayedKey and keyOptional tables, and
 // adoptKey. identity-control's TestEveryMutatingRouteIsClassified holds every mutating route in one of
 // them, so this list is every command it serves. When it classifies a new route, the route is added
 // here, and this test then fails until the design's table says what these applications offer for it.
@@ -47,6 +49,7 @@ const classified: readonly string[] = [
   'POST /v1/projections/tenant-context:sweep',
   'POST /v1/projections/tenant-context/tenants/{tenant_action}',
   'POST /v1/deliveries',
+  'POST /v1/principals/{principal_id}/identifiers:match',
 ];
 
 interface Row {

@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.27.0
+  version: 1.28.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -32,6 +32,8 @@ it inherits the obligation to be safer than the console rather than merely prett
 - Security state inspection: sessions, authenticators, notification addresses and notifications,
   federation links, findings, events.
 - Containment: suspension, session termination, authenticator revocation.
+- A first credential for a person a provider creates: a temporary password, shown once (1.28.0,
+  `ADR-IAM-010`).
 - Leaving the reconciler's quarantine, and the mappings held quarantined or pending (1.27.0).
 - Every operator transition identity-control serves, mapped to its action here or to the reason
   there is none (1.27.0, §Operator Transitions).
@@ -152,6 +154,7 @@ GET   /api/v1/principals:pending                                   1.27.0
 GET   /api/v1/projections/tenant-context:unconverged               1.27.0
 POST  /api/v1/projections/tenant-context/tenants/{tenant_id}:redrive   1.27.0, X-Administrative-Reason
 POST  /api/v1/projections/tenant-context:sweep                     1.27.0
+POST  /api/v1/principals/{principal_id}:issue-temporary-password   1.28.0, X-Administrative-Reason, no-store
 ```
 
 `GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
@@ -479,15 +482,66 @@ POST  /api/v1/principals:reconcile
 ```
 
 **Creating a person.** Creation takes a username and an optional email. The console shows the
-`principal_id` the API issued, and that Keycloak asks the person to set a password at first
-sign-in: identity-control creates the user with a required action and never holds a credential,
-so nothing here collects one. A workload is not created here. identity-control refuses a
+`principal_id` the API issued. identity-control creates the Keycloak user with the required action
+`UPDATE_PASSWORD` and no credential, so nothing here collects a password the provider chooses. A
+workload is not created here. identity-control refuses a
 workload on this path, because a workload's Keycloak user is its client's service-account user
 (§Workloads). The request
 carries an Idempotency-Key. The key is kept per distinct request: resubmitting the same
 values after an outage reuses it, so the API returns the Principal the first attempt
 created. Changing a value takes a new key, because the API refuses a key reused for a
 different request.
+
+**Corrected in 1.28.0.** Up to 1.27.0 this paragraph said "Keycloak asks the person to set a
+password at first sign-in". That holds only for a sign-in the person cannot make: the realm offers
+no reset, the kernel sends no mail, and a required action runs "after the user provides
+credentials" (`ADR-IAM-010` §3). The person needed a first credential, and §A First Credential,
+Shown Once gives it.
+
+**A First Credential, Shown Once (1.28.0).** Built on `ADR-IAM-010` and `STD-IAM-001` 2.8.0 §3.1's
+one exception, on `TDD-identity-control-005`'s
+`POST /v1/principals/{principal_id}:issue-temporary-password`.
+
+- **Where it is offered.** The panel that shows a new person's `principal_id` offers **Issue a
+  temporary password**. A person's page offers **Issue a new temporary password** for an active
+  human Principal other than the operator. The console cannot tell whether the person has set a
+  password of their own, so it does not guess: the API answers `409` with the detail
+  `credential-established` once they have, and the page says that a password the person chose is
+  never reset here, and that suspension is the containment.
+- **What it sends.** A reason, as `X-Administrative-Reason`, and an Idempotency-Key from
+  `useCommandPost`. The command is a provider's at `aal2` within the step-up age: an older sign-in
+  is answered with RFC 9470's challenge, and the page offers **Sign in again** as every other
+  command does.
+- **Shown once.** The `201` carries the value. The page shows it in a monospace field with a copy
+  control, labelled for a screen reader, and the copy's result is announced in a live region. Beside
+  it, when it lapses (`lapses_at`, 24 hours after issue at most), and how to hand it over: verify the
+  person first, in person or on a live call, then give it on a channel other than the one that
+  carries the username, never in a ticket, a chat log or an email (`ADR-IAM-010` §5.4). Microsoft
+  Entra shows its Temporary Access Pass the same way: "Make a note of the actual TAP value, because
+  you provide this value to the user. You can't view this value after you select **Ok**." [R9]
+- **Never kept.** The value lives in one component's React state and nowhere else:
+  - not in the query or mutation cache: the command is sent with `useCommandPost` directly, not
+    through `useMutation`, so TanStack Query never holds the answer;
+  - not in a URL, router state, `localStorage`, `sessionStorage`, a log line, telemetry or an error
+    report. ASVS 5.0 14.3.3: "Verify that data stored in browser storage (such as localStorage,
+    sessionStorage, IndexedDB, or cookies)" holds no sensitive data but session tokens [R10];
+  - cleared by **I have handed it over**, by leaving the page, and on unmount. ASVS 5.0 14.3.1:
+    "Verify that authenticated data is cleared from client storage, such as the browser DOM, after
+    the client or session is terminated." [R10]
+- **A retry shows no value.** A retry with the same key after an unknown outcome is answered `200`
+  with the issuance and no value, by design (`STD-IAM-001` 2.8.0 §3.1, "A retry answers without the
+  value"). The page then says the value cannot be shown again and offers to issue a new one, which
+  replaces it.
+- **The BFF carries it once.** It forwards the answer with `Cache-Control: no-store`, as it does
+  every API answer. ASVS 5.0 14.3.2: "Verify that the application sets sufficient anti-caching HTTP
+  response header fields (i.e., Cache-Control: no-store) so that sensitive data is not cached in
+  browsers." [R10] It logs no request or response body, on success or on refusal
+  (`bff/test/temporary-password.test.ts`).
+
+| Ref | Source |
+| :-- | :-- |
+| R9 | Microsoft, *Configure a Temporary Access Pass in Microsoft Entra ID*, Create a Temporary Access Pass, <https://learn.microsoft.com/en-us/entra/identity/authentication/howto-authentication-temporary-access-pass>, accessed 2026-10-19: "Make a note of the actual TAP value, because you provide this value to the user. You can't view this value after you select **Ok**." |
+| R10 | OWASP, *Application Security Verification Standard 5.0.0*, V14.3 Client-side Data Protection, <https://github.com/OWASP/ASVS/blob/v5.0.0/5.0/en/0x23-V14-Data-Protection.md>, accessed 2026-10-19: 14.3.1 "Verify that authenticated data is cleared from client storage, such as the browser DOM, after the client or session is terminated."; 14.3.2 "Verify that the application sets sufficient anti-caching HTTP response header fields (i.e., Cache-Control: no-store) so that sensitive data is not cached in browsers."; 14.3.3 "Verify that data stored in browser storage (such as localStorage, sessionStorage, IndexedDB, or cookies)" contains no sensitive data, session tokens excepted |
 
 **Kernel users no Principal accounts for (1.21.0).** `GET /api/v1/principals:unmapped`
 (`TDD-identity-control-001` 1.13.0) lists the sweep's open `unmapped`, `orphan` and `duplicate`
@@ -868,6 +922,7 @@ these applications offer it, or `None` with the reason.
 | `POST /v1/principals/{target}` | `:restore` | provider | Admin Portal, a Principal: Restore |
 | `POST /v1/principals/{target}` | `:relink` | provider | Admin Portal, Principals: Relink, on a dangling mapping |
 | `POST /v1/principals/{target}` | `:release` | provider | Admin Portal, a Principal: Release (§Leaving Quarantine) |
+| `POST /v1/principals/{target}` | `:issue-temporary-password` | provider | Admin Portal, a new person's panel: Issue a temporary password; a Principal: Issue a new temporary password (1.28.0, §A First Credential, Shown Once) |
 | `POST /v1/principals/{target}` | `:retire`, `:quarantine` | not built | None: identity-control serves neither for a person (§Containment Is Reversible First) |
 | `POST /v1/principals/{principal_id}/sessions:terminate-all` | end every session | provider | Admin Portal, a Principal: End every session |
 | `POST /v1/principals/{principal_id}/authenticators/{authenticator_action}` | `:revoke` | provider | Admin Portal, a Principal: Revoke |
@@ -899,11 +954,12 @@ these applications offer it, or `None` with the reason.
 | `POST /v1/me/authenticators/{authenticator_action}` | `:remove` | the person | Account application: remove an authenticator |
 | `POST /v1/me/authenticators:enroll` | enroll | the person | Account application: add an authenticator, through the kernel's action |
 | `POST /v1/me/notification-addresses` | add | the person | Account application: add a notification address |
-| `POST /v1/me/notification-addresses/{address_action}` | `:verify`, `:remove` | the person | Account application: prove or remove an address |
+| `POST /v1/me/notification-addresses/{address_action}` | `:verify`, `:remove`, `:send-proof` | the person | Account application: prove, remove, or send a proof to an unproven address (`TDD-identity-experience-002` 1.10.0) |
 | `POST /v1/deliveries` | Organization Control's delivery | Organization Control | None: a service's push, authenticated as Organization Control, never a person's (`TDD-identity-control-006`) |
+| `POST /v1/principals/{principal_id}/identifiers:match` | whether a Principal holds a proven address | Organization Control | None: Organization Control's workload asks it at an invitation's acceptance, never a person (`ADR-ORG-007` §5.3, `TDD-identity-control-008`) |
 
 - `apps/admin/src/domain/operator-transitions.test.ts` holds identity-control's classified list as
-  it stands at identity-control `138f29d`, and fails when a route there has no row here, or a row
+  it stands at identity-control `138f29d` with `adr-iam-010`'s routes (1.28.0), and fails when a route there has no row here, or a row
   names a route it does not hold. When identity-control classifies a new route, it is added to the
   test's list, which then fails until this table says what these applications offer for it.
 - A row whose last cell starts with `None` states its reason; every other row names an action.
@@ -1058,6 +1114,15 @@ these applications offer it, or `None` with the reason.
   requires its owner as a principal_id.
 - The same request resubmitted after an outage reuses its key, and a changed one takes a new key.
 - Relink requires a reason and states whether the Principal ended active or pending.
+- A first credential (1.28.0, `TemporaryPassword.test.tsx`, `PrincipalsPage.test.tsx`): the new
+  person's panel and a Principal's page offer it; it sends a reason and an Idempotency-Key; the value
+  is shown once with its lapse and the hand-over warning, copied with an announced result, and gone
+  after dismissal, after leaving the page and after a remount; nothing is written to `localStorage`,
+  `sessionStorage` or the URL; a retry answered without the value says so; `credential-established`
+  says the person set their own; a step-up challenge offers Sign in again; and axe finds no violation
+  with the value shown.
+- The BFF forwards the issuance with `Cache-Control: no-store` and logs no part of the value, on a
+  `201` and on a refusal (`bff/test/temporary-password.test.ts`).
 - A refused relink is shown with the API's sentence.
 
 ### Accessibility in a Browser (1.24.0, both themes since 1.26.0)
@@ -1066,9 +1131,11 @@ The component tests run axe against each page's rendered DOM in jsdom, which has
 `e2e/tests/accessibility.spec.ts` runs axe in Chromium (`@axe-core/playwright`, the integration
 Playwright's accessibility guide uses) on each main page of the three applications this BFF serves:
 the Admin Portal's Overview, Principals (with its quarantined and pending lists opened, 1.27.0), a
-Principal, Workloads, Registrations, a registration, Approvals, Emergency access and Tenant context
+Principal (with a temporary password issued and shown, its one command answered in the browser,
+1.28.0), Workloads, Registrations, a registration, Approvals, Emergency access and Tenant context
 (with the Tenants not converged, 1.27.0, and its report read), the Developer Console's home and
-the account application. Each page is served by the BFF from the built bundle, signed in through the
+the account application (with an address in use but not proven, `TDD-identity-experience-002`
+1.10.0). Each page is served by the BFF from the built bundle, signed in through the
 stand-in kernel, with its reads answered by fixtures (`e2e/stack.ts`), and runs in CI. Since 1.26.0
 each page is scanned in the dark and in the light theme. Until then only dark was scanned, the
 default, and that is how the light theme's failures in §Contrast and Focus went unseen.
@@ -1163,6 +1230,13 @@ mechanism, and administrators are the accounts most worth containing.
 Every privileged action carries a reason collected before submission. A reason recorded
 afterwards is written by someone who already knows how it turned out.
 
+A temporary password is the one credential value these applications ever hold (1.28.0). It is
+held in the issuing provider's tab for as long as the panel shows it, and nowhere else: not in a
+cache, a store, a URL or a log. `STD-IAM-001` 2.8.0 §3.1 admits the BFF holding it "in memory for the
+one response that shows it to the issuing provider", under conditions this design keeps: `aal2`,
+TLS, `no-store`, never logged, persisted or replayed. The copy control writes it to the operating
+system's clipboard, which the page cannot clear; the hand-over warning says to clear it.
+
 ## Performance Notes
 
 All surfaces are paged reads through the BFF. Search is bounded by minimum specificity
@@ -1197,6 +1271,9 @@ review, and locked-out subject after authenticator revocation.
 | Depends on | `TDD-identity-control-003` - registrations, their findings, the reconciler's runs, and their suspension, restoration, and retirement |
 | Governed by | ADR-IAM-001 §5.13 — a registration stops by a suspension, and is removed only by a retirement after one |
 | Depends on | `TDD-identity-control-001` - Principal creation, dangling mappings, and relink |
+| Governed by | `ADR-IAM-010` — a person a provider creates receives a temporary password, shown once (1.28.0) |
+| Conforms to | `STD-IAM-001` 2.8.0 §3.1 — the one exception: a first credential, shown once to a provider (1.28.0) |
+| Depends on | `TDD-identity-control-005` - `:issue-temporary-password`, its refusals and its retry without the value (1.28.0) |
 | Conforms to | STD-GLB-FE-005 §3.9 — focus indicators drawn with `outline` |
 | Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
 | Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |

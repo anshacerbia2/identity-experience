@@ -51,7 +51,9 @@ export const securityKeys = {
 };
 
 // A person's notification address (TDD-identity-control-008 1.2.0): where they are told when their
-// account changes. A pending one waits for the code sent to it.
+// account changes. A pending one waits for the code sent to it. An active one with no verified_at is in
+// use but not proven: a provider typed it at creation, and an invitation is accepted only with a proven
+// address (ADR-ORG-007 §5.3, TDD-identity-experience-002 1.10.0).
 export interface NotificationAddress {
   readonly address_id: string;
   readonly channel: string;
@@ -60,7 +62,14 @@ export interface NotificationAddress {
   readonly state: 'pending' | 'active';
   readonly added_at: string;
   readonly verified_at?: string;
+  // proof_expires_at is when a code sent to it stops being good. The API names it only while one is
+  // outstanding, so its presence is what opens the code field.
+  readonly proof_expires_at?: string;
 }
+
+// unproven is an address in use whose holder has not returned a code sent to it.
+export const unproven = (address: NotificationAddress): boolean =>
+  address.state === 'active' && address.verified_at === undefined;
 
 export function useMySessions() {
   return useQuery({
@@ -188,17 +197,19 @@ export function useMyAddresses() {
 export type AddressCommand =
   | { readonly action: 'add'; readonly address: string; readonly idempotencyKey: string }
   | { readonly action: 'verify'; readonly addressId: string; readonly code: string }
-  | { readonly action: 'remove'; readonly addressId: string };
+  | { readonly action: 'remove'; readonly addressId: string }
+  | { readonly action: 'send-proof'; readonly addressId: string };
 
-// useAddressCommand adds, proves or removes one of the person's own notification addresses. Adding
-// and removing need a recent sign-in, which the API asks for with a step-up challenge.
+// useAddressCommand adds, proves or removes one of the person's own notification addresses, or sends
+// a code to one in use but not proven (1.10.0). Adding and removing need a recent sign-in, which the API
+// asks for with a step-up challenge; sending a code does not, since it changes no recipient.
 export function useAddressCommand() {
   const post = useCommandPost();
   const queryClient = useQueryClient();
   const session = useSession();
   const token = session.data?.authenticated === true ? session.data.csrfToken : '';
   return useMutation({
-    mutationFn: async (command: AddressCommand) => {
+    mutationFn: async (command: AddressCommand): Promise<NotificationAddress | undefined> => {
       switch (command.action) {
         case 'add':
           await post<unknown>(
@@ -221,6 +232,14 @@ export function useAddressCommand() {
             { csrfToken: token },
           );
           return;
+        case 'send-proof':
+          return (
+            await post<{ readonly notification_address: NotificationAddress }>(
+              `/v1/me/notification-addresses/${encodeURIComponent(command.addressId)}:send-proof`,
+              {},
+              { csrfToken: token },
+            )
+          ).notification_address;
       }
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: securityKeys.addresses }),

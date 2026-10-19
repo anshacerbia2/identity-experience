@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.9.0
+  version: 1.10.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-08
+  last_reviewed: 2026-10-19
   parent_sad: SAD-002
 ---
 
@@ -189,6 +189,25 @@ replacement, then remove the old one.
 - **What this application never sees** is the code itself: it is typed by the person and checked by
   the API.
 
+**Proving an address held but never proven (1.10.0).** Built on `ADR-ORG-007` §5.3 and
+`TDD-identity-control-008`'s `POST /v1/me/notification-addresses/{address_id}:send-proof`.
+
+- **Why it is asked.** An invitation is accepted only by a person who holds the invited address as a
+  proven one: an address that is `active` and has `verified_at`. The address a person was created
+  with is in use from creation, but a provider typed it, and nobody has shown the person reads it, so
+  it does not count until they return a code sent to it (`ADR-ORG-007` §5.3, `ADR-IAM-007` §5.2,
+  amended 2026-10-19). GitHub accepts an invitation "only … if the email address matches with a
+  verified email address associated with the invitee's personal account", as that decision records.
+- **What the list shows.** An address in use with no `verified_at` reads **In use, not proven**, and
+  offers **Send a code**. The panel says that an invitation can be accepted only with a proven address.
+- **Sending.** One command with an Idempotency-Key, no step-up: it sends a code to an address the
+  person already holds and changes no recipient. A code still valid is not sent again: the API
+  answers `409`, and the page asks for the code already sent, or a new one after the time the address
+  shows (`proof_expires_at`).
+- **Proving.** The code is typed next to the address, in the same field and with the same
+  `:verify` as a pending address. The address then reads **In use**, as every proven one does.
+  Nobody else is told: where the person is told has not changed.
+
 **Commands.** Every command carries an Idempotency-Key kept per distinct request, and no reason
 and no version: the API takes neither for a person's own commands. 1.8.0 adds the key to the three
 that sent none, enrolling, proving an address and removing one, as STD-GLB-001 1.4.0 asks of every
@@ -239,6 +258,7 @@ GET   /api/v1/me/notification-addresses
 POST  /api/v1/me/notification-addresses
 POST  /api/v1/me/notification-addresses/{address_id}:verify
 POST  /api/v1/me/notification-addresses/{address_id}:remove
+POST  /api/v1/me/notification-addresses/{address_id}:send-proof   1.10.0
 ```
 
 Every path is scoped to the authenticated Principal by the API, never by a parameter the
@@ -362,6 +382,15 @@ Session, cookie, and refresh settings are inherited from
 - Withdrawal is presented as taking effect within the token lifetime, not immediately.
 - A withdrawn consent stops the next authorization request for that client.
 
+### Addresses (1.10.0)
+
+- An address in use with no `verified_at` is marked not proven and offers Send a code; a proven or
+  pending one does not (`SecurityPage.test.tsx`).
+- Sending carries an Idempotency-Key and no body; the code field then appears beside the address and
+  proves it with `:verify`.
+- A `409` for a code still valid is shown with the time a new one can be asked for, and axe finds no
+  violation on the panel.
+
 ### Disclosure
 
 - No raw address, user agent string, or session identifier is rendered.
@@ -411,4 +440,6 @@ change, and locked-out Principal recovery.
 | Conforms to | STD-IAM-001 §3.1, §3.9 — authenticator policy, browser security |
 | Depends on | `TDD-identity-control-005` - every guard and refusal originates in the account-security API mediation contract |
 | Conforms to | STD-GLB-001 1.5.0 — a person's own command carries an Idempotency-Key, no version and no reason (1.9.0) |
+| Governed by | `ADR-ORG-007` §5.3 — an invitation is accepted only with a proven address; the account application proves a creation address (1.10.0) |
+| Depends on | `TDD-identity-control-008` - `:send-proof`, and `:verify` on an address in use but not proven (1.10.0) |
 | Depends on | `identity-kernel` — recovery and MFA ceremonies are kernel-rendered |
