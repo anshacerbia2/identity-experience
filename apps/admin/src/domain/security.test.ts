@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  canRelease,
   containmentActions,
   firstFactorsAfter,
   revocable,
@@ -35,6 +36,17 @@ describe('containment actions', () => {
   it('offers nothing on the operator’s own Principal or on a workload', () => {
     expect(containmentActions(principal(), 'p-1')).toEqual([]);
     expect(containmentActions(principal({ subject_type: 'workload' }), 'me')).toEqual([]);
+  });
+});
+
+describe('release from quarantine', () => {
+  it('is offered for a quarantined human only, and never on the operator’s own Principal', () => {
+    expect(canRelease(principal({ state: 'quarantined' }), 'me')).toBe(true);
+    for (const state of ['pending', 'active', 'suspended', 'retired'] as const) {
+      expect(canRelease(principal({ state }), 'me')).toBe(false);
+    }
+    expect(canRelease(principal({ state: 'quarantined', subject_type: 'workload' }), 'me')).toBe(false);
+    expect(canRelease(principal({ state: 'quarantined' }), 'p-1')).toBe(false);
   });
 });
 

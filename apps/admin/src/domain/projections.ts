@@ -30,3 +30,35 @@ export interface TenantContextReport {
 
 export const overdueCount = (validation: EmergencyValidation): number =>
   (validation.grants ?? []).filter((grant) => grant.overdue).length;
+
+// A Tenant whose convergence is not done (GET /v1/projections/tenant-context:unconverged,
+// TDD-identity-control-002 2.5.0 §Operator Routes): pending or unresolved, oldest mark first, at most
+// 500. priority is a suspension or a revocation not yet in the kernel.
+export interface UnconvergedTenant {
+  readonly tenant_id: string;
+  readonly state: 'pending' | 'unresolved';
+  readonly priority: boolean;
+  readonly sweep: boolean;
+  readonly attempts: number;
+  readonly last_error_class?: string;
+  readonly marked_at: string;
+  readonly delivered_at: string | null;
+  readonly next_attempt_at: string;
+}
+
+// What a sweep on request did (POST /v1/projections/tenant-context:sweep): the scheduled sweep, now.
+export interface TenantContextSweep {
+  readonly run_id: string;
+  readonly outcome: 'converged' | 'drift' | 'unresolved';
+  readonly mark: number;
+  readonly snapshot_rows: number;
+  readonly snapshot_read: boolean;
+  readonly unknown_organizations: number;
+  readonly tenants_marked: number;
+}
+
+// What a re-drive answers: the Tenant is marked to converge again.
+export interface TenantRedrive {
+  readonly tenant_id: string;
+  readonly state: 'pending';
+}

@@ -607,7 +607,8 @@ export const en = {
   'principals.notifications.state.no_address': 'No address',
   'principals.notifications.state.failed.means':
     'Refused {attempts, plural, one {once} other {# times}}: the person was not told.',
-  'principals.notifications.state.no_address.means': 'The person had no address to tell: give them one.',
+  'principals.notifications.state.no_address.means':
+    'The person had no address to tell. Ask them to add one in the account application; no administrator can add one for them.',
 
   'shell.nav.emergency': 'Emergency access',
   'emergency.eyebrow': 'Provider authority',
@@ -647,6 +648,65 @@ export const en = {
   'projections.rows': 'Active Memberships',
   'projections.copy': 'Copy the report',
   'projections.copied': 'Copied. Post it unchanged.',
+
+  'principals.quarantined.title': 'Quarantined Principals',
+  'principals.quarantined.description':
+    'Mappings the reconciler holds because their identifier broke: two kernel users carried it, or recovery found it ambiguous. Run the duplicate runbook first, then release one from its page.',
+  'principals.quarantined.show': 'Show the quarantined Principals',
+  'principals.quarantined.empty': 'No Principal is quarantined.',
+  'principals.quarantined.caption': 'Quarantined Principals, oldest first',
+  'principals.quarantined.linked': 'Holds a kernel user',
+  'principals.quarantined.unlinked': 'Holds none',
+  'principals.pending.title': 'Pending Principals',
+  'principals.pending.description':
+    'Mappings whose Keycloak user is not confirmed yet. Recovery finishes them on its schedule; an overdue one has had a chance and is triaged with the pending-mapping runbook.',
+  'principals.pending.show': 'Show the pending Principals',
+  'principals.pending.empty': 'No Principal is pending.',
+  'principals.pending.caption': 'Pending Principals, oldest first',
+  'principals.pending.column.recovery': 'Recovery',
+  'principals.pending.overdue': 'Overdue',
+  'principals.pending.waiting': 'Waiting for recovery',
+
+  'principals.release': 'Release',
+  'principals.release.title': 'Release from quarantine',
+  'principals.release.body':
+    'The reconciler holds this Principal because its identifier broke. A release binds it to the one kernel user left and ends the hold.',
+  'principals.release.condition.triage':
+    'First decide with the owner and security which kernel user is the person, and delete every other one in the kernel.',
+  'principals.release.condition.one':
+    'The Identity Control API reads the kernel and refuses unless exactly one user carries the identifier and its username is the one you name.',
+  'principals.release.condition.suspended':
+    'It lands suspended, not active: the user stays disabled. Restore it afterwards, once the sweep has resolved the duplicate finding.',
+  'principals.release.username': 'Kernel username of the person',
+  'principals.release.username.hint': 'The user the triage kept, exactly as the kernel holds it.',
+  'principals.release.username.required': 'Name the kernel user the triage kept.',
+  'principals.release.done':
+    'Released. The Principal is suspended: restore it once the sweep has resolved the duplicate finding.',
+
+  'projections.unconverged.title': 'Tenants not converged',
+  'projections.unconverged.description':
+    'Tenants whose convergence is pending or parked, oldest mark first. Fix the cause the last error names, then re-drive one, or run the sweep now. Neither changes the desired state.',
+  'projections.unconverged.empty': 'Every Tenant has converged.',
+  'projections.unconverged.caption': 'Tenants not converged, oldest mark first',
+  'projections.column.tenant': 'Tenant',
+  'projections.column.state': 'State',
+  'projections.column.attempts': 'Attempts, last error',
+  'projections.column.marked': 'Marked',
+  'projections.column.action': 'Action',
+  'projections.state.pending': 'Pending',
+  'projections.state.unresolved': 'Parked',
+  'projections.priority': 'A suspension or revocation not yet in the kernel',
+  'projections.redrive': 'Re-drive',
+  'projections.redrive.open': 'Re-drive {id}',
+  'projections.redrive.title': 'Re-drive this Tenant',
+  'projections.redrive.body':
+    'The Tenant is marked to converge again now, its attempts reset, and whatever its convergence changes is recorded as a finding. The desired state is not touched.',
+  'projections.redrive.done': 'The Tenant is marked to converge again.',
+  'projections.sweep': 'Run the Tenant context sweep now',
+  'projections.sweep.done':
+    'Sweep finished, {outcome, select, converged {converged} drift {drift found} other {unresolved}}: {rows, plural, one {# Membership} other {# Memberships}} read, {unknown, plural, one {# unknown Organization} other {# unknown Organizations}}, {marked, plural, one {# Tenant} other {# Tenants}} marked.',
+  'projections.sweep.noSnapshot':
+    'Sweep finished, {outcome, select, converged {converged} drift {drift found} other {unresolved}}: Organization Control’s snapshot could not be read, {unknown, plural, one {# unknown Organization} other {# unknown Organizations}}, {marked, plural, one {# Tenant} other {# Tenants}} marked.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1250,7 +1310,7 @@ export const id: Messages = {
   'principals.notifications.state.failed.means':
     'Ditolak {attempts, number} kali: orangnya tidak diberi tahu.',
   'principals.notifications.state.no_address.means':
-    'Orangnya tidak punya alamat untuk diberi tahu: berikan satu.',
+    'Orangnya tidak punya alamat untuk diberi tahu. Minta dia menambahkannya di aplikasi akun; administrator tidak bisa menambahkannya untuknya.',
 
   'shell.nav.emergency': 'Akses darurat',
   'emergency.eyebrow': 'Kewenangan provider',
@@ -1291,6 +1351,65 @@ export const id: Messages = {
   'projections.rows': 'Membership aktif',
   'projections.copy': 'Salin laporan',
   'projections.copied': 'Tersalin. Kirim tanpa diubah.',
+
+  'principals.quarantined.title': 'Principal yang dikarantina',
+  'principals.quarantined.description':
+    'Mapping yang ditahan pembanding karena pengenalnya rusak: dua user kernel membawanya, atau pemulihan mendapatinya ambigu. Jalankan runbook duplikat dulu, lalu lepaskan satu dari halamannya.',
+  'principals.quarantined.show': 'Tampilkan Principal yang dikarantina',
+  'principals.quarantined.empty': 'Tidak ada Principal yang dikarantina.',
+  'principals.quarantined.caption': 'Principal yang dikarantina, yang terlama dulu',
+  'principals.quarantined.linked': 'Memegang user kernel',
+  'principals.quarantined.unlinked': 'Tidak memegang',
+  'principals.pending.title': 'Principal yang tertunda',
+  'principals.pending.description':
+    'Mapping yang user Keycloak-nya belum dipastikan. Pemulihan menyelesaikannya sesuai jadwal; yang terlambat sudah mendapat kesempatan dan ditangani dengan runbook mapping tertunda.',
+  'principals.pending.show': 'Tampilkan Principal yang tertunda',
+  'principals.pending.empty': 'Tidak ada Principal yang tertunda.',
+  'principals.pending.caption': 'Principal yang tertunda, yang terlama dulu',
+  'principals.pending.column.recovery': 'Pemulihan',
+  'principals.pending.overdue': 'Terlambat',
+  'principals.pending.waiting': 'Menunggu pemulihan',
+
+  'principals.release': 'Lepaskan',
+  'principals.release.title': 'Lepaskan dari karantina',
+  'principals.release.body':
+    'Pembanding menahan Principal ini karena pengenalnya rusak. Pelepasan mengikatnya ke satu-satunya user kernel yang tersisa dan mengakhiri penahanan.',
+  'principals.release.condition.triage':
+    'Putuskan dulu bersama pemilik dan tim keamanan user kernel mana yang merupakan orangnya, dan hapus semua user lain di kernel.',
+  'principals.release.condition.one':
+    'Identity Control API membaca kernel dan menolak kecuali tepat satu user membawa pengenal itu dan username-nya adalah yang kamu sebutkan.',
+  'principals.release.condition.suspended':
+    'Hasilnya ditangguhkan, bukan aktif: user-nya tetap nonaktif. Pulihkan setelahnya, begitu pembanding sudah menyelesaikan temuan duplikatnya.',
+  'principals.release.username': 'Username kernel orangnya',
+  'principals.release.username.hint': 'User yang dipertahankan triase, persis seperti yang disimpan kernel.',
+  'principals.release.username.required': 'Sebutkan user kernel yang dipertahankan triase.',
+  'principals.release.done':
+    'Dilepaskan. Principal ini ditangguhkan: pulihkan begitu pembanding sudah menyelesaikan temuan duplikatnya.',
+
+  'projections.unconverged.title': 'Tenant yang belum konvergen',
+  'projections.unconverged.description':
+    'Tenant yang konvergensinya tertunda atau diparkir, mark terlama dulu. Perbaiki penyebab yang disebut galat terakhir, lalu jalankan ulang satu, atau jalankan pembanding sekarang. Keduanya tidak mengubah keadaan yang diinginkan.',
+  'projections.unconverged.empty': 'Semua Tenant sudah konvergen.',
+  'projections.unconverged.caption': 'Tenant yang belum konvergen, mark terlama dulu',
+  'projections.column.tenant': 'Tenant',
+  'projections.column.state': 'Status',
+  'projections.column.attempts': 'Percobaan, galat terakhir',
+  'projections.column.marked': 'Ditandai',
+  'projections.column.action': 'Aksi',
+  'projections.state.pending': 'Tertunda',
+  'projections.state.unresolved': 'Diparkir',
+  'projections.priority': 'Penangguhan atau pencabutan yang belum sampai di kernel',
+  'projections.redrive': 'Jalankan ulang',
+  'projections.redrive.open': 'Jalankan ulang {id}',
+  'projections.redrive.title': 'Jalankan ulang Tenant ini',
+  'projections.redrive.body':
+    'Tenant ini ditandai untuk konvergen lagi sekarang, percobaannya diatur ulang, dan apa pun yang diubah konvergensinya dicatat sebagai temuan. Keadaan yang diinginkan tidak disentuh.',
+  'projections.redrive.done': 'Tenant ini ditandai untuk konvergen lagi.',
+  'projections.sweep': 'Jalankan pembanding konteks Tenant sekarang',
+  'projections.sweep.done':
+    'Pembanding selesai, {outcome, select, converged {konvergen} drift {ada drift} other {belum terselesaikan}}: {rows, number} Membership dibaca, {unknown, number} Organization tidak dikenal, {marked, number} Tenant ditandai.',
+  'projections.sweep.noSnapshot':
+    'Pembanding selesai, {outcome, select, converged {konvergen} drift {ada drift} other {belum terselesaikan}}: snapshot Organization Control tidak bisa dibaca, {unknown, number} Organization tidak dikenal, {marked, number} Tenant ditandai.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

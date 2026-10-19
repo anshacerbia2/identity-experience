@@ -11,6 +11,7 @@ import { Button, Icon, Panel, StatusPill, Table, type StatusTone } from '@identi
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 import {
+  canRelease,
   canRevoke,
   containmentActions,
   firstFactorsAfter,
@@ -26,6 +27,7 @@ import {
 
 import { stateTones } from './labels';
 import styles from './PrincipalsPage.module.scss';
+import { ReleaseQuarantine } from './ReleaseQuarantine';
 import {
   useKernelEventSweep,
   usePrincipalDetail,
@@ -735,13 +737,15 @@ function Containment({
 }): ReactElement {
   const [open, setOpen] = useState<ContainmentAction | null>(null);
   const [outcome, setOutcome] = useState<{ command: Command; operation: SecurityOperation } | null>(null);
+  const [released, setReleased] = useState(false);
   const actions = containmentActions(principal, operator);
+  const release = canRelease(principal, operator);
   let why: MessageKey | null = null;
   if (principal.principal_id === operator) {
     why = 'principals.contain.none.self';
   } else if (principal.subject_type === 'workload') {
     why = 'principals.contain.none.workload';
-  } else if (actions.length === 0) {
+  } else if (actions.length === 0 && !release) {
     why = 'principals.contain.none.state';
   }
   return (
@@ -755,7 +759,20 @@ function Containment({
         </Panel.Description>
       </Panel.Header>
       <Panel.Body>
-        {why === null ? (
+        {released ? (
+          <p className={styles['success']} role="status">
+            <Icon name="check" />
+            <Message id="principals.release.done" />
+          </p>
+        ) : null}
+        {release ? (
+          <ReleaseQuarantine
+            principal={principal}
+            onDone={() => {
+              setReleased(true);
+            }}
+          />
+        ) : why === null ? (
           <div className={styles['actions']}>
             {actions.map((action) => (
               <Button

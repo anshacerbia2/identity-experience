@@ -23,7 +23,16 @@ interface Main {
 
 const pages: readonly Main[] = [
   { path: '/', ready: (page) => page.getByRole('heading', { level: 1 }) },
-  { path: '/principals', ready: (page) => page.getByRole('textbox', { name: 'Username or email' }) },
+  {
+    path: '/principals',
+    ready: (page) => page.getByRole('textbox', { name: 'Username or email' }),
+    open: async (page) => {
+      await page.getByRole('button', { name: 'Show the quarantined Principals' }).click();
+      await page.getByRole('table', { name: 'Quarantined Principals, oldest first' }).waitFor();
+      await page.getByRole('button', { name: 'Show the pending Principals' }).click();
+      await page.getByRole('table', { name: 'Pending Principals, oldest first' }).waitFor();
+    },
+  },
   {
     path: `/principals/${subjectPrincipal}`,
     ready: (page) => page.getByRole('heading', { name: 'alice' }),
@@ -38,7 +47,7 @@ const pages: readonly Main[] = [
   { path: '/emergency-grants', ready: (page) => page.getByRole('table', { name: /Emergency grants/ }) },
   {
     path: '/projections',
-    ready: (page) => page.getByRole('button', { name: 'Read the report' }),
+    ready: (page) => page.getByRole('table', { name: 'Tenants not converged, oldest mark first' }),
     open: async (page) => {
       await page.getByRole('button', { name: 'Read the report' }).click();
       await page.getByRole('region', { name: 'The report an operator posts' }).waitFor();

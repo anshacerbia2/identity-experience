@@ -3,9 +3,10 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
-import { json, renderApp, stubFetch } from '@/test/render-app';
+import { json, renderApp, stubFetch, type Sent } from '@/test/render-app';
 
-// TDD-identity-experience-003 §Emergency Grants and §Tenant Context Report.
+// TDD-identity-experience-003 §Emergency Grants, §Tenant Context Report and §Tenant Context
+// Convergence.
 
 const signedIn = {
   authenticated: true,
@@ -110,6 +111,9 @@ describe('TenantContextPage', () => {
       if (url.pathname === '/api/v1/projections/tenant-context/report') {
         return json(report);
       }
+      if (url.pathname === '/api/v1/projections/tenant-context:unconverged') {
+        return json({ tenants: [] });
+      }
       return undefined;
     });
     const { container } = renderApp('/projections');
@@ -123,5 +127,121 @@ describe('TenantContextPage', () => {
     expect(screen.getByText('identity-control')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /post|reconcile/i })).toBeNull();
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('Tenant context convergence', () => {
+  const parked = '0192f0e0-eeee-7000-8000-000000000001';
+  const waiting = '0192f0e0-eeee-7000-8000-000000000002';
+  const tenants = [
+    {
+      tenant_id: parked,
+      state: 'unresolved',
+      priority: true,
+      sweep: false,
+      attempts: 8,
+      last_error_class: 'forbidden',
+      marked_at: '2026-10-18T08:00:00Z',
+      delivered_at: '2026-10-18T08:00:00Z',
+      next_attempt_at: '2026-10-18T08:05:00Z',
+    },
+    {
+      tenant_id: waiting,
+      state: 'pending',
+      priority: false,
+      sweep: true,
+      attempts: 0,
+      marked_at: '2026-10-18T09:00:00Z',
+      delivered_at: null,
+      next_attempt_at: '2026-10-18T09:00:00Z',
+    },
+  ];
+
+  function api(command?: (sent: Sent) => Response | undefined) {
+    return stubFetch((url, sent) => {
+      if (url.pathname === '/auth/session') {
+        return json(signedIn);
+      }
+      if (sent.method === 'POST') {
+        return command?.(sent);
+      }
+      if (url.pathname === '/api/v1/projections/tenant-context:unconverged') {
+        return json({ tenants });
+      }
+      return undefined;
+    });
+  }
+
+  const posts = (sent: readonly Sent[]) => sent.filter((request) => request.method === 'POST');
+
+  it('lists the Tenants not converged, a parked one and a priority one said so', async () => {
+    api();
+    const { container } = renderApp('/projections');
+    const table = await screen.findByRole('table', { name: 'Tenants not converged, oldest mark first' });
+    expect(within(table).getByText('Parked')).toBeInTheDocument();
+    expect(within(table).getByText('Pending')).toBeInTheDocument();
+    expect(within(table).getByText('forbidden')).toBeInTheDocument();
+    expect(within(table).getByText('A suspension or revocation not yet in the kernel')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('re-drives one Tenant with a reason and the CSRF token, and reads the list again', async () => {
+    const { sent, requests } = api(() => json({ tenant_id: parked, state: 'pending' }, 202));
+    renderApp('/projections');
+    const table = await screen.findByRole('table', { name: 'Tenants not converged, oldest mark first' });
+    await userEvent.click(within(table).getByRole('button', { name: `Re-drive ${parked}` }));
+    const panel = (await screen.findByRole('heading', { name: 'Re-drive this Tenant' })).closest(
+      'section',
+    ) as HTMLElement;
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Reason' }), 'Roles restored, OPS-91.');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Re-drive' }));
+
+    expect(await screen.findByText('The Tenant is marked to converge again.')).toBeInTheDocument();
+    const [request] = posts(sent);
+    expect(request?.url.pathname).toBe(`/api/v1/projections/tenant-context/tenants/${parked}:redrive`);
+    expect(request?.headers['x-administrative-reason']).toBe('Roles restored, OPS-91.');
+    expect(request?.headers['x-csrf-token']).toBe('csrf-from-the-session');
+    await vi.waitFor(() => {
+      expect(
+        requests.filter((url) => url.pathname === '/api/v1/projections/tenant-context:unconverged'),
+      ).toHaveLength(2);
+    });
+  });
+
+  it('shows a refused re-drive with the API sentence', async () => {
+    api(() => json({ status: 404, detail: 'The desired state holds no such Tenant' }, 404));
+    renderApp('/projections');
+    const table = await screen.findByRole('table', { name: 'Tenants not converged, oldest mark first' });
+    await userEvent.click(within(table).getByRole('button', { name: `Re-drive ${waiting}` }));
+    const panel = (await screen.findByRole('heading', { name: 'Re-drive this Tenant' })).closest(
+      'section',
+    ) as HTMLElement;
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Reason' }), 'Roles restored, OPS-91.');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Re-drive' }));
+    expect(
+      await within(panel).findByText('The API said: The desired state holds no such Tenant'),
+    ).toBeInTheDocument();
+  });
+
+  it('runs the sweep now and reports what it did', async () => {
+    const { sent } = api(() =>
+      json({
+        run_id: '0192f0e0-ffff-7000-8000-000000000001',
+        outcome: 'drift',
+        mark: 4300,
+        snapshot_rows: 12,
+        snapshot_read: true,
+        unknown_organizations: 1,
+        tenants_marked: 3,
+      }),
+    );
+    renderApp('/projections');
+    await userEvent.click(await screen.findByRole('button', { name: 'Run the Tenant context sweep now' }));
+    expect(
+      await screen.findByText(
+        'Sweep finished, drift found: 12 Memberships read, 1 unknown Organization, 3 Tenants marked.',
+      ),
+    ).toBeInTheDocument();
+    expect(posts(sent)[0]?.url.pathname).toBe('/api/v1/projections/tenant-context:sweep');
   });
 });
