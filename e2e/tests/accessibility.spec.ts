@@ -36,6 +36,31 @@ const pages: readonly Main[] = [
   {
     path: `/principals/${subjectPrincipal}`,
     ready: (page) => page.getByRole('heading', { name: 'alice' }),
+    // A temporary password shown once (TDD-identity-experience-003 1.28.0). The stand-in API refuses
+    // every command, so the browser's one command is answered here: what is checked is the panel as it
+    // is laid out with a value shown, not the command.
+    open: async (page) => {
+      await page.route('**/api/v1/principals/*:issue-temporary-password', (route) =>
+        route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          headers: { 'cache-control': 'no-store' },
+          body: JSON.stringify({
+            temporary_password: {
+              issuance_id: '0192f0e0-7777-7000-8000-000000000001',
+              principal_id: subjectPrincipal,
+              issued_at: new Date().toISOString(),
+              lapses_at: new Date(Date.now() + 86_400_000).toISOString(),
+              value: 'K7QH2M9XRT4WZP6VDN3BC8FA',
+            },
+          }),
+        }),
+      );
+      await page.getByRole('button', { name: 'Issue a new temporary password' }).click();
+      await page.getByRole('textbox', { name: /reason/i }).fill('new joiner, verified on a call');
+      await page.getByRole('button', { name: 'Issue', exact: true }).click();
+      await page.getByText('K7QH2M9XRT4WZP6VDN3BC8FA').waitFor();
+    },
   },
   { path: '/workloads', ready: (page) => page.getByRole('heading', { level: 1 }) },
   { path: '/registrations', ready: (page) => page.getByRole('link', { name: 'billing-portal' }) },
@@ -54,7 +79,14 @@ const pages: readonly Main[] = [
     },
   },
   { path: '/developer/', ready: (page) => page.getByRole('heading', { level: 1 }) },
-  { path: '/account/', ready: (page) => page.getByText('Where you are signed in').first() },
+  {
+    path: '/account/',
+    ready: (page) => page.getByText('Where you are signed in').first(),
+    // An address in use but not proven, with its code field open (TDD-identity-experience-002 1.10.0).
+    open: async (page) => {
+      await page.getByText('In use, not proven').waitFor();
+    },
+  },
 ];
 
 test.beforeEach(async ({ page }) => {

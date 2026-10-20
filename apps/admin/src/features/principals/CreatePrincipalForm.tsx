@@ -9,6 +9,7 @@ import { createRequest, type PrincipalCreated } from '@/domain/principal';
 
 import { useCreatePrincipal } from './principals-api';
 import styles from './PrincipalsPage.module.scss';
+import { TemporaryPassword } from './TemporaryPassword';
 
 interface Values {
   readonly username: string;
@@ -43,7 +44,8 @@ function Created({
         </dd>
       </dl>
       <Panel.Body>
-        <Button variant="secondary" icon={<Icon name="users" />} onClick={onAnother}>
+        <TemporaryPassword principalId={created.principal_id} fresh />
+        <Button variant="ghost" icon={<Icon name="users" />} onClick={onAnother}>
           <Message id="principals.create.another" />
         </Button>
       </Panel.Body>
@@ -52,8 +54,10 @@ function Created({
 }
 
 // CreatePrincipalForm creates a person. identity-control issues the principal_id and creates the
-// Keycloak user, and asks Keycloak to demand a password at first sign-in, so no credential passes
-// through here (TDD-identity-control-001). A workload is created on the Workloads page.
+// Keycloak user with no credential and UPDATE_PASSWORD outstanding (TDD-identity-control-001). The
+// panel that follows offers the person's first credential, a temporary password identity-control
+// generates and shows once (ADR-IAM-010); no password a provider types passes through here. A workload
+// is created on the Workloads page.
 export function CreatePrincipalForm(): ReactElement {
   const t = useMessage();
   const [open, setOpen] = useState(false);

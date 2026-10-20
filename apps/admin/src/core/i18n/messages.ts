@@ -181,7 +181,7 @@ export const en = {
   'principals.create.open': 'Create a Principal',
   'principals.create.title': 'New Principal',
   'principals.create.body':
-    'identity-control issues the principal_id and creates the Keycloak user. It never holds the credential: a person sets their own password at first sign-in.',
+    'identity-control issues the principal_id and creates the Keycloak user, with no password. Then issue a temporary password here: the person replaces it at their first sign-in.',
   'principals.create.username': 'Username',
   'principals.create.username.required': 'A username is required.',
   'principals.create.email': 'Email',
@@ -189,8 +189,35 @@ export const en = {
   'principals.create.submit': 'Create Principal',
   'principals.created.title': 'Principal created',
   'principals.created.id': 'principal_id',
-  'principals.created.human': 'Keycloak asks this person to set a password at first sign-in.',
+  'principals.created.human':
+    'This person has no password yet and cannot sign in. Issue a temporary password, and give it to them yourself.',
   'principals.create.another': 'Create another',
+
+  'principals.password.title': 'First password',
+  'principals.password.description':
+    'A person a provider created has no password until one is issued here. Issue a new one if the first lapsed or was lost before they signed in.',
+  'principals.password.issue': 'Issue a temporary password',
+  'principals.password.issueNew': 'Issue a new temporary password',
+  'principals.password.body':
+    'identity-control generates the password, and Keycloak makes the person replace it at their first sign-in. It is shown here once, and lapses after 24 hours if it is not used. A new one replaces any earlier one.',
+  'principals.password.submit': 'Issue',
+  'principals.password.sending': 'Issuing…',
+  'principals.password.shown.title': 'Temporary password',
+  'principals.password.value': 'Temporary password, shown once',
+  'principals.password.lapses': 'Lapses',
+  'principals.password.lapsesNote':
+    'If the person has not replaced it by then, identity-control removes it and a new one must be issued.',
+  'principals.password.handover':
+    'Verify the person first, in person or on a live call. Then give it to them on a channel other than the one that carries their username, never in a ticket, a chat log or an email. It is not shown again. Clear your clipboard once it is handed over.',
+  'principals.password.copy': 'Copy the password',
+  'principals.password.copied': 'Copied to the clipboard.',
+  'principals.password.copyFailed': 'It could not be copied. Select it and copy it yourself.',
+  'principals.password.done': 'I have handed it over',
+  'principals.password.cleared': 'The password is no longer shown. It cannot be shown again.',
+  'principals.password.replayed':
+    'This request was already answered, so its password cannot be shown again. Issue a new one: it replaces the first.',
+  'principals.password.established':
+    'Refused: this person has set a password of their own. A password they chose is never reset here; to contain the account, suspend it.',
 
   'principals.dangling.title': 'Mappings whose Keycloak user is gone',
   'principals.dangling.description':
@@ -884,7 +911,7 @@ export const id: Messages = {
   'principals.create.open': 'Buat Principal',
   'principals.create.title': 'Principal baru',
   'principals.create.body':
-    'identity-control menerbitkan principal_id dan membuat user Keycloak-nya. Ia tidak pernah memegang kredensialnya: orang itu mengatur password-nya sendiri saat pertama masuk.',
+    'identity-control menerbitkan principal_id dan membuat user Keycloak-nya, tanpa password. Lalu terbitkan password sementara di sini: orang itu menggantinya saat pertama masuk.',
   'principals.create.username': 'Username',
   'principals.create.username.required': 'Username wajib diisi.',
   'principals.create.email': 'Email',
@@ -892,8 +919,35 @@ export const id: Messages = {
   'principals.create.submit': 'Buat Principal',
   'principals.created.title': 'Principal dibuat',
   'principals.created.id': 'principal_id',
-  'principals.created.human': 'Keycloak meminta orang ini mengatur password saat pertama masuk.',
+  'principals.created.human':
+    'Orang ini belum punya password dan belum bisa masuk. Terbitkan password sementara, lalu berikan sendiri kepadanya.',
   'principals.create.another': 'Buat lagi',
+
+  'principals.password.title': 'Password pertama',
+  'principals.password.description':
+    'Orang yang dibuat provider tidak punya password sampai satu diterbitkan di sini. Terbitkan yang baru bila yang pertama kedaluwarsa atau hilang sebelum ia masuk.',
+  'principals.password.issue': 'Terbitkan password sementara',
+  'principals.password.issueNew': 'Terbitkan password sementara baru',
+  'principals.password.body':
+    'identity-control membuat password-nya, dan Keycloak meminta orang itu menggantinya saat pertama masuk. Password ditampilkan di sini sekali, dan kedaluwarsa setelah 24 jam bila tidak dipakai. Yang baru menggantikan yang sebelumnya.',
+  'principals.password.submit': 'Terbitkan',
+  'principals.password.sending': 'Menerbitkan…',
+  'principals.password.shown.title': 'Password sementara',
+  'principals.password.value': 'Password sementara, ditampilkan sekali',
+  'principals.password.lapses': 'Kedaluwarsa',
+  'principals.password.lapsesNote':
+    'Bila orang itu belum menggantinya saat itu, identity-control menghapusnya dan password baru harus diterbitkan.',
+  'principals.password.handover':
+    'Pastikan dulu orangnya, secara langsung atau lewat panggilan. Lalu berikan lewat saluran lain dari yang membawa username-nya, jangan lewat tiket, log chat atau email. Password tidak ditampilkan lagi. Kosongkan clipboard setelah diberikan.',
+  'principals.password.copy': 'Salin password',
+  'principals.password.copied': 'Disalin ke clipboard.',
+  'principals.password.copyFailed': 'Gagal disalin. Pilih lalu salin sendiri.',
+  'principals.password.done': 'Sudah saya berikan',
+  'principals.password.cleared': 'Password tidak ditampilkan lagi, dan tidak bisa ditampilkan lagi.',
+  'principals.password.replayed':
+    'Permintaan ini sudah dijawab, jadi password-nya tidak bisa ditampilkan lagi. Terbitkan yang baru: ia menggantikan yang pertama.',
+  'principals.password.established':
+    'Ditolak: orang ini sudah mengatur password-nya sendiri. Password pilihannya tidak pernah di-reset di sini; untuk membatasi akunnya, tangguhkan.',
 
   'principals.dangling.title': 'Mapping yang user Keycloak-nya hilang',
   'principals.dangling.description':

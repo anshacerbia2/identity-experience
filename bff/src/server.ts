@@ -21,6 +21,9 @@ import { SessionStore, SessionStoreUnavailable } from './session/store.js';
 export interface ServerDependencies {
   // now is the clock sessions expire by. A test moves it; nothing else does.
   readonly now?: () => Date;
+  // logStream is where log lines go instead of standard output. A test reads them, to prove a secret
+  // passing through the proxy is never written there (TDD-identity-experience-003 1.28.0).
+  readonly logStream?: { write(line: string): void };
 }
 
 // How often rows past their expiry are removed. They are refused when presented whether or not
@@ -41,7 +44,10 @@ export async function buildServer(
 ): Promise<FastifyInstance> {
   const now = dependencies.now ?? (() => new Date());
   const app = Fastify({
-    logger: { level: config.logLevel },
+    logger: {
+      level: config.logLevel,
+      ...(dependencies.logStream === undefined ? {} : { stream: dependencies.logStream }),
+    },
     // The correlation identifier every problem document and log line carries. Generated, never
     // taken from the request: a caller-chosen identifier could collide with, or impersonate,
     // another request's trail.

@@ -24,6 +24,7 @@ import {
   type PrincipalDetail,
   type SecurityOperation,
 } from '@/domain/security';
+import { canIssueTemporaryPassword } from '@/domain/temporary-password';
 
 import { stateTones } from './labels';
 import styles from './PrincipalsPage.module.scss';
@@ -34,6 +35,7 @@ import {
   useSecurityCommand,
   useSecuritySection,
 } from './security-api';
+import { TemporaryPassword } from './TemporaryPassword';
 
 type Command = ContainmentAction | 'revoke';
 
@@ -820,6 +822,27 @@ function Containment({
   );
 }
 
+// FirstCredential offers a new temporary password for a person who has not set one of their own
+// (ADR-IAM-010, TDD-identity-experience-003 1.28.0). Whether they have is the API's to say, so the
+// offer stands for every active person but the operator, and a refusal says why.
+function FirstCredential({ principalId }: { readonly principalId: string }): ReactElement {
+  return (
+    <Panel.Root>
+      <Panel.Header>
+        <Panel.Title>
+          <Message id="principals.password.title" />
+        </Panel.Title>
+        <Panel.Description>
+          <Message id="principals.password.description" />
+        </Panel.Description>
+      </Panel.Header>
+      <Panel.Body>
+        <TemporaryPassword principalId={principalId} />
+      </Panel.Body>
+    </Panel.Root>
+  );
+}
+
 function Summary({ principal }: { readonly principal: PrincipalDetail }): ReactElement {
   return (
     <Panel.Root>
@@ -902,6 +925,9 @@ export function PrincipalDetailPage({ principalId }: { readonly principalId: str
         <>
           <Summary principal={principal.data} />
           <Containment principal={principal.data} operator={operator} />
+          {canIssueTemporaryPassword(principal.data, operator) ? (
+            <FirstCredential key={principalId} principalId={principalId} />
+          ) : null}
           <SessionsSection principalId={principalId} />
           <AuthenticatorsSection principal={principal.data} operator={operator} />
           <NotificationAddressesSection principalId={principalId} />

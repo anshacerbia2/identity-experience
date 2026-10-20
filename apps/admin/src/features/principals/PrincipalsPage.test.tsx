@@ -150,7 +150,9 @@ describe('PrincipalsPage', () => {
 
     expect(await screen.findByText('0192f0e0-2222-7000-8000-000000000001')).toBeInTheDocument();
     expect(
-      screen.getByText('Keycloak asks this person to set a password at first sign-in.'),
+      screen.getByText(
+        'This person has no password yet and cannot sign in. Issue a temporary password, and give it to them yourself.',
+      ),
     ).toBeInTheDocument();
     const [request] = posts(sent);
     expect(request?.url.pathname).toBe('/api/v1/principals');

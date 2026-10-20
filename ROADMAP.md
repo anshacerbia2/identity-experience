@@ -234,7 +234,7 @@ The shared frame links to it from the Portal and the console. Enrolling an authe
 - the kernel's page enrolls the app;
 - the outcome comes back as `kc_action_status`.
 
-A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. Recovery codes followed ADR-IAM-005 (TDD-002 1.5.0, TDD-001 1.13.0): each set is listed with how many codes remain, a used set is pointed out, and "Get new recovery codes" drives `kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`. "Where you are told" followed ADR-IAM-007 and identity-control's TDD-008 1.2.0 (TDD-002 1.6.0): the person's notification addresses, a prompt for a second while there is one, adding and removing under step-up, and proving a pending address with the code sent to it, which this application never sees. **Next:** consents once the API's slice 3b exists.
+A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. Recovery codes followed ADR-IAM-005 (TDD-002 1.5.0, TDD-001 1.13.0): each set is listed with how many codes remain, a used set is pointed out, and "Get new recovery codes" drives `kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`. "Where you are told" followed ADR-IAM-007 and identity-control's TDD-008 1.2.0 (TDD-002 1.6.0): the person's notification addresses, a prompt for a second while there is one, adding and removing under step-up, and proving a pending address with the code sent to it, which this application never sees. Proving an address held but never proven followed ADR-ORG-007 §5.3 (TDD-002 1.10.0): an address in use with no `verified_at` reads "In use, not proven", says an invitation is accepted only with a proven address, and offers **Send a code** (`:send-proof`), then the same code field. **Next:** consents once the API's slice 3b exists.
 
 - ✅ Session and device inventory with termination
 - ✅ Authenticator enrollment, replacement, and removal
@@ -353,6 +353,18 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
     asked, shown and copied unchanged. Posting it to Organization Control's reconcile route has no
     screen here: that route is Organization Control's, behind its own sign-in.
 
+- ✅ A first credential for a person a provider creates (ADR-IAM-010, TDD-003 1.28.0 §A First
+  Credential, Shown Once), on identity-control's `POST /v1/principals/{principal_id}:issue-temporary-password`:
+  - The panel after creating a person offers **Issue a temporary password**, and a Principal's page
+    **Issue a new temporary password**, each with a reason. TDD-003 no longer says Keycloak asks the
+    person to set a password: nothing let them sign in to be asked.
+  - The value is shown once, with a copy control, its lapse and how to hand it over, and is held only
+    in the panel's state: no query cache, browser storage, URL or log. A retry answered without it
+    says so. `credential-established` says the person set their own.
+  - The BFF forwards it with `Cache-Control: no-store` and logs none of it, proven at the trace level
+    (`bff/test/temporary-password.test.ts`). The BFF's `buildServer` takes a log stream for that test.
+  - The operator transitions table gains `:issue-temporary-password`, `:send-proof` and
+    Organization Control's `identifiers:match`.
 - ✅ The operator transitions found on 2026-10-19 (TDD-003 1.27.0), against identity-control 138f29d:
   - `POST /v1/principals/{principal_id}:release` (TDD-identity-control-001 1.18.0): **Release** on a
     quarantined person's page, naming the kernel user the triage kept, with a reason. It lands
@@ -407,7 +419,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, now at 1.20.0, 1.9.0, 1.27.0 and 1.12.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.10.0, 1.28.0 and 1.12.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

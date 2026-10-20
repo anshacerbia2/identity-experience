@@ -84,6 +84,14 @@ export const en = {
   'security.addresses.proven':
     'Confirmed. That address is now told about every change, and your other addresses were told it was added.',
   'security.addresses.removed': 'Removed. Every address you held, that one included, was told.',
+  'security.addresses.unproven': 'In use, not proven',
+  'security.addresses.unprovenNote':
+    'An address marked not proven is told about every change, but an invitation to an organization can be accepted only with a proven address. Send a code to it, then enter the code beside it.',
+  'security.addresses.sendProof': 'Send a code',
+  'security.addresses.proofSent': 'A code was sent to that address. Enter it beside the address to prove it.',
+  'security.addresses.provenHeld': 'Proven. That address can now be used to accept an invitation.',
+  'security.addresses.stillValid':
+    'A code sent to that address is still good, so no new one was sent. Enter it beside the address, or ask for a new one once it has expired, 10 minutes after it was sent.',
 };
 
 export type MessageKey = keyof typeof en;
@@ -166,6 +174,15 @@ export const id: Messages = {
   'security.addresses.proven':
     'Terkonfirmasi. Alamat itu sekarang diberi tahu setiap ada perubahan, dan alamatmu yang lain sudah diberi tahu bahwa alamat ini ditambahkan.',
   'security.addresses.removed': 'Dihapus. Semua alamatmu, termasuk yang dihapus, sudah diberi tahu.',
+  'security.addresses.unproven': 'Dipakai, belum terbukti',
+  'security.addresses.unprovenNote':
+    'Alamat yang belum terbukti tetap diberi tahu setiap ada perubahan, tetapi undangan ke organisasi hanya bisa diterima dengan alamat yang sudah terbukti. Kirim kode ke alamat itu, lalu masukkan kodenya di sampingnya.',
+  'security.addresses.sendProof': 'Kirim kode',
+  'security.addresses.proofSent':
+    'Kode sudah dikirim ke alamat itu. Masukkan di samping alamatnya untuk membuktikannya.',
+  'security.addresses.provenHeld': 'Terbukti. Alamat itu sekarang bisa dipakai untuk menerima undangan.',
+  'security.addresses.stillValid':
+    'Kode yang dikirim ke alamat itu masih berlaku, jadi tidak ada kode baru yang dikirim. Masukkan kode itu di samping alamatnya, atau minta yang baru setelah kedaluwarsa, 10 menit setelah dikirim.',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };
