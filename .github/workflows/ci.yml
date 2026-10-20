@@ -78,6 +78,17 @@ jobs:
       - name: browser tests
         run: pnpm test:browser
 
+      # The layout test's screenshot of each page at each width, in both themes, kept for review
+      # whether the run passed or not (TDD-identity-experience-003 §Layout).
+      - name: keep the layout screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: layout-screenshots
+          path: e2e/test-results/**/layout-*.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: keep the browser test report
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

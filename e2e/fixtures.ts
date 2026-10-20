@@ -218,12 +218,34 @@ const answers: Readonly<Record<string, unknown>> = {
         clients: ['identity-experience'],
         current: false,
       },
+      // Long content, as a real account has it: a session that reached many applications.
+      {
+        security_ref: 'k1.many',
+        started: at(6),
+        last_access: at(3),
+        clients: [
+          'identity-experience',
+          'billing-portal',
+          'organization-experience-admin',
+          'reporting-dashboard-for-regional-finance-operations',
+        ],
+        current: false,
+      },
     ],
   },
   '/v1/me/authenticators': {
     authenticators: [
       { security_ref: 'k1.password', type: 'password', created: at(40) },
       { security_ref: 'k1.otp', type: 'otp', label: 'phone', created: at(30) },
+      {
+        security_ref: 'k1.otp2',
+        type: 'otp',
+        label: 'Work phone, the one in the second drawer',
+        created: at(25),
+      },
+      { security_ref: 'k1.otp3', type: 'otp', label: 'tablet', created: at(20) },
+      { security_ref: 'k1.key1', type: 'webauthn', label: 'YubiKey 5C NFC (blue keyring)', created: at(15) },
+      { security_ref: 'k1.key2', type: 'webauthn-passwordless', label: 'Laptop', created: at(10) },
       {
         security_ref: 'k1.codes',
         type: 'recovery-authn-codes',
@@ -252,6 +274,15 @@ const answers: Readonly<Record<string, unknown>> = {
         state: 'active',
         added_at: at(40),
         proof_expires_at: at(-0.005),
+      },
+      // A long address with no break opportunity but its own punctuation.
+      {
+        address_id: '0192f0e0-aaaa-7000-8000-000000000003',
+        channel: 'email',
+        address: 'ada.lovelace.analytical-engine.notes@research-department.very-long-subdomain.example.org',
+        origin: 'added',
+        state: 'pending',
+        added_at: at(1),
       },
     ],
   },

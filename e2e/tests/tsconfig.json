@@ -1,0 +1,9 @@
+{
+  // The tests, apart from the stack: what a test passes to page.evaluate runs in the browser, so they
+  // see the DOM's types. The stack (../stack.ts) runs the BFF in Node and must not see them.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["."]
+}

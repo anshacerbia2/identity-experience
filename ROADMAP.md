@@ -365,6 +365,15 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
     (`bff/test/temporary-password.test.ts`). The BFF's `buildServer` takes a log stream for that test.
   - The operator transitions table gains `:issue-temporary-password`, `:send-proof` and
     Organization Control's `identifiers:match`.
+- ✅ A confirmation inside a panel collapsed to its padding, its text one character per line, found on
+  the development server on 2026-10-20 (TDD-003 1.29.0 §Layout): signing out everywhere and removing
+  an authenticator on `/account/`, and every containment form on a Principal's page.
+  - `Panel` no longer sets `container-type: inline-size`, which no query used. It sized a panel as if
+    it had no content wherever the panel was sized by it.
+  - Long identifiers and addresses in a panel's text wrap (`overflow-wrap: anywhere`); a table's
+    columns do not, and the table scrolls instead.
+  - `e2e/tests/layout.spec.ts` checks every panel and its text at 1440, 1280, 1024, 768 and 390 px, in
+    both themes, with long content, and keeps a screenshot of each.
 - ✅ The operator transitions found on 2026-10-19 (TDD-003 1.27.0), against identity-control 138f29d:
   - `POST /v1/principals/{principal_id}:release` (TDD-identity-control-001 1.18.0): **Release** on a
     quarantined person's page, naming the kernel user the triage kept, with a reason. It lands
@@ -419,7 +428,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, now at 1.20.0, 1.10.0, 1.28.0 and 1.12.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.10.0, 1.29.0 and 1.12.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

@@ -170,8 +170,8 @@ The BFF's tests run against PostgreSQL too, in a throwaway schema they drop afte
 the session tests fail rather than skip.
 
 The browser tests (`e2e/`) run Chromium against the BFF serving the built applications, with the
-identity kernel and the Identity Control API stood in: `SameSite` enforcement and axe on each main
-page. They need the build and the same database:
+identity kernel and the Identity Control API stood in: `SameSite` enforcement, axe on each main
+page, and the layout of the panels at five widths. They need the build and the same database:
 
 ```sh
 pnpm build
