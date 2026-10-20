@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.29.0
+  version: 1.29.1
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -1246,7 +1246,7 @@ between its min-content and max-content sizes [R10]. With no content counted, th
   layout, which SC 1.4.10 excepts [R12].
 - `e2e/tests/layout.spec.ts` opens the account page's confirmations and the code sent to an address
   in use but not proven, a Principal's temporary password and its Suspend form, and the Tenant
-  context report. It lays each page out at 1440, 1280, 1024, 768 and 390 CSS px, in both themes, with
+  context report. It lays each page out at 1440, 1280, 1024, 768, 390 and 320 CSS px (320 is the width SC 1.4.10 names and STD-GLB-FE-005 2.1.0 §3.10 requires), in both themes, with
   long content: long application lists, labels and addresses, and seven authenticators. At each width
   every panel is at least 16rem wide, or as wide as its container when that is narrower. No text of
   four characters or more runs three lines or more, each narrower than one and a half of its font

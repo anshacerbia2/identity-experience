@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { registrationId, subjectPrincipal } from '../shared.js';
 import { signIn } from './support.js';
 
-const widths = [1440, 1280, 1024, 768, 390] as const;
+const widths = [1440, 1280, 1024, 768, 390, 320] as const;
 const themes = ['dark', 'light'] as const;
 
 // 16rem, at the 16px root size: a panel narrower than this, with room for more, is collapsed.
