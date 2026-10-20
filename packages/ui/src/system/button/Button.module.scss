@@ -25,7 +25,13 @@
       border-color var(--ds-duration-fast) var(--ds-easing-standard),
       box-shadow var(--ds-duration-normal) var(--ds-easing-standard),
       transform var(--ds-duration-fast) var(--ds-easing-standard);
-    white-space: nowrap;
+
+    // A label wraps between its words rather than running past its container: at 320 CSS px a
+    // label such as "Propose a back-channel logout URI" is wider than the panel it sits in. With
+    // `nowrap` its min-content size is its whole label, so neither the panel nor a flex row can
+    // narrow it (TDD-identity-experience-003 §Layout, STD-GLB-FE-005 §3.10).
+    max-inline-size: 100%;
+    text-align: center;
     cursor: pointer;
     user-select: none;
 

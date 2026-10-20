@@ -374,6 +374,14 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
     columns do not, and the table scrolls instead.
   - `e2e/tests/layout.spec.ts` checks every panel and its text at 1440, 1280, 1024, 768 and 390 px, in
     both themes, with long content, and keeps a screenshot of each.
+- ✅ Every page reflows at 320 CSS px (TDD-003 1.30.0 §Layout, STD-GLB-FE-005 2.1.0 §3.10, WCAG 2.2
+  SC 1.4.10).
+  - The layout test runs at 320 too, covers every page the axe test scans, and names the elements that
+    make a page scroll sideways.
+  - A `Button`'s label wraps between its words: **Propose a back-channel logout URI** made a
+    registration's page scroll sideways by 11px.
+  - Under 60rem the navigation rail is a bar of links in wrapping rows above the page, as
+    organization-experience's copy of the frame is.
 - ✅ The operator transitions found on 2026-10-19 (TDD-003 1.27.0), against identity-control 138f29d:
   - `POST /v1/principals/{principal_id}:release` (TDD-identity-control-001 1.18.0): **Release** on a
     quarantined person's page, naming the kernel user the triage kept, with a reason. It lands

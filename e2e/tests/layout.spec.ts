@@ -7,7 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { registrationId, subjectPrincipal } from '../shared.js';
 import { signIn } from './support.js';
 
-const widths = [1440, 1280, 1024, 768, 390] as const;
+const widths = [1440, 1280, 1024, 768, 390, 320] as const;
 const themes = ['dark', 'light'] as const;
 
 // 16rem, at the 16px root size: a panel narrower than this, with room for more, is collapsed.
@@ -104,6 +104,18 @@ const pages: readonly Main[] = [
       await page.getByRole('region', { name: 'The report an operator posts' }).waitFor();
     },
   },
+  { name: 'workloads', path: '/workloads', ready: (page) => page.getByRole('heading', { level: 1 }) },
+  {
+    name: 'registrations',
+    path: '/registrations',
+    ready: (page) => page.getByRole('link', { name: 'billing-portal' }),
+  },
+  { name: 'changes', path: '/changes', ready: (page) => page.getByRole('heading', { level: 1 }) },
+  {
+    name: 'emergency-grants',
+    path: '/emergency-grants',
+    ready: (page) => page.getByRole('table', { name: /Emergency grants/ }),
+  },
   { name: 'principals', path: '/principals', ready: (page) => page.getByRole('heading', { level: 1 }) },
   { name: 'overview', path: '/', ready: (page) => page.getByRole('heading', { level: 1 }) },
   { name: 'developer', path: '/developer/', ready: (page) => page.getByRole('heading', { level: 1 }) },
@@ -172,9 +184,52 @@ async function measure(page: Page): Promise<Finding[]> {
       }
     }
     // The page does not scroll sideways; a wide table scrolls in its own region (WCAG 2.2 SC 1.4.10).
+    // Each element that reaches past the viewport is named, innermost first, so the failure says what
+    // to fix: an element counts when its right edge is past the viewport and no child of it is, and
+    // no box between it and the page scrolls or clips it.
     const overflow = document.documentElement.scrollWidth - window.innerWidth;
     if (overflow > 1) {
+      const past = new Set<Element>();
+      for (const element of document.body.querySelectorAll('*')) {
+        const box = element.getBoundingClientRect();
+        if (box.width === 0 || box.right <= window.innerWidth + 1) {
+          continue;
+        }
+        let clipped = false;
+        for (let up = element.parentElement; up !== null && up !== document.body; up = up.parentElement) {
+          if (
+            getComputedStyle(up).overflowX !== 'visible' &&
+            up.getBoundingClientRect().right <= window.innerWidth + 1
+          ) {
+            clipped = true;
+            break;
+          }
+        }
+        if (!clipped) {
+          past.add(element);
+        }
+      }
+      const name = (element: Element): string => {
+        const classes = [...element.classList]
+          .slice(0, 2)
+          .map((value) => `.${value}`)
+          .join('');
+        const text = element.textContent.trim().replace(/\s+/g, ' ').slice(0, 40);
+        return `${element.tagName.toLowerCase()}${classes}${text === '' ? '' : ` "${text}"`}`;
+      };
+      const innermost = [...past]
+        .filter((element) => ![...element.children].some((child) => past.has(child)))
+        .sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)
+        .slice(0, 3);
       findings.push({ what: 'page scrolls sideways', where: 'document', detail: `${String(overflow)}px` });
+      for (const element of innermost) {
+        const box = element.getBoundingClientRect();
+        findings.push({
+          what: 'element reaches past the viewport',
+          where: name(element),
+          detail: `${box.width.toFixed(1)}px wide, right edge at ${box.right.toFixed(1)}px of ${String(window.innerWidth)}px`,
+        });
+      }
     }
     return findings;
   }, panelFloor);
