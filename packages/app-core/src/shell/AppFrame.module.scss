@@ -176,4 +176,49 @@
       outline: none;
     }
   }
+
+  // Under the wide layout the rail is a bar above the page, its links in rows that wrap, so a phone
+  // or a tablet reaches the page without scrolling past a column of links, and nothing is hidden
+  // behind a control: every link stays in the tab order and the accessibility tree. The group labels
+  // are hidden only visually; they still name their lists. The page's inline padding narrows to
+  // leave the content more of a 320 CSS px screen (TDD-identity-experience-003 §Layout). The same
+  // bar organization-experience's copy of this frame shows under 60rem.
+  @media (width < 60rem) {
+    .rail {
+      flex-flow: row wrap;
+      align-items: center;
+      gap: var(--ds-spacing-sm) var(--ds-spacing-lg);
+    }
+
+    .nav {
+      flex-flow: row wrap;
+      gap: var(--ds-spacing-3xs) var(--ds-spacing-sm);
+    }
+
+    .navGroup {
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .navList {
+      flex-flow: row wrap;
+    }
+
+    .navSection {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .bar {
+      padding-inline: var(--ds-spacing-md);
+    }
+
+    .main {
+      padding: var(--ds-spacing-lg) var(--ds-spacing-md) var(--ds-spacing-2xl);
+    }
+  }
 }

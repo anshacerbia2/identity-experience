@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.29.1
+  version: 1.30.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -1149,7 +1149,8 @@ default, and that is how the light theme's failures in §Contrast and Focus went
 - In each theme, with and without forced colours, a field and the button after it, reached by Tab,
   show focus as a 2px solid outline 2px off the element. A link is underlined at rest. The pressed
   language toggle has an edge the other has not.
-- Since 1.29.0 the pages are also laid out at five widths, with long content (§Layout).
+- Since 1.29.0 the pages are also laid out at six widths, 320 CSS px included, with long content
+  (§Layout).
 - It is automated evidence only. Playwright's guide: "automated testing cannot detect all types of
   WCAG violations", and "many accessibility problems can only be discovered through manual testing"
   [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
@@ -1217,7 +1218,7 @@ these `--ds-*` values. Its tile's hover edge reads `border-strong`, which is now
 | R7 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, W3C Recommendation 12 December 2024, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-12. SC 1.4.1 (A): "Color is not used as the only visual means of conveying information, indicating an action, prompting a response, or distinguishing a visual element." SC 1.4.3 (AA): "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following". SC 1.4.11 (AA): "The visual presentation of the following have a contrast ratio of at least 3:1 against adjacent color(s): User Interface Components: Visual information required to identify user interface components and states, except for inactive components or where the appearance of the component is determined by the user agent and not modified by the author". SC 2.4.7 (AA): "Any keyboard operable user interface has a mode of operation where the keyboard focus indicator is visible." SC 2.4.13 (AAA): "When the keyboard focus indicator is visible, an area of the focus indicator meets all the following: is at least as large as the area of a 2 CSS pixel thick perimeter of the unfocused component or sub-component, and has a contrast ratio of at least 3:1 between the same pixels in the focused and unfocused states." |
 | R8 | W3C, *Understanding SC 1.4.11: Non-text Contrast (Level AA)*, <https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html>, accessed 2026-10-12: "Having a visual boundary indicating the hit area is only required when there is no other visual way to identify the presence of the control"; "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion." |
 
-### Layout (1.29.0)
+### Layout (1.29.0, 320 CSS px since 1.30.0)
 
 On 2026-10-20 the development server showed a panel on `/account/` narrowed until its text ran one
 character per line. Chromium reproduces it from the fixtures. Opening **Sign out everywhere** or
@@ -1246,12 +1247,43 @@ between its min-content and max-content sizes [R10]. With no content counted, th
   layout, which SC 1.4.10 excepts [R12].
 - `e2e/tests/layout.spec.ts` opens the account page's confirmations and the code sent to an address
   in use but not proven, a Principal's temporary password and its Suspend form, and the Tenant
-  context report. It lays each page out at 1440, 1280, 1024, 768, 390 and 320 CSS px (320 is the width SC 1.4.10 names and STD-GLB-FE-005 2.1.0 §3.10 requires), in both themes, with
+  context report. Since 1.30.0 it covers every page the axe test scans: Workloads, Registrations,
+  Approvals and Emergency access were added. It lays each page out at 1440, 1280, 1024, 768, 390 and 320 CSS px (320 is the width SC 1.4.10 names and STD-GLB-FE-005 2.1.0 §3.10 requires), in both themes, with
   long content: long application lists, labels and addresses, and seven authenticators. At each width
   every panel is at least 16rem wide, or as wide as its container when that is narrower. No text of
   four characters or more runs three lines or more, each narrower than one and a half of its font
   size. The page does not scroll sideways. A full-page screenshot of each width is kept with the run.
   axe still finds no violation with the long content.
+- When the page scrolls sideways, the test names the elements that reach past the viewport (1.30.0):
+  each one whose right edge is past it while no child's is, and no box between it and the page
+  scrolls or clips it. It gives up to three, with their tag, classes, text, width and right edge.
+  The 320 run first said only "page scrolls sideways" by 11px, which named nothing to fix.
+
+**At 320 CSS px (1.30.0).** Only a registration's page scrolled sideways, by 11px. The button
+**Propose a back-channel logout URI** was 306.6px wide in a panel with 272px of room. `Button` set
+`white-space: nowrap`, which "collapses white space; but like pre, it does not allow wrapping"
+[R13]. Its min-content size was then the whole label, so the panel's body, which aligns its
+children to the start and sizes each to its fit-content size [R10], could not narrow it.
+
+- A `Button`'s label wraps between its words, and the button is at most as wide as its container
+  (`max-inline-size: 100%`), centred. A one-word label is unchanged. A button in a table still sits
+  in the table's own scrolling region.
+- Under 60rem the navigation rail is a bar above the page. Its links sit in rows that wrap, and the
+  group labels are hidden only visually, so they still name their lists. Before, at 320 the rail was
+  a column of every link, over 500px tall, above the page. The Understanding document of SC 1.4.10
+  says sections may be adjusted or relocated: "Neither adjusting or relocating content is considered a
+  loss of information or functionality, so long as users are still able to access the content" [R14].
+  It shows navigation hidden behind a "hamburger" menu button as one way [R14]. A bar of links is
+  chosen over a menu button: nothing is hidden behind a control, so there is no expanded state to
+  announce and no focus to move, and every link stays in the tab order where it was. It is also the
+  bar `organization-experience`'s copy of this frame shows under 60rem.
+- Under 60rem the bar and the page take 1rem of inline padding, not 1.5rem, so a 320 CSS px screen
+  leaves the content 288px.
+- The bar with the environment and the session stays sticky at every width. The Understanding
+  document suggests "at smaller viewport sizes that such components are modified to have static
+  positioning, or their display can be toggled by the user" [R14]. SAD-002 §8.7 asks that the
+  "current administration scope is always visible", and this bar is where it is shown, so it is not
+  changed here. At 320 the bar wraps to three rows.
 
 `organization-experience` copied `Panel` from this repository, so its copy has the same
 `container-type`. Its fix belongs to that repository.
@@ -1262,6 +1294,8 @@ between its min-content and max-content sizes [R10]. With no content counted, th
 | R10 | W3C, *CSS Box Sizing Module Level 3*, Working Draft 4 September 2026, <https://www.w3.org/TR/css-sizing-3/>, accessed 2026-10-20. §2.1, fit-content size: "If the available space in a given axis is definite, equal to clamp(min-content size, stretch-fit size, max-content size)". |
 | R11 | W3C, *CSS Text Module Level 3*, Candidate Recommendation Draft 14 August 2026, <https://www.w3.org/TR/css-text-3/>, accessed 2026-10-20. §5.4, `anywhere`: "An otherwise unbreakable sequence of characters may be broken at an arbitrary point"; "Soft wrap opportunities introduced by anywhere are considered when calculating min-content intrinsic sizes." `break-word`: "As for anywhere except that soft wrap opportunities introduced by break-word are not considered". |
 | R12 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-20. SC 1.4.10 Reflow (AA): "Content can be presented without loss of information or functionality, and without requiring scrolling in two dimensions for: Vertical scrolling content at a width equivalent to 320 CSS pixels"; "Except for parts of the content which require two-dimensional layout for usage or meaning." Its Note 2 names "data tables (not individual cells)" among them. |
+| R13 | W3C, *CSS Text Module Level 3*, Candidate Recommendation Draft 14 August 2026, <https://www.w3.org/TR/css-text-3/>, accessed 2026-10-20. §3, `white-space: nowrap`: "Like normal, this value collapses white space; but like pre, it does not allow wrapping." `pre`: "Lines only break at forced line breaks; content that does not fit within the block container overflows it." |
+| R14 | W3C WAI, *Understanding SC 1.4.10: Reflow (Level AA)*, Understanding WCAG 2.2, <https://www.w3.org/WAI/WCAG22/Understanding/reflow.html>, accessed 2026-10-20. "Modern websites and applications commonly employ responsive web design best practices to adjust or relocate sections of content to fit within smaller viewports. Neither adjusting or relocating content is considered a loss of information or functionality, so long as users are still able to access the content." Figure 5: "The main navigation is hidden behind a hamburger menu button". "It is strongly suggested that at smaller viewport sizes that such components are modified to have static positioning, or their display can be toggled by the user." |
 
 ## Security Notes
 
@@ -1322,5 +1356,6 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | `STD-IAM-001` 2.8.0 §3.1 — the one exception: a first credential, shown once to a provider (1.28.0) |
 | Depends on | `TDD-identity-control-005` - `:issue-temporary-password`, its refusals and its retry without the value (1.28.0) |
 | Conforms to | STD-GLB-FE-005 §3.9 — focus indicators drawn with `outline` |
+| Conforms to | STD-GLB-FE-005 2.1.0 §3.10 — intrinsic sizing and reflow at 320 CSS px (1.30.0) |
 | Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
 | Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |
