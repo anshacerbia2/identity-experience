@@ -18,7 +18,8 @@
     "test": "pnpm -r test",
     "test:browser": "pnpm --filter @identity-experience/e2e test:browser",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check:identity-control-commands": "node scripts/check-identity-control-commands.mjs"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

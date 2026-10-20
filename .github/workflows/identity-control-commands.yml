@@ -1,0 +1,39 @@
+name: identity-control-commands
+
+# The classified command list in apps/admin/src/domain/operator-transitions.test.ts is a copy of
+# identity-control's internal/httpapi/commands.go. This job compares it with identity-control's main
+# and fails when they differ (TDD-identity-experience-003 1.31.0 §Operator Transitions). It is its
+# own workflow so that the unit tests stay offline and a failure here names the drift, not the code.
+#
+# It runs on every change here, and daily, because identity-control can change while nothing here
+# does. A scheduled run uses this repository's main.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 4 * * *'
+  # Run by hand, for instance after an identity-control merge.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      # Node built-ins only, so no install. The token only raises the API's rate limit: the
+      # repository is public.
+      - name: compare with identity-control main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-identity-control-commands.mjs

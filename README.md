@@ -115,7 +115,11 @@ pnpm install
 pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :8090
 pnpm dev:developer    # Vite on :5174, at /developer/, forwarding the same
 pnpm test && pnpm lint && pnpm build
+pnpm check:identity-control-commands   # the classified command list against identity-control's main
 ```
+
+The last one reads GitHub, so it is not part of `pnpm test`; CI runs it in its own workflow
+(TDD-003 §Operator Transitions).
 
 The BFF serves `apps/admin/dist` at `/` and `apps/developer/dist` at `/developer/` in every
 environment that matters, so the browser always talks to one origin.

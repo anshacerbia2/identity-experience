@@ -10,6 +10,8 @@ import design from '../../../../docs/designs/TDD-identity-experience-003-adminis
 // adoptKey. identity-control's TestEveryMutatingRouteIsClassified holds every mutating route in one of
 // them, so this list is every command it serves. When it classifies a new route, the route is added
 // here, and this test then fails until the design's table says what these applications offer for it.
+// scripts/check-identity-control-commands.mjs compares this list with identity-control's main, table
+// by table, in its own CI workflow (1.31.0): keep it one route per line, under its table's comment.
 const classified: readonly string[] = [
   // serviceKeyed
   'POST /v1/principals',
