@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.30.0
+  version: 1.31.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -963,9 +963,27 @@ these applications offer it, or `None` with the reason.
   names a route it does not hold. When identity-control classifies a new route, it is added to the
   test's list, which then fails until this table says what these applications offer for it.
 - A row whose last cell starts with `None` states its reason; every other row names an action.
+- **The copy is compared with identity-control's main (1.31.0).** The test cannot see
+  identity-control change, so until 1.31.0 a route classified there stayed missing here until someone
+  noticed. `scripts/check-identity-control-commands.mjs` reads `commands.go` at identity-control's
+  `main` through GitHub's contents API, with the media type that "Returns the raw file contents for
+  files and symlinks", and `ref`, "The name of the commit/branch/tag" [R15]. It compares each table
+  with the test's list, table by table, so a route that moves from `keyOptional` to `replayedKey` is a
+  difference too. It exits `1` on a difference, naming each route, and `2` when it cannot read either
+  file or reach GitHub, after three attempts, never `0`. A file whose shape it does not recognize is
+  an exit `2`, not an empty list.
+  - It runs in its own workflow, `.github/workflows/identity-control-commands.yml`: on every push to
+    `main`, every pull request, by hand, and daily, since "Scheduled workflows run on the latest
+    commit on the default branch" [R15] and identity-control can change while nothing here does.
+  - `pnpm test` makes no network call. The comparison is only in that workflow.
+  - Locally: `pnpm check:identity-control-commands` reads `main`; `--ref <branch>` reads another
+    branch, to prove this copy against an identity-control change before it merges; `--file <path>`
+    reads a checkout's `commands.go` offline.
+  - When it fails, the copy is updated first, then this table, as the bullets above describe.
 
 | Ref | Source |
 | :-- | :-- |
+| R15 | GitHub, *REST API endpoints for repository contents*, Get repository content, <https://docs.github.com/en/rest/repos/contents>, accessed 2026-10-20: "`application/vnd.github.raw+json`: Returns the raw file contents for files and symlinks"; `ref`: "The name of the commit/branch/tag. Default: the repository's default branch". GitHub, *Events that trigger workflows*, `schedule`, <https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows>, accessed 2026-10-20: "Scheduled workflows run on the latest commit on the default branch." |
 | R5 | Microsoft, *Manage emergency access admin accounts*, Validate accounts regularly, <https://learn.microsoft.com/en-us/entra/identity/role-based-access-control/security-emergency-access>, accessed 2026-10-09: "Regularly conduct drills to validate the functionality of the accounts and to confirm that monitoring and alerting rules are triggered in case an account is misused"; "Perform these steps at regular intervals and for key changes: At least every 90 days". |
 
 ## Configuration

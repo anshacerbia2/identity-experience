@@ -394,6 +394,10 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
   - TDD-003 §Operator Transitions maps every route identity-control classifies to an action here or a
     reason for none, and `apps/admin/src/domain/operator-transitions.test.ts` fails on a route with no
     row.
+  - ✅ The test's copy of identity-control's classified list is compared with identity-control's
+    `main` (TDD-003 1.31.0): `scripts/check-identity-control-commands.mjs`, run by
+    `.github/workflows/identity-control-commands.yml` on every change and daily, fails on a route
+    added, removed or moved between tables there. `pnpm test` stays offline.
 
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
