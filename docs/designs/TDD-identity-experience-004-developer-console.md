@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-004
   title: Developer Console — Application Onboarding and Client Key Lifecycle
   owner: Identity Experience Team
-  version: 1.12.0
+  version: 1.13.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-09
+  last_reviewed: 2026-10-20
   parent_sad: SAD-002
 ---
 
@@ -230,6 +230,19 @@ on a request's success, say it waits for another provider; the person's requests
     My registrations with their state, the decision's reason, and the registration an approval
     created; an open one is withdrawn with a reason
 ```
+
+**Consent follows the audience class (1.13.0).** `STD-IAM-002` 1.9.0 §3.6: "An `external`
+registration MUST require consent", and no other class does; "The setting is derived from the audience
+class at registration and adoption, and is never a field of its own". `ADR-IAM-003` §5.11: "A free
+field would let a registrant make an `external` client consent-free, so the Developer Console offers
+none." So the form offers no consent control. The audience class's hint says what the choice means:
+an external application asks each person's consent, and an internal one does not. A registration's
+page shows the API's `consent_required` as **Consent**: "Asks consent: each person allows it once,
+and can withdraw it from their account", or "Asks no consent: its registration is the consent". The
+field is omitted for an API before identity-control `64bbf63`, which sends none. The same record panel
+is the Admin Portal's (`packages/app-core`), whose registrations list also marks an external client
+**Asks consent**. A person withdraws a consent in the account application (`TDD-identity-experience-002`
+1.11.0).
 
 The form is one page rather than §RegistrationWizard's steps. Those wait on `:validate`, which
 Identity Control has not built. Without `:validate`, a step-by-step wizard would validate each
@@ -629,6 +642,7 @@ and registration approval backlog.
 | Conforms to | SAD-002 §4.1 — the Developer Identity Console is its own container behind the same BFF |
 | Conforms to | STD-IAM-001 §3.2 — PKCE, exact redirect URIs, no secret in a public client, `private_key_jwt` for confidential and workload clients |
 | Conforms to | STD-IAM-002 §3.3 — every protected resource carries exactly one lifetime class |
+| Conforms to | STD-IAM-002 1.9.0 §3.6, ADR-IAM-003 §5.11 — consent follows the audience class, and the console offers no consent field (1.13.0) |
 | Conforms to | `TDD-identity-experience-001` — BFF session and containment |
 | Depends on | `identity-control` — validation, key registration and rotation, and approval |
 

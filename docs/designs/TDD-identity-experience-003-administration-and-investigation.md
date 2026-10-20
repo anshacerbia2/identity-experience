@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.31.0
+  version: 1.32.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -35,6 +35,8 @@ it inherits the obligation to be safer than the console rather than merely prett
 - A first credential for a person a provider creates: a temporary password, shown once (1.28.0,
   `ADR-IAM-010`).
 - Leaving the reconciler's quarantine, and the mappings held quarantined or pending (1.27.0).
+- Re-adopting an orphan's identifier after a restore to an older point (1.32.0, `ADR-IAM-001` §5.11).
+- The bootstrap ceremony's record, and its independent review (1.32.0, `STD-IAM-001` 2.9.0 §3.10).
 - Every operator transition identity-control serves, mapped to its action here or to the reason
   there is none (1.27.0, §Operator Transitions).
 - Reason and evidence capture on every privileged action.
@@ -100,7 +102,7 @@ boundary between applications.
 | (none) | Overview | both |
 | Identities | Principals, and one Principal's security state: sessions, authenticators, consents, federation links, containment; Workloads | the kernel through the Identity Control API, and the Identity Control API |
 | Applications | Registrations, their keys, owners, changes and drift | the Identity Control API |
-| Governance | Approvals: registration changes and registration requests waiting for a provider; Emergency access: the emergency grants and their validation (1.24.0) | the Identity Control API |
+| Governance | Approvals: registration changes and registration requests waiting for a provider; Emergency access: the emergency grants and their validation (1.24.0); Bootstrap ceremony: the ceremony's record and its reviews (1.32.0) | the Identity Control API |
 | Monitoring | Tenant context: the projection's report (1.24.0); reconciler findings and runs, privileged-administration events | the Identity Control API |
 
 A group is not shown before it has a page, because a link to nothing is a dead end. A page belongs to
@@ -155,6 +157,9 @@ GET   /api/v1/projections/tenant-context:unconverged               1.27.0
 POST  /api/v1/projections/tenant-context/tenants/{tenant_id}:redrive   1.27.0, X-Administrative-Reason
 POST  /api/v1/projections/tenant-context:sweep                     1.27.0
 POST  /api/v1/principals/{principal_id}:issue-temporary-password   1.28.0, X-Administrative-Reason, no-store
+POST  /api/v1/principals/{principal_id}:adopt                      1.32.0, X-Administrative-Reason, a plan first
+GET   /api/v1/bootstrap-ceremony                                   1.32.0
+POST  /api/v1/bootstrap-ceremony:review                            1.32.0, X-Administrative-Reason
 ```
 
 `GET …/events` (1.19.0) reads the kernel event record `TDD-identity-control-005` 2.9.0 serves: the
@@ -199,6 +204,62 @@ send carries one, from `useCommandPost` in `packages/app-core`, unless the form 
 `TDD-identity-control-005` defines the matching upstream routes. The BFF removes the
 `/api` prefix and forwards the verified access token; it does not translate canonical
 Principal identifiers into kernel identifiers or make an authorization decision.
+
+### The Client Is Contract-Tested (1.32.0)
+
+The three applications reach identity-control through a hand-written client: each feature's `*-api.ts`
+builds the path, and its request and response types are interfaces in `domain/`. `ADR-GLB-010 §5.1`,
+amended 2026-10-20: "Language bindings SHALL be generated from the contract, or, where they are
+hand-written, contract-tested in CI against the published specification", and "A hand-written client
+tested against nothing is prohibited." identity-control publishes `api/openapi.yaml` since `64bbf63`,
+an OpenAPI 3.1 document, which "defines a standard, language-agnostic interface to HTTP APIs" [R16].
+
+**The client is tested, not generated: the smaller change.**
+
+- **What generating would take.** Every `*-api.ts` and every domain interface, about sixty calls and
+  fifty interfaces across four packages, would move to generated types. The page components read the
+  interfaces' fields by name, so most of them would change too. It would also add a generator and its
+  output to the supply chain.
+- **What testing takes.** A copy of the document, one test file, and one check in the workflow that
+  already compares the command list with identity-control. No application file changes.
+- **What both catch.** A route renamed or removed, a field renamed or removed, and a field the client
+  treats as always present that the document leaves optional.
+
+**How.**
+
+- `contracts/identity-control/openapi.yaml` is the document, byte for byte, at the commit
+  `contracts/identity-control/source.json` pins, with its `info.version` and its SHA-256. It is never
+  edited here; prettier skips it.
+- `packages/app-core/src/api/identity-control-contract.test.ts` runs in `pnpm test`, offline. It reads
+  the client's source with the TypeScript compiler, so a new call or field is covered the day it is
+  written, and checks:
+  - every path the client builds under `/v1/` names an operation the document serves, with the method
+    the call sends when the call is `apiGet` or a command post. A path a helper builds, such as
+    `registrationPath(id)`, is read through the helper;
+  - every field of each request and response interface it pairs with a schema is a property of that
+    schema. The test holds the pairing, interface to schema; the fields on both sides are read, never
+    restated;
+  - every field of an answer the client treats as always present is one the schema requires, and every
+    field a request schema requires is one the client always sends.
+- **Where the document is behind identity-control's code,** and the client follows the code, the
+  test names the gap with its evidence, and fails once the document closes it, so the entry goes too.
+  One is open: `PublicJWK` omits `use` and `alg`, which identity-control accepts
+  (`internal/registration/publickey.go`). It is reported to identity-control.
+- `scripts/check-identity-control-openapi.mjs` compares the copy with the document identity-control's
+  `main` publishes. It fails on a difference, naming both `info.version`s, and `--update` replaces the
+  copy and its pin with `main`'s, at a commit, never a branch. It refuses a copy whose digest is not the
+  pinned one. It runs in `.github/workflows/identity-control-commands.yml`, beside the command check:
+  on every change here, by hand, and daily. Fowler: contract tests "check the contract of external
+  service calls, but not necessarily the exact data", and a failure should "trigger a task to get
+  things consistent again" [R17].
+- **The contract test found two differences when it was written.** `RegistrationChange`'s four set
+  fields were read as always present, and the document leaves them optional; they are optional here
+  now, and an absent one reads as `null`, as the code already treated it. And the `PublicJWK` gap above.
+
+| Ref | Source |
+| :-- | :-- |
+| R16 | OpenAPI Initiative, *OpenAPI Specification v3.1.0*, <https://spec.openapis.org/oas/v3.1.0>, accessed 2026-10-20, §1 Introduction: "The OpenAPI Specification (OAS) defines a standard, language-agnostic interface to HTTP APIs which allows both humans and computers to discover and understand the capabilities of the service without access to source code". |
+| R17 | Martin Fowler, *ContractTest*, <https://martinfowler.com/bliki/ContractTest.html>, accessed 2026-10-20: "Contract tests check the contract of external service calls, but not necessarily the exact data"; "These check that all the calls against your test doubles return the same results as a call to the external service would"; a failure should "trigger a task to get things consistent again". |
 
 ## Algorithms / Logic
 
@@ -709,6 +770,45 @@ recovery or the Principal sweep, and a quarantined one is released from its page
 **References stay in memory.** A `security_ref` lives in the authenticators query's cache for the
 rendered page. It is never written to browser storage (§Data Model).
 
+### Adopting an Orphan's Identifier (1.32.0)
+
+`ADR-IAM-001` §5.11, amended 2026-10-20, and `TDD-identity-control-001` 1.23.0 §Re-Adopting an Orphan
+give a Principal created after a backup a way back after a restore to that backup:
+`POST /v1/principals/{principal_id}:adopt`. The person still exists in the kernel, but the restored
+Control Database holds no mapping for them, so the sweep records their user an `orphan`. Giving them a
+new identifier would break every reference the system of record made to the old one, Organization
+Control's Memberships first; `sub` is "A locally unique and never reassigned identifier" (the ADR's
+[R10]).
+
+**Where it is offered.** The Principals page lists the open orphan findings among the kernel users no
+Principal accounts for, each with the identifier its user claims. An orphan row offers **Adopt
+identifier**. An orphan has no mapping, so it has no Principal page to offer it on: `GET
+/v1/principals/{principal_id}` answers `404` until the adoption. It is not offered for the provider's
+own identifier, which the API refuses with `403` (§The Self-Action Boundary).
+
+**Plan first, then adopt, with one reason.**
+
+| Step | Sent | Shown |
+| :-- | :-- | :-- |
+| Plan | `{"dry_run": true}`, the reason, an Idempotency-Key | The four checks, each with whether it holds and what it read, in the API's words |
+| Adopt, offered only when every check holds | `{"dry_run": false}`, the same reason, another Idempotency-Key | "Adopted. The Principal is suspended", and a link to its page, where Restore is offered |
+
+- **The four checks are the API's, and the page computes none.** An open orphan finding claims the
+  identifier; exactly one kernel user, a person, carries it; it is newer than every mapping the restored
+  database holds; and the kernel's admin events record this service creating it. Each is shown with
+  the `detail` the API wrote, which names a check and a time, never a kernel identifier.
+- **A refused plan shows its refusal.** "Not adoptable. identity-control says: `<check>: <detail>`",
+  and no **Adopt**. Triage decides what happens to the user (identity-control's
+  unmapped-principal-triage runbook). An adoption the checks refuse when it is sent is the API's `409`,
+  shown as its sentence, as every refusal is.
+- **A plan and an adoption are different requests.** The route replays a key (`serviceKeyed`, with
+  `:adopt` "replayed here"), so a plan and its adoption under one key would answer the adoption with the
+  plan. `useCommandPost` keys each distinct body separately, and the test asserts the two keys differ.
+- **A changed reason is a new plan.** Editing the reason clears the plan, so the adoption is sent with
+  the reason its plan was read with.
+- **It lands suspended.** The user is disabled and its sessions end before the commit. Restore, a
+  separate recorded command, returns it to service: two recorded steps, as the ADR requires.
+
 ### Application Developers
 
 The Principals page lists the application developer grants (`ADR-IAM-003 §5.3`,
@@ -865,6 +965,53 @@ force, and that a grant no longer needed is revoked in Organization Control. Mic
 break-glass accounts is the same practice: "Regularly conduct drills to validate the functionality of
 the accounts", "At least every 90 days" [R5].
 
+### The Bootstrap Ceremony's Review (1.32.0)
+
+`STD-IAM-001` 2.9.0 §3.10: two named people run the ceremony that creates the first Principal, an
+operator and a witness, and a third person reviews the record: "The reviewer is not the operator, not
+the witness, and not the holder of the first Principal". `ADR-IAM-001` §5.11 requirement 3, amended
+2026-10-20, records the review "insert-only too". AC-5 asks "that security personnel who administer
+access control functions do not also administer audit functions" (the standard's [R41]). identity-control serves the record at
+`GET /v1/bootstrap-ceremony` and records a review at `POST /v1/bootstrap-ceremony:review`
+(`TDD-identity-control-001` 1.23.0).
+
+**The page.** Governance, **Bootstrap ceremony** (`/ceremony`), reads the record when it opens:
+
+- whether it is reviewed, and how many times;
+- the operator, the witness, the reason, the first Principal linked to its page, and when it ran;
+- each review, oldest first: the reviewer, the outcome (satisfactory, or findings), the statement,
+  the Principal who recorded it, linked, and when;
+- a `404` reads "No bootstrap ceremony is on record", not as a failure.
+
+The record has no edit control: identity-control's runtime holds no `UPDATE` or `DELETE` on it.
+
+**Record review.** One form: the reviewer's name, prefilled with the signed-in name; the outcome; and
+the statement, sent as `X-Administrative-Reason`. It carries an Idempotency-Key from `useCommandPost`,
+which the API replays (`replayedKey`), so a retry after an outage answers with the review the first
+attempt recorded, never a second one.
+
+**Offered only to an eligible provider.** The API refuses the operator, the witness and the first
+Principal's holder with `409` and records nothing. The page does not offer what the API would refuse,
+and says why instead:
+
+| Signed in as | Why the page knows | Shown instead |
+| :-- | :-- | :-- |
+| The first Principal's holder | The session's `principal_id` is the record's `principal_id` | "You hold the first Principal, so you cannot review the ceremony that created it" |
+| The operator, or the witness | The session's display name is the recorded name, compared as the API compares them: surrounding space and case ignored | "You ran the ceremony as its operator", or "You witnessed the ceremony", and that an independent provider records the review |
+
+- **The names are the record's, so the page's check is defence in depth.** The operator and the
+  witness are recorded as names, not Principals, and a provider's display name may be written
+  differently. The form also refuses a reviewer name that is the operator's or the witness's before
+  anything is sent, with the same comparison. The API's refusal stays the control, and the page shows
+  its `409` as its sentence.
+- **No review is offered on a record with no first Principal.** The API answers `404` to a review of a
+  ceremony that never recorded one.
+- **Who reviews, and by when, is not decided here.** The reviewer "is a named member of Security or
+  of the Architecture Authority" (`STD-IAM-001` §3.10), who signs in as a provider. The standard
+  leaves who holds the role, who reviews and the review deadline as `OWNER DECISION REQUIRED`. The page
+  shows "Not reviewed yet" until a review is recorded; it does not count down a deadline the owner has
+  not set.
+
 ### Tenant Context Report (1.24.0)
 
 **The page.** Monitoring, **Tenant context** (`/projections`), reads
@@ -923,6 +1070,7 @@ these applications offer it, or `None` with the reason.
 | `POST /v1/principals/{target}` | `:relink` | provider | Admin Portal, Principals: Relink, on a dangling mapping |
 | `POST /v1/principals/{target}` | `:release` | provider | Admin Portal, a Principal: Release (§Leaving Quarantine) |
 | `POST /v1/principals/{target}` | `:issue-temporary-password` | provider | Admin Portal, a new person's panel: Issue a temporary password; a Principal: Issue a new temporary password (1.28.0, §A First Credential, Shown Once) |
+| `POST /v1/principals/{target}` | `:adopt` | provider | Admin Portal, Principals: Adopt identifier, on an orphan finding, a plan first (1.32.0, §Adopting an Orphan's Identifier) |
 | `POST /v1/principals/{target}` | `:retire`, `:quarantine` | not built | None: identity-control serves neither for a person (§Containment Is Reversible First) |
 | `POST /v1/principals/{principal_id}/sessions:terminate-all` | end every session | provider | Admin Portal, a Principal: End every session |
 | `POST /v1/principals/{principal_id}/authenticators/{authenticator_action}` | `:revoke` | provider | Admin Portal, a Principal: Revoke |
@@ -953,13 +1101,16 @@ these applications offer it, or `None` with the reason.
 | `POST /v1/me/sessions:terminate-all` | end every session | the person | Account application: end every other session |
 | `POST /v1/me/authenticators/{authenticator_action}` | `:remove` | the person | Account application: remove an authenticator |
 | `POST /v1/me/authenticators:enroll` | enroll | the person | Account application: add an authenticator, through the kernel's action |
+| `POST /v1/me/consents/{consent_action}` | `:withdraw` | the person | Account application, Consents: Withdraw (`TDD-identity-experience-002` 1.11.0) |
+| `POST /v1/bootstrap-ceremony:review` | record a review of the ceremony | provider, never the operator, the witness or the first Principal's holder | Admin Portal, Bootstrap ceremony: Record review (1.32.0, §The Bootstrap Ceremony's Review) |
 | `POST /v1/me/notification-addresses` | add | the person | Account application: add a notification address |
 | `POST /v1/me/notification-addresses/{address_action}` | `:verify`, `:remove`, `:send-proof` | the person | Account application: prove, remove, or send a proof to an unproven address (`TDD-identity-experience-002` 1.10.0) |
 | `POST /v1/deliveries` | Organization Control's delivery | Organization Control | None: a service's push, authenticated as Organization Control, never a person's (`TDD-identity-control-006`) |
 | `POST /v1/principals/{principal_id}/identifiers:match` | whether a Principal holds a proven address | Organization Control | None: Organization Control's workload asks it at an invitation's acceptance, never a person (`ADR-ORG-007` §5.3, `TDD-identity-control-008`) |
 
 - `apps/admin/src/domain/operator-transitions.test.ts` holds identity-control's classified list as
-  it stands at identity-control `138f29d` with `adr-iam-010`'s routes (1.28.0), and fails when a route there has no row here, or a row
+  it stands at identity-control `64bbf63` (1.32.0: the consent withdrawal, the ceremony review, and
+  `:adopt` under a route already listed), and fails when a route there has no row here, or a row
   names a route it does not hold. When identity-control classifies a new route, it is added to the
   test's list, which then fails until this table says what these applications offer for it.
 - A row whose last cell starts with `None` states its reason; every other row names an action.
@@ -1142,6 +1293,28 @@ these applications offer it, or `None` with the reason.
 - The BFF forwards the issuance with `Cache-Control: no-store` and logs no part of the value, on a
   `201` and on a refusal (`bff/test/temporary-password.test.ts`).
 - A refused relink is shown with the API's sentence.
+- Adoption (1.32.0, `PrincipalsPage.test.tsx`): only an orphan row offers **Adopt identifier**, and
+  not for the provider's own identifier; the plan sends `{"dry_run": true}` with the reason and a key,
+  and shows the four checks; **Adopt** appears only when all hold, sends `{"dry_run": false}` with the
+  same reason and a different key, and says the Principal is suspended, linking to it; a refused plan
+  shows its refusal and no **Adopt**; axe finds no violation with the checks shown.
+
+### The Bootstrap Ceremony (1.32.0)
+
+`CeremonyPage.test.tsx`:
+
+- The record, whether it is reviewed, and each review with its outcome and who recorded it.
+- **Record review** sends the reviewer and the outcome, the statement as `X-Administrative-Reason`,
+  and an Idempotency-Key; axe finds no violation with the form open.
+- It is not offered to the first Principal's holder, the operator or the witness, and the page says
+  why; the operator's or the witness's name typed as the reviewer is refused before anything is sent;
+  the API's `409` is shown as its sentence; a `404` reads as no ceremony on record.
+
+### The Contract With identity-control (1.32.0)
+
+- `packages/app-core/src/api/identity-control-contract.test.ts`, in `pnpm test` (§The Client Is
+  Contract-Tested).
+- `scripts/check-identity-control-openapi.mjs`, in `.github/workflows/identity-control-commands.yml`.
 
 ### Accessibility in a Browser (1.24.0, both themes since 1.26.0)
 
@@ -1169,6 +1342,9 @@ default, and that is how the light theme's failures in §Contrast and Focus went
   language toggle has an edge the other has not.
 - Since 1.29.0 the pages are also laid out at six widths, 320 CSS px included, with long content
   (§Layout).
+- Since 1.32.0 it also scans the Bootstrap ceremony page, with its review form open, a Principals page
+  with an adoption planned, and the account application's Consents page, and the layout test covers
+  them too.
 - It is automated evidence only. Playwright's guide: "automated testing cannot detect all types of
   WCAG violations", and "many accessibility problems can only be discovered through manual testing"
   [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
@@ -1297,14 +1473,46 @@ children to the start and sizes each to its fit-content size [R10], could not na
   bar `organization-experience`'s copy of this frame shows under 60rem.
 - Under 60rem the bar and the page take 1rem of inline padding, not 1.5rem, so a 320 CSS px screen
   leaves the content 288px.
-- The bar with the environment and the session stays sticky at every width. The Understanding
-  document suggests "at smaller viewport sizes that such components are modified to have static
-  positioning, or their display can be toggled by the user" [R14]. SAD-002 §8.7 asks that the
-  "current administration scope is always visible", and this bar is where it is shown, so it is not
-  changed here. At 320 the bar wraps to three rows.
+- ~~The bar with the environment and the session stays sticky at every width.~~ Superseded in 1.32.0
+  (below): at 320 the bar wrapped to three rows that stayed over the page.
 
 `organization-experience` copied `Panel` from this repository, so its copy has the same
 `container-type`. Its fix belongs to that repository.
+
+**Only the scope line stays in view (1.32.0).** SAD-002 2.2.0 §8.7: "the scope line stays in view at
+every width, compacted to one sticky line on a small viewport, and nothing else is required to stay in
+view. The environment, the session controls and the navigation become static there". STD-GLB-FE-005
+2.2.0 §3.10 makes it the rule for sticky regions: "only the content a SAD requires always in view stays
+sticky, compacted to one line". Before, the whole bar stuck, three rows tall at 320, and at 256 CSS px
+tall it covered a third of the screen. Technique C34 is why: "sticky regions may block a big portion of
+the screen" [R18].
+
+- **The scope line.** The frame has a line of its own above the bar, the first thing in the page's
+  column: what the person acts on, in a few words. The Admin Portal: "Provider scope: every identity".
+  The Developer Console: "Owner scope: your applications". The account application: "Your own
+  account". It is one line at every width: short by design, `white-space: nowrap`, and an ellipsis if
+  a translation ever outgrew it, never a second row. It is opaque, so what scrolls beneath never shows
+  through its words, and it holds no control, so it is never a tab stop.
+- **What scrolls away.** Under 60rem, and on a viewport under 30rem tall, the bar with the
+  environment and the session, and the navigation rail, are static. At a wide and tall viewport the
+  bar stays in view below the scope line, as before.
+- **Focus is never under it.** SC 2.4.11 asks that a focused component "is not entirely hidden due to
+  author-created content" [R19], and failure F110 is "a sticky footer or header completely hiding
+  focused elements" [R20]. The page sets `scroll-padding-block-start` on the root to the height of what
+  stays in view, technique C43 [R21]: scroll-padding defines "offsets that define the optimal viewing
+  region of a scrollport", used when an element is "scrolled into view (e.g. for targeting or focusing
+  operations)" [R22]. A tab or a shift-tab to an element above the fold scrolls it to below the line.
+- **What the layout test checks.** At 320×256 and at 1280×256 CSS px (a 1024 px tall screen at 400%
+  zoom, as the standard names it), on every page the layout test covers: what is sticky or fixed in
+  view is one line, no taller than 40px; and tabbing backwards from the end of the page, every focused
+  element stays at least partly visible below it. It keeps a screenshot of each.
+
+**A long status wraps inside its pill (1.32.0).** `StatusPill` set `white-space: nowrap`, which "does
+not allow wrapping" [R13]. A status longer than the room it had, such as a long display name in the bar
+at 320, pushed the page sideways. The pill now wraps between words, is at most as wide as its
+container (`max-inline-size: 100%`), and keeps its padding above and below when it wraps:
+`organization-experience`'s copy made the same change first. The layout test signs in with a display
+name of over sixty characters at 320 and asserts the pill wraps inside the page.
 
 | Ref | Source |
 | :-- | :-- |
@@ -1313,6 +1521,11 @@ children to the start and sizes each to its fit-content size [R10], could not na
 | R11 | W3C, *CSS Text Module Level 3*, Candidate Recommendation Draft 14 August 2026, <https://www.w3.org/TR/css-text-3/>, accessed 2026-10-20. §5.4, `anywhere`: "An otherwise unbreakable sequence of characters may be broken at an arbitrary point"; "Soft wrap opportunities introduced by anywhere are considered when calculating min-content intrinsic sizes." `break-word`: "As for anywhere except that soft wrap opportunities introduced by break-word are not considered". |
 | R12 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-20. SC 1.4.10 Reflow (AA): "Content can be presented without loss of information or functionality, and without requiring scrolling in two dimensions for: Vertical scrolling content at a width equivalent to 320 CSS pixels"; "Except for parts of the content which require two-dimensional layout for usage or meaning." Its Note 2 names "data tables (not individual cells)" among them. |
 | R13 | W3C, *CSS Text Module Level 3*, Candidate Recommendation Draft 14 August 2026, <https://www.w3.org/TR/css-text-3/>, accessed 2026-10-20. §3, `white-space: nowrap`: "Like normal, this value collapses white space; but like pre, it does not allow wrapping." `pre`: "Lines only break at forced line breaks; content that does not fit within the block container overflows it." |
+| R18 | W3C WAI, Technique C34, *Using media queries to un-fixing sticky headers / footers*, <https://www.w3.org/WAI/WCAG22/Techniques/css/C34>, accessed 2026-10-20: "However, when using mobile devices in landscape orientation or when zooming in on the desktop, sticky regions may block a big portion of the screen". Quoted in STD-GLB-FE-005 2.2.0 [R10]. |
+| R19 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, SC 2.4.11 Focus Not Obscured (Minimum) (AA), <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-20: "When a user interface component receives keyboard focus, the component is not entirely hidden due to author-created content". |
+| R20 | W3C WAI, Failure F110, <https://www.w3.org/WAI/WCAG22/Techniques/failures/F110>, accessed 2026-10-20: "Failure of Success Criterion 2.4.11 Focus Not Obscured (Minimum) due to a sticky footer or header completely hiding focused elements". |
+| R21 | W3C WAI, Technique C43, *Using CSS scroll-padding to un-obscure content*, <https://www.w3.org/WAI/WCAG22/Techniques/css/C43>, accessed 2026-10-20: "The objective of this technique is to ensure that user interface components (for example: links, buttons, and form fields) that are initially completely obscured by a fixed-position component can still be accessed by users." |
+| R22 | W3C, *CSS Scroll Snap Module Level 1*, <https://www.w3.org/TR/css-scroll-snap-1/>, accessed 2026-10-20, §4.2: the scroll-padding properties define "offsets that define the optimal viewing region of a scrollport", which exclude "regions of the scrollport that are obscured by other content (such as fixed-positioned toolbars or sidebars)", for what is "considered scrolled into view (e.g. for targeting or focusing operations)". |
 | R14 | W3C WAI, *Understanding SC 1.4.10: Reflow (Level AA)*, Understanding WCAG 2.2, <https://www.w3.org/WAI/WCAG22/Understanding/reflow.html>, accessed 2026-10-20. "Modern websites and applications commonly employ responsive web design best practices to adjust or relocate sections of content to fit within smaller viewports. Neither adjusting or relocating content is considered a loss of information or functionality, so long as users are still able to access the content." Figure 5: "The main navigation is hidden behind a hamburger menu button". "It is strongly suggested that at smaller viewport sizes that such components are modified to have static positioning, or their display can be toggled by the user." |
 
 ## Security Notes
@@ -1375,5 +1588,10 @@ review, and locked-out subject after authenticator revocation.
 | Depends on | `TDD-identity-control-005` - `:issue-temporary-password`, its refusals and its retry without the value (1.28.0) |
 | Conforms to | STD-GLB-FE-005 §3.9 — focus indicators drawn with `outline` |
 | Conforms to | STD-GLB-FE-005 2.1.0 §3.10 — intrinsic sizing and reflow at 320 CSS px (1.30.0) |
+| Conforms to | STD-GLB-FE-005 2.2.0 §3.10, SAD-002 2.2.0 §8.7 — only the scope line stays sticky on a small or short viewport, and focus is never under it (1.32.0) |
+| Governed by | `ADR-IAM-001` §5.11 as amended 2026-10-20 — an orphan's identifier is re-adopted, never re-issued (1.32.0) |
+| Conforms to | `STD-IAM-001` 2.9.0 §3.10 — the ceremony's record is reviewed by a third, independent person (1.32.0) |
+| Conforms to | `ADR-GLB-010` §5.1 as amended 2026-10-20 — the hand-written client is contract-tested against identity-control's published OpenAPI document (1.32.0) |
+| Depends on | `TDD-identity-control-001` 1.23.0 — `:adopt`, `GET /v1/bootstrap-ceremony`, `POST /v1/bootstrap-ceremony:review` (1.32.0) |
 | Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
 | Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |

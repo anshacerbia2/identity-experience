@@ -36,17 +36,23 @@ Taken with the repository owner before the first line of code:
 | Session store       | PostgreSQL                                                             | TDD-001 §Server-Side Session: shared across replicas, survives restarts, no second persistence technology                                                                                                                                         |
 | Router              | TanStack Router                                                        | Typed search parameters, for the URL-held state STD-GLB-FE-001 §3 requires                                                                                                                                                                        |
 | Styling             | SCSS Modules, cascade layers, OKLCH, logical properties                | STD-GLB-FE-005 §3.1–3.3                                                                                                                                                                                                                           |
-| Components          | `packages/ui`, a local stand-in for `@scnx/core-ui` and `@scnx/system` | The UI Platform is still being built; see the exception below                                                                                                                                                                                     |
+| Components          | `packages/ui`, a local stand-in for `@scnx/core-ui` and `@scnx/system` | The UI Platform is still being built; `ADR-IAM-012` is the approved exception, below                                                                                                                                                              |
 
-**Open: the UI Platform exception.** SAD-002 §10 rejects bypassing the UI Platform without an
-approved exception. STD-GLB-FE-005 §3.5 makes applications consumers of its token pipeline. The
-owner chose to build first and write the exception later, so both are knowingly departed from until
-it exists. `packages/ui` is built to make the departure cheap to end:
+**✅ The UI Platform exception is `ADR-IAM-012`, accepted 2026-10-20, expiring 2027-04-20.** SAD-002
+§10 rejects bypassing the UI Platform "without an approved exception", and STD-GLB-FE-005 §3.5 makes
+applications consumers of its token pipeline. The owner chose to build first; `ADR-IAM-012` (an
+exception ADR, Tier 2, `GDC-004 §4.2`) now records the departure, bounds it and names its exit, and
+SAD-002 2.2.0 §10 names it. Until it expires, `packages/ui` stands in for `@scnx/system` and
+`@scnx/core-ui`, under the mitigations it states, which this repository keeps:
 
 - it mirrors the platform's component APIs and its `--ds-*` token names;
-- applications import it through one entry point.
+- applications import it through one entry point, so the exit is a re-export;
+- the contrast test and axe run in CI at WCAG 2.2 AA in both themes.
 
-Its README maps each component to its platform counterpart.
+**Exit:** the UI Platform releases both packages and the entry point re-exports them. **Review
+before 2027-04-20:** if they are not released by then, a new exception ADR supersedes `ADR-IAM-012`,
+or the CI waiver check blocks this repository (`ADR-IAM-012 §5.4`). Its README maps each component to
+its platform counterpart.
 
 **Corrected in TDD-001 1.1.0.** The content security policy named only `script-src` and
 `connect-src`, so `default-src 'none'` would have refused the application's own stylesheets and
@@ -234,12 +240,17 @@ The shared frame links to it from the Portal and the console. Enrolling an authe
 - the kernel's page enrolls the app;
 - the outcome comes back as `kc_action_status`.
 
-A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. Recovery codes followed ADR-IAM-005 (TDD-002 1.5.0, TDD-001 1.13.0): each set is listed with how many codes remain, a used set is pointed out, and "Get new recovery codes" drives `kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`. "Where you are told" followed ADR-IAM-007 and identity-control's TDD-008 1.2.0 (TDD-002 1.6.0): the person's notification addresses, a prompt for a second while there is one, adding and removing under step-up, and proving a pending address with the code sent to it, which this application never sees. Proving an address held but never proven followed ADR-ORG-007 §5.3 (TDD-002 1.10.0): an address in use with no `verified_at` reads "In use, not proven", says an invitation is accepted only with a proven address, and offers **Send a code** (`:send-proof`), then the same code field. **Next:** consents once the API's slice 3b exists.
+A provider's refused removal of their last second factor is shown with its sentence. Adding a security key followed identity-control's slice 4b (TDD-002 1.4.0, TDD-001 1.12.0): the API authorizes `{"type":"webauthn"}`, the BFF passes `kc_action=webauthn-register` from its allowlist, and the kernel's page registers the key. Recovery codes followed ADR-IAM-005 (TDD-002 1.5.0, TDD-001 1.13.0): each set is listed with how many codes remain, a used set is pointed out, and "Get new recovery codes" drives `kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`. "Where you are told" followed ADR-IAM-007 and identity-control's TDD-008 1.2.0 (TDD-002 1.6.0): the person's notification addresses, a prompt for a second while there is one, adding and removing under step-up, and proving a pending address with the code sent to it, which this application never sees. Proving an address held but never proven followed ADR-ORG-007 §5.3 (TDD-002 1.10.0): an address in use with no `verified_at` reads "In use, not proven", says an invitation is accepted only with a proven address, and offers **Send a code** (`:send-proof`), then the same code field. Consents followed identity-control's slice 3b (TDD-002 1.11.0, below).
 
 - ✅ Session and device inventory with termination
 - ✅ Authenticator enrollment, replacement, and removal
-- Consent inventory and withdrawal: waits for identity-control's slice 3b, which serves no consent
-  route yet
+- ✅ Consent inventory and withdrawal (TDD-002 1.11.0 §Consents), on identity-control's slice 3b at
+  `64bbf63`: the account application's **Consents** page lists each consent with its scopes and how
+  long access already held lasts, and **Withdraw** sends an Idempotency-Key per distinct request and
+  says access already held ends by a stated time, not now. Only an `external` client asks consent
+  (STD-IAM-002 1.9.0 §3.6, ADR-IAM-003 §5.11): a registration shows **Consent** from
+  `consent_required`, the registrations list marks **Asks consent**, and the Developer Console offers no
+  consent field (TDD-004 1.13.0).
 - ✅ Recovery entry points, handing off to the kernel-rendered pages: recovery codes are issued and
   replaced on the kernel's page (`kc_action=CONFIGURE_RECOVERY_AUTHN_CODES`), and a code is used at the
   kernel's sign-in
@@ -399,6 +410,26 @@ its reason and an Idempotency-Key (STD-GLB-001 1.4.0), with no version where the
     `.github/workflows/identity-control-commands.yml` on every change and daily, fails on a route
     added, removed or moved between tables there. `pnpm test` stays offline.
 
+- ✅ The owner's decisions of 2026-10-20, on identity-control `64bbf63` (TDD-003 1.32.0, TDD-002 1.11.0,
+  TDD-004 1.13.0):
+  - The operator transitions table gains `POST /v1/me/consents/{consent_action}`, `POST
+/v1/bootstrap-ceremony:review` and `:adopt`; `pnpm check:identity-control-commands` agrees with
+    identity-control's `main`.
+  - **Bootstrap ceremony** (Governance): the ceremony's record and its reviews, and **Record review**
+    for a provider who is not the operator, the witness or the first Principal's holder (STD-IAM-001
+    2.9.0 §3.10). Who reviews and by when stay the owner's to name (`OWNER DECISION REQUIRED` there).
+  - **Adopt identifier** on an orphan finding: a plan of four checks first, then the adoption with the
+    same reason, landing suspended (ADR-IAM-001 §5.11).
+  - Only the scope line stays in view on a small or short viewport; the bar and the rail scroll away,
+    and focus is never under the line (STD-GLB-FE-005 2.2.0 §3.10, SAD-002 2.2.0 §8.7). The layout test
+    checks it at 320×256 and 1280×256, tabbing backwards.
+  - A long status wraps inside its pill at 320, as organization-experience's copy already does.
+  - The hand-written client is contract-tested against identity-control's published
+    `api/openapi.yaml` (ADR-GLB-010 §5.1): a pinned copy in `contracts/identity-control/`, a test in
+    `pnpm test`, and a daily check against identity-control's `main`. Tested rather than generated, the
+    smaller change (TDD-003 §The Client Is Contract-Tested). It found one gap in identity-control's
+    document, `PublicJWK` without `use` and `alg`, reported there.
+
 ✅ **A Principal's events** (TDD-003 1.19.0, on identity-control's TDD-005 2.9.0). The Principal page
 has an Events section, read only when opened: the hundred most recent sign-ins, failures and admin
 changes from the kernel event record, each with its outcome and error code and the client or
@@ -407,11 +438,11 @@ failed no longer needs the kernel's Admin Console (ADR-IAM-001 §5.8).
 
 ## Depends on
 
-| Repository             | What this needs from it                                                                   |
-| :--------------------- | :---------------------------------------------------------------------------------------- |
-| `identity-kernel`      | Hosted login, realm configuration, back-channel logout registration, step-up `acr` values |
-| `identity-control`     | The Identity Control API, which reauthorizes every command                                |
-| `scnehaux-ui-platform` | Design system packages, build-time only                                                   |
+| Repository             | What this needs from it                                                                          |
+| :--------------------- | :----------------------------------------------------------------------------------------------- |
+| `identity-kernel`      | Hosted login, realm configuration, back-channel logout registration, step-up `acr` values        |
+| `identity-control`     | The Identity Control API, which reauthorizes every command, and its published `api/openapi.yaml` |
+| `scnehaux-ui-platform` | Design system packages, build-time only                                                          |
 
 The context switch mechanism is decided in `identity-kernel` and consumed here. The
 baseline is a fresh authorization request on the existing SSO session — a redirect
@@ -440,7 +471,7 @@ Recorded so scope creep is visible rather than convenient:
 
 **Design gate.** All four designs at `1.0.0`.
 
-✅ **Met.** All four are approved, now at 1.20.0, 1.10.0, 1.29.0 and 1.12.0.
+✅ **Met.** All four are approved, now at 1.20.0, 1.11.0, 1.32.0 and 1.13.0.
 
 **Production gate.** The design gate, plus: token containment proven by scanning every
 response and the built artifact, all three forgery defences tested independently,

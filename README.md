@@ -93,7 +93,8 @@ Source code
 | `apps/account/`      | Account security experience, served under `/account/`: a person's own sessions and authenticators                                                    |
 | `apps/developer/`    | Developer identity console, served under `/developer/`: the registrations a person owns, their keys and lifecycle                                    |
 | `packages/app-core/` | `@identity-experience/app-core`: API access, session, query client, preferences, the shared frame and the registration domain every application uses |
-| `packages/ui/`       | `@identity-experience/ui`, the temporary stand-in for the UI Platform's packages (see its README)                                                    |
+| `packages/ui/`       | `@identity-experience/ui`, the stand-in for the UI Platform's packages under `ADR-IAM-012`, until 2027-04-20 (see its README)                        |
+| `contracts/`         | identity-control's published `api/openapi.yaml`, copied at a pinned commit; the client is contract-tested against it (ADR-GLB-010 §5.1)              |
 | `bff/`               | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications                                                 |
 | `docs/designs/`      | Technical Design Documents                                                                                                                           |
 | `docs/runbooks/`     | The BFF's runbooks: session-store outage, back-channel logout failure, client key rotation, suspected session fixation                               |
@@ -116,10 +117,13 @@ pnpm dev:admin        # Vite on :5173, forwarding /api and /auth to the BFF on :
 pnpm dev:developer    # Vite on :5174, at /developer/, forwarding the same
 pnpm test && pnpm lint && pnpm build
 pnpm check:identity-control-commands   # the classified command list against identity-control's main
+pnpm check:identity-control-openapi    # the copied OpenAPI document against identity-control's main
 ```
 
-The last one reads GitHub, so it is not part of `pnpm test`; CI runs it in its own workflow
-(TDD-003 §Operator Transitions).
+The last two read GitHub, so they are not part of `pnpm test`; CI runs them in their own workflow
+(TDD-003 §Operator Transitions, §The Client Is Contract-Tested). When identity-control's document
+changes, `node scripts/check-identity-control-openapi.mjs --update` replaces the copy and its pin, and
+`pnpm test` then names each call or field of the client the document no longer holds.
 
 The BFF serves `apps/admin/dist` at `/` and `apps/developer/dist` at `/developer/` in every
 environment that matters, so the browser always talks to one origin.
@@ -200,3 +204,7 @@ This repository requires no Scnehaux platform other than the five it shares this
 foundation with. It has one build-time dependency, `scnehaux-ui-platform`, which
 produces no runtime edge, and no dependency on Notification, Audit, Software Catalog,
 or Subscription & Entitlement.
+
+Until the UI Platform releases `@scnx/system` and `@scnx/core-ui`, `packages/ui` stands in for them.
+That departure from SAD-002 §10 and STD-GLB-FE-005 §3.5 is the approved exception `ADR-IAM-012`, which
+expires on **2027-04-20**; ROADMAP.md records its exit and review.
