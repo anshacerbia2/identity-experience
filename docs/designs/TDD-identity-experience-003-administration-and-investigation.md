@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.28.0
+  version: 1.29.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-19
+  last_reviewed: 2026-10-20
   parent_sad: SAD-002
 ---
 
@@ -1149,6 +1149,7 @@ default, and that is how the light theme's failures in §Contrast and Focus went
 - In each theme, with and without forced colours, a field and the button after it, reached by Tab,
   show focus as a 2px solid outline 2px off the element. A link is underlined at rest. The pressed
   language toggle has an edge the other has not.
+- Since 1.29.0 the pages are also laid out at five widths, with long content (§Layout).
 - It is automated evidence only. Playwright's guide: "automated testing cannot detect all types of
   WCAG violations", and "many accessibility problems can only be discovered through manual testing"
   [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
@@ -1215,6 +1216,52 @@ these `--ds-*` values. Its tile's hover edge reads `border-strong`, which is now
 | R6 | Playwright, *Accessibility testing*, <https://playwright.dev/docs/accessibility-testing>, accessed 2026-10-09: "Note that automated testing cannot detect all types of WCAG violations"; "But many accessibility problems can only be discovered through manual testing"; "We recommend using a combination of automated testing, manual accessibility assessments, and inclusive user testing." |
 | R7 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, W3C Recommendation 12 December 2024, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-12. SC 1.4.1 (A): "Color is not used as the only visual means of conveying information, indicating an action, prompting a response, or distinguishing a visual element." SC 1.4.3 (AA): "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1, except for the following". SC 1.4.11 (AA): "The visual presentation of the following have a contrast ratio of at least 3:1 against adjacent color(s): User Interface Components: Visual information required to identify user interface components and states, except for inactive components or where the appearance of the component is determined by the user agent and not modified by the author". SC 2.4.7 (AA): "Any keyboard operable user interface has a mode of operation where the keyboard focus indicator is visible." SC 2.4.13 (AAA): "When the keyboard focus indicator is visible, an area of the focus indicator meets all the following: is at least as large as the area of a 2 CSS pixel thick perimeter of the unfocused component or sub-component, and has a contrast ratio of at least 3:1 between the same pixels in the focused and unfocused states." |
 | R8 | W3C, *Understanding SC 1.4.11: Non-text Contrast (Level AA)*, <https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html>, accessed 2026-10-12: "Having a visual boundary indicating the hit area is only required when there is no other visual way to identify the presence of the control"; "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion." |
+
+### Layout (1.29.0)
+
+On 2026-10-20 the development server showed a panel on `/account/` narrowed until its text ran one
+character per line. Chromium reproduces it from the fixtures. Opening **Sign out everywhere** or
+**Remove** lays the confirmation out 50px wide, which is its padding and its border. The same happens
+to every containment form on a Principal's page, such as **Suspend**. A test on a page as it loads
+did not see it: the panels that collapse are the ones a person opens.
+
+**Why.** `Panel` set `container-type: inline-size` and no stylesheet queried it. That value applies
+inline-size containment, and an element with it is sized "as if the element had no content" in the
+inline axis [R9]. A panel stretched by its parent does not notice. A confirmation sits in another
+panel's body, which aligns its children to the start, so its width is its fit-content size, clamped
+between its min-content and max-content sizes [R10]. With no content counted, that is its padding.
+
+**The rule.**
+
+- A `Panel` has no size containment. A component that needs a container query sets containment on an
+  element of its own, sized by its parent, never on one that may be sized by its content.
+- A `Panel` has `min-inline-size: 0`, so a long table inside it does not widen a grid or flex row past
+  the screen. The table scrolls in its own region, as `Table` already says.
+- A panel's own text takes `overflow-wrap: anywhere`, so a long identifier, address or reference
+  breaks inside the panel. Soft wrap opportunities from `anywhere` "are considered when calculating
+  min-content intrinsic sizes" [R11], so the text does not hold a flex or grid item wider than its
+  room. `break-word` does not do this, which is why the reset's rule on paragraphs is not enough.
+- A `Table` sets `overflow-wrap: normal` for its region. In a table the same min-content rule would
+  narrow a column to one character, not make the table scroll. A data table keeps its two-dimensional
+  layout, which SC 1.4.10 excepts [R12].
+- `e2e/tests/layout.spec.ts` opens the account page's confirmations and the code sent to an address
+  in use but not proven, a Principal's temporary password and its Suspend form, and the Tenant
+  context report. It lays each page out at 1440, 1280, 1024, 768 and 390 CSS px, in both themes, with
+  long content: long application lists, labels and addresses, and seven authenticators. At each width
+  every panel is at least 16rem wide, or as wide as its container when that is narrower. No text of
+  four characters or more runs three lines or more, each narrower than one and a half of its font
+  size. The page does not scroll sideways. A full-page screenshot of each width is kept with the run.
+  axe still finds no violation with the long content.
+
+`organization-experience` copied `Panel` from this repository, so its copy has the same
+`container-type`. Its fix belongs to that repository.
+
+| Ref | Source |
+| :-- | :-- |
+| R9 | W3C, *CSS Containment Module Level 3*, Working Draft 18 August 2022, <https://www.w3.org/TR/css-contain-3/>, accessed 2026-10-20. §3.1: "Giving an element inline-size containment applies size containment to the inline-axis sizing of its principal box. This means the inline-axis intrinsic sizes of the principal box are determined as if the element had no content." §4.1, `container-type: inline-size`: "Applies layout containment, style containment, and inline-size containment to the principal box." |
+| R10 | W3C, *CSS Box Sizing Module Level 3*, Working Draft 4 September 2026, <https://www.w3.org/TR/css-sizing-3/>, accessed 2026-10-20. §2.1, fit-content size: "If the available space in a given axis is definite, equal to clamp(min-content size, stretch-fit size, max-content size)". |
+| R11 | W3C, *CSS Text Module Level 3*, Candidate Recommendation Draft 14 August 2026, <https://www.w3.org/TR/css-text-3/>, accessed 2026-10-20. §5.4, `anywhere`: "An otherwise unbreakable sequence of characters may be broken at an arbitrary point"; "Soft wrap opportunities introduced by anywhere are considered when calculating min-content intrinsic sizes." `break-word`: "As for anywhere except that soft wrap opportunities introduced by break-word are not considered". |
+| R12 | W3C, *Web Content Accessibility Guidelines (WCAG) 2.2*, <https://www.w3.org/TR/WCAG22/>, accessed 2026-10-20. SC 1.4.10 Reflow (AA): "Content can be presented without loss of information or functionality, and without requiring scrolling in two dimensions for: Vertical scrolling content at a width equivalent to 320 CSS pixels"; "Except for parts of the content which require two-dimensional layout for usage or meaning." Its Note 2 names "data tables (not individual cells)" among them. |
 
 ## Security Notes
 
