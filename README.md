@@ -142,10 +142,12 @@ node scripts/new-client-key.mjs     # keys/identity-experience-bff.pem stays her
 ```
 
 Send `keys/identity-experience-bff.jwk.json`, the public half, to whoever operates the server. It is
-not secret. They register the client through identity-control with it, or adopt the client an older
-server already has; [`deploy/dev/README.md`](deploy/dev/README.md) gives each case, and how a second
-device's key is added. Then, on this machine, copy `.env.example` to `.env` (delete any
-`IDENTITY_EXPERIENCE_CLIENT_SECRET` line an older `.env` has), and:
+not secret. They register a client for this device alone, `identity-experience-bff-<device>`, through
+identity-control with it: each device is its own registration with its own key, never a second key on
+another device's client (`ADR-IAM-001 §5.12`, `STD-GLB-009` rule 15). [`deploy/dev/README.md`](deploy/dev/README.md)
+gives each case. Then, on this machine, copy `.env.example` to `.env`, set `IDENTITY_EXPERIENCE_CLIENT_ID`
+to this device's client (the script refuses to start without it), delete any
+`IDENTITY_EXPERIENCE_CLIENT_SECRET` line an older `.env` has, and:
 
 ```powershell
 ./scripts/dev-local.ps1
@@ -179,7 +181,8 @@ the session tests fail rather than skip.
 
 The browser tests (`e2e/`) run Chromium against the BFF serving the built applications, with the
 identity kernel and the Identity Control API stood in: `SameSite` enforcement, axe on each main
-page, and the layout of the panels at five widths. They need the build and the same database:
+page, and the layout of the panels at six widths, 320 CSS px included, and at 256 CSS px tall. They
+need the build and the same database:
 
 ```sh
 pnpm build

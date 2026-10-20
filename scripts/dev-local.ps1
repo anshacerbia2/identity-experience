@@ -10,9 +10,11 @@
   local PostgreSQL.
 
   Reads .env beside the repository root (copy .env.example). The BFF authenticates to the kernel
-  with its own key (private_key_jwt), keys/identity-experience-bff.pem, made on this machine by
-  scripts/new-client-key.mjs. Its public half is installed on the server once; the client has no
-  secret (ADR-IAM-001 §5.12).
+  as this device's own client, IDENTITY_EXPERIENCE_CLIENT_ID in .env, with its own key
+  (private_key_jwt), keys/identity-experience-bff.pem, made on this machine by
+  scripts/new-client-key.mjs. Its public half is registered on the server once; the client has no
+  secret. Each device is its own registration, never a second key on another device's client
+  (ADR-IAM-001 §5.12, STD-GLB-009 rule 15).
 
   Steps: build the application and the BFF, create the session schema if absent, apply the
   session store's migrations, and serve. Ctrl+C stops the server.
@@ -31,7 +33,7 @@ $envFile = Join-Path $root '.env'
 $schema = 'identity_experience_dev'
 # Not localhost:8080: the dev tunnel forwards the server's 8080 and rewrites a redirect to
 # localhost:8080 into its own URL, so Keycloak's return to the callback never reached this machine.
-# The client's registered redirect URI (deploy/dev/create-bff-client.sh) is this origin's.
+# Every device's registered redirect URI (deploy/dev/README.md) is this origin's.
 $port = '8090'
 $origin = "http://127.0.0.1:$port"
 
@@ -69,7 +71,9 @@ if (-not $dotenv.Contains('IDENTITY_EXPERIENCE_SESSION_KEY') -or $dotenv['IDENTI
     Write-Host 'dev-local: generated IDENTITY_EXPERIENCE_SESSION_KEY and wrote it to .env'
 }
 
-foreach ($required in @('IDENTITY_EXPERIENCE_DEV_DATABASE_URL')) {
+# The client id is this device's own registration (ADR-IAM-001 §5.12, STD-GLB-009 rule 15), so it is
+# never defaulted: a default would let two devices sign in as one client.
+foreach ($required in @('IDENTITY_EXPERIENCE_DEV_DATABASE_URL', 'IDENTITY_EXPERIENCE_CLIENT_ID')) {
     if (-not $dotenv.Contains($required) -or $dotenv[$required] -eq '') {
         throw "$required is empty in .env. See .env.example."
     }
@@ -92,10 +96,10 @@ $env:IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT = Join-Path $root 'apps\account\dist'
 $env:IDENTITY_EXPERIENCE_LISTEN_HOST = '127.0.0.1'
 $env:IDENTITY_EXPERIENCE_LISTEN_PORT = $port
 $env:IDENTITY_EXPERIENCE_ISSUER = Get-OrDefault 'IDENTITY_EXPERIENCE_ISSUER' 'https://gqr8l4jz-8080.asse.devtunnels.ms/realms/scnehaux'
-$env:IDENTITY_EXPERIENCE_CLIENT_ID = 'identity-experience-bff'
+$env:IDENTITY_EXPERIENCE_CLIENT_ID = $dotenv['IDENTITY_EXPERIENCE_CLIENT_ID']
 $clientKey = Get-OrDefault 'IDENTITY_EXPERIENCE_CLIENT_KEY_FILE' (Join-Path $root 'keys\identity-experience-bff.pem')
 if (-not (Test-Path $clientKey)) {
-    throw "No client key at $clientKey. Run: node scripts/new-client-key.mjs, then have the server's operator install keys\identity-experience-bff.jwk.json (README.md)."
+    throw "No client key at $clientKey. Run: node scripts/new-client-key.mjs, then have the server's operator register $($env:IDENTITY_EXPERIENCE_CLIENT_ID) with keys\identity-experience-bff.jwk.json (deploy/dev/README.md)."
 }
 $env:IDENTITY_EXPERIENCE_CLIENT_KEY_FILE = $clientKey
 $env:IDENTITY_EXPERIENCE_REDIRECT_URI = "$origin/auth/callback"

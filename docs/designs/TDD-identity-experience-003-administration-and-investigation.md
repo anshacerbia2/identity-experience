@@ -384,6 +384,13 @@ describes (`unmanaged`), which an operator adopts or deletes; such a finding nam
 registration, so it is counted beside no client. Every outcome is a word and a glyph,
 never a colour alone.
 
+**Asks consent (1.32.0).** An `external` client is marked **Asks consent** beside its audience class,
+and a registration's record shows **Consent** from the API's `consent_required`. The setting is not a
+field anyone edits: `STD-IAM-002` 1.9.0 §3.6 derives it from the audience class "at registration and
+adoption", and `ADR-IAM-003` §5.11 makes a difference between the kernel client's consent setting and
+the derived one drift, which the reconciler repairs. So the page offers no control for it, and a
+consent finding is shown like any other field class's.
+
 **Unmanaged clients.** Below the summary, the page lists each open `unmanaged` finding: the
 client's `clientId`, whether it is still enabled, the Keycloak user its latest admin event
 names, when that event happened, and when the reconciler first found it. A count tells an

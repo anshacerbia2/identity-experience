@@ -105,6 +105,7 @@ export const en = {
   'findings.field.client_keys': 'Client keys',
   'findings.field.suspension': 'Suspension',
   'findings.field.logout': 'Logout configuration',
+  'findings.field.consent': 'Consent',
   'drift.unmanaged':
     '{count, plural, one {# Keycloak client no registration describes} other {# Keycloak clients no registration describes}}',
   'unmanaged.title': 'Unmanaged clients',
@@ -911,6 +912,7 @@ export const id: Messages = {
   'findings.field.client_keys': 'Kunci client',
   'findings.field.suspension': 'Penangguhan',
   'findings.field.logout': 'Konfigurasi logout',
+  'findings.field.consent': 'Persetujuan',
   'drift.unmanaged': '{count, plural, other {# client Keycloak tanpa registrasi}}',
   'unmanaged.title': 'Client tanpa registrasi',
   'unmanaged.description':

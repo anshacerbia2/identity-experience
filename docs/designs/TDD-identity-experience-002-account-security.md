@@ -296,6 +296,10 @@ POST  /api/v1/me/notification-addresses/{address_id}:remove
 POST  /api/v1/me/notification-addresses/{address_id}:send-proof   1.10.0
 ```
 
+`GET /v1/me/consents` answers `{"consents": [{"security_ref", "client", "scopes", "granted_at",
+"updated_at", "access_token_lifetime_seconds"}]}` (`TDD-identity-control-005` 2.13.0). `:withdraw`
+takes no body and answers a security operation, `200` when final or `202` to follow (§Consents).
+
 Every path is scoped to the authenticated Principal by the API, never by a parameter the
 browser supplies. `/me` carries no identifier for the same reason: a path that accepts
 one invites a handler that trusts it.

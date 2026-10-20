@@ -21,6 +21,8 @@ const fieldLabels: Readonly<Record<string, MessageKey>> = {
   client_keys: 'findings.field.client_keys',
   suspension: 'findings.field.suspension',
   logout: 'findings.field.logout',
+  // Whether the client asks consent, derived from its audience class (STD-IAM-002 1.9.0 §3.6).
+  consent: 'findings.field.consent',
 };
 
 // A finding with no field class is about the whole client: it is missing, or was recreated.
