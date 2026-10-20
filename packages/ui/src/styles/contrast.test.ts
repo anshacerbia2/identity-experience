@@ -161,6 +161,14 @@ const pairs: readonly Pair[] = [
     surface: ['--ds-color-danger-surface-subtle-default'],
     minimum: text,
   },
+  // The scope line, on the opaque canvas colour (TDD-identity-experience-003 1.32.0 §Layout). Measured
+  // over the auroras too, which is no lighter than the line's own background.
+  {
+    what: 'scope line',
+    foreground: '--ds-color-neutral-text-strong-default',
+    surface: [],
+    minimum: text,
+  },
   // The navigation rail.
   { what: 'brand name', foreground: '--ds-color-neutral-text-strong-default', surface: rail, minimum: text },
   {

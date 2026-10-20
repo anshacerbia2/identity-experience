@@ -13,6 +13,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
     <AppFrame
       name={<Message id="app.name" />}
       environment={<Message id="app.environment.development" />}
+      scope={<Message id="shell.scope" />}
       nav={
         <nav className={navClasses.nav} aria-labelledby="primary-nav-label">
           <div className={navClasses.group}>
@@ -29,6 +30,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
                 >
                   <Icon name="shield" />
                   <Message id="shell.nav.security" />
+                </Link>
+              </li>
+              <li>
+                <Link to="/consents" className={navClasses.item} activeProps={{ 'aria-current': 'page' }}>
+                  <Icon name="check" />
+                  <Message id="shell.nav.consents" />
                 </Link>
               </li>
             </ul>

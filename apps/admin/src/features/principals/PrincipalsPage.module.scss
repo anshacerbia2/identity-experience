@@ -67,6 +67,14 @@
     max-inline-size: 40rem;
   }
 
+  // A form that holds a table, such as an adoption's checks: as wide as the panel's body, never its
+  // content, so the table scrolls in its own region instead of widening the form past a 320 CSS px
+  // screen (TDD-identity-experience-003 §Layout). The panel's body aligns its children to the start,
+  // which would size the form to its content.
+  .wideForm {
+    align-self: stretch;
+  }
+
   .formRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));

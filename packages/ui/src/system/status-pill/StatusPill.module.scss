@@ -15,7 +15,13 @@
     font-weight: var(--ds-font-weight-medium);
     color: var(--pill-text);
     background: var(--pill-surface);
-    white-space: nowrap;
+
+    // A status longer than the room it has wraps inside the pill rather than pushing the page sideways
+    // (STD-GLB-FE-005 2.1.0 §3.10, TDD-identity-experience-003 1.32.0 §Layout), as
+    // organization-experience's copy already does. `nowrap` "does not allow wrapping", so a pill's
+    // min-content size was its whole text. A wrapped pill keeps its padding above and below.
+    max-inline-size: 100%;
+    padding-block: var(--ds-spacing-3xs);
   }
 
   .root[data-tone='info'] {

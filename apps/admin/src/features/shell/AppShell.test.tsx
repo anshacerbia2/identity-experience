@@ -48,9 +48,24 @@ describe('AppShell navigation', () => {
     expect(within(nav).getByRole('list', { name: 'Identities' })).toHaveTextContent(/Principals.*Workloads/);
     expect(within(nav).getByRole('list', { name: 'Applications' })).toHaveTextContent('Registrations');
     expect(within(nav).getByRole('list', { name: 'Governance' })).toHaveTextContent(
-      /Approvals.*Emergency access/,
+      /Approvals.*Emergency access.*Bootstrap ceremony/,
     );
     expect(within(nav).getByRole('list', { name: 'Monitoring' })).toHaveTextContent('Tenant context');
     expect(nav).not.toHaveTextContent(/keycloak|kernel/i);
+  });
+});
+
+describe('AppShell scope line', () => {
+  it('states the scope in one line, before the bar, with no control in it', async () => {
+    stubFetch(() => json({ authenticated: false }));
+    const { container } = renderApp('/');
+    const line = await screen.findByText('Provider scope: every identity');
+    const scope = line.closest('[data-scope-line]');
+    expect(scope).not.toBeNull();
+    // It comes before the bar with the environment and the session, and holds nothing focusable
+    // (TDD-identity-experience-003 1.32.0 §Layout).
+    expect(scope?.nextElementSibling?.tagName).toBe('HEADER');
+    expect(scope?.querySelector('a, button, input, select, textarea')).toBeNull();
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

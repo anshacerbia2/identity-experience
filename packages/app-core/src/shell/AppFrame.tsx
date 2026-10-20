@@ -20,19 +20,26 @@ export const navClasses = {
   item: styles['navItem'],
 } as const;
 
-// AppFrame is the frame every page of every application renders in: a navigation rail, a top bar
-// stating the environment and the session, and the page. The environment and the session are
-// always visible, because STD-GLB-FE-009 requires the current administrative scope to be. The
-// application names itself and supplies its navigation; the rest is the same in each, so a person
-// moving between them finds the session, the language and the theme where they left them.
+// AppFrame is the frame every page of every application renders in: a navigation rail, the scope
+// line, a top bar stating the environment and the session, and the page. The application names
+// itself, its scope and its navigation; the rest is the same in each, so a person moving between them
+// finds the session, the language and the theme where they left them.
+//
+// The scope line is the one thing that stays in view at every width (SAD-002 2.2.0 §8.7: "the scope
+// line stays in view at every width, compacted to one sticky line on a small viewport, and nothing
+// else is required to stay in view"). It is one short line, never wrapped. Under the wide layout, or
+// on a short viewport, the bar with the environment and the session is static and scrolls away
+// (STD-GLB-FE-005 2.2.0 §3.10; TDD-identity-experience-003 1.32.0 §Layout).
 export function AppFrame({
   name,
   environment,
+  scope,
   nav,
   children,
 }: {
   readonly name: ReactNode;
   readonly environment: ReactNode;
+  readonly scope: ReactNode;
   readonly nav: ReactNode;
   readonly children: ReactNode;
 }): ReactElement {
@@ -53,6 +60,11 @@ export function AppFrame({
       </aside>
 
       <div className={styles['column']}>
+        <p className={styles['scope']} data-scope-line="">
+          <Icon name="shield" />
+          <span className={styles['scopeText']}>{scope}</span>
+        </p>
+
         <header className={styles['bar']}>
           <StatusPill tone="warning">{environment}</StatusPill>
           <div className={styles['barEnd']}>

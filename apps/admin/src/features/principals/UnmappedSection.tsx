@@ -1,14 +1,16 @@
 import { Link } from '@tanstack/react-router';
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
-import { Panel, StatusPill, Table } from '@identity-experience/ui';
+import { useSession } from '@identity-experience/app-core/session';
+import { Button, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
-import type { UnmappedClass } from '@/domain/principal';
+import { adoptable, type UnmappedClass } from '@/domain/principal';
 
+import { AdoptOrphan } from './AdoptOrphan';
 import { useUnmapped } from './principals-api';
 import styles from './PrincipalsPage.module.scss';
 
@@ -19,11 +21,16 @@ const classLabel: Readonly<Record<UnmappedClass, MessageKey>> = {
 };
 
 // UnmappedSection lists the kernel users no Principal accounts for: the sweep's open unmapped, orphan
-// and duplicate findings (TDD-identity-experience-003 §Principal Provisioning and Portability). It
-// offers no action, because the API has none: such a user came from outside the authorized path, and
-// deleting it in the kernel is the triage decision, which the next sweep sees.
+// and duplicate findings (TDD-identity-experience-003 §Principal Provisioning and Portability). An
+// orphan's identifier is offered for adoption (1.32.0, §Adopting an Orphan's Identifier), unless it is
+// the provider's own. Nothing else is offered, because the API has nothing else: such a user came from
+// outside the authorized path, and deleting it in the kernel is the triage decision, which the next
+// sweep sees.
 export function UnmappedSection(): ReactElement {
   const unmapped = useUnmapped();
+  const session = useSession();
+  const self = session.data?.authenticated === true ? session.data.principalId : null;
+  const [adopting, setAdopting] = useState<string | null>(null);
 
   let body: ReactElement;
   if (unmapped.isPending) {
@@ -63,6 +70,9 @@ export function UnmappedSection(): ReactElement {
             <Table.HeaderCell>
               <Message id="principals.dangling.column.detected" />
             </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="principals.unmapped.column.action" />
+            </Table.HeaderCell>
           </Table.Row>
         </Table.Head>
         <Table.Body>
@@ -93,6 +103,20 @@ export function UnmappedSection(): ReactElement {
               <Table.Cell>
                 <FormattedDate value={finding.detected_at} dateStyle="medium" timeStyle="short" />
               </Table.Cell>
+              <Table.Cell>
+                {adoptable(finding, self) && finding.claimed_principal_id !== undefined ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-expanded={adopting === finding.claimed_principal_id}
+                    onClick={() => {
+                      setAdopting(finding.claimed_principal_id ?? null);
+                    }}
+                  >
+                    <Message id="principals.adopt" />
+                  </Button>
+                ) : null}
+              </Table.Cell>
             </Table.Row>
           ))}
         </Table.Body>
@@ -109,6 +133,15 @@ export function UnmappedSection(): ReactElement {
         <Message id="principals.unmapped.description" />
       </p>
       {body}
+      {adopting === null ? null : (
+        <AdoptOrphan
+          key={adopting}
+          principalId={adopting}
+          onClose={() => {
+            setAdopting(null);
+          }}
+        />
+      )}
     </section>
   );
 }

@@ -238,6 +238,10 @@ export const coreEn = {
   'changes.rules.lifetime.same': 'The class registered now is refused: it would change nothing.',
   'changes.done.applied.lifetime': 'The lifetime class is changed.',
   'registration.field.backChannelLogout': 'Back-channel logout',
+  'registration.field.consent': 'Consent',
+  'registration.consent.asks':
+    'Asks consent: each person allows it once, and can withdraw it from their account',
+  'registration.consent.none': 'Asks no consent: its registration is the consent',
   'registration.backChannelLogout.none': 'None: a session ends here at the next token refresh',
   'changes.kind.backchannel_logout_uri': 'Back-channel logout URI',
   'changes.kind.unknown': 'A change kind this version does not show yet: {kind}',
@@ -499,6 +503,10 @@ export const coreId: CoreMessages = {
   'changes.rules.lifetime.same': 'Kelas yang terdaftar sekarang ditolak: tidak ada yang berubah.',
   'changes.done.applied.lifetime': 'Kelas umur sudah diubah.',
   'registration.field.backChannelLogout': 'Back-channel logout',
+  'registration.field.consent': 'Persetujuan',
+  'registration.consent.asks':
+    'Meminta persetujuan: setiap orang mengizinkannya sekali, dan bisa menariknya dari akunnya',
+  'registration.consent.none': 'Tidak meminta persetujuan: pendaftarannya adalah persetujuannya',
   'registration.backChannelLogout.none': 'Tidak ada: sesi di sini berakhir pada penyegaran token berikutnya',
   'changes.kind.backchannel_logout_uri': 'URI back-channel logout',
   'changes.kind.unknown': 'Jenis perubahan yang belum ditampilkan versi ini: {kind}',

@@ -9,6 +9,7 @@ import type {
   CreatePrincipalRequest,
   DanglingMapping,
   PendingMapping,
+  PrincipalAdoption,
   PrincipalCreated,
   PrincipalSweep,
   QuarantinedMapping,
@@ -150,6 +151,34 @@ export function useRelease() {
         queryClient.invalidateQueries({ queryKey: principalKeys.quarantined }),
         queryClient.invalidateQueries({ queryKey: principalKeys.pending }),
       ]),
+  });
+}
+
+// useAdopt plans or performs the adoption of an orphan's identifier (ADR-IAM-001 §5.11,
+// TDD-identity-control-001 1.23.0). A plan and an adoption are different requests, so useCommandPost
+// gives each its own Idempotency-Key: the adoption is never answered with the plan's replay. Both carry
+// the reason. An adoption the checks refuse is a 409 whose detail names the check.
+export function useAdopt() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      principalId,
+      reason,
+      dryRun,
+    }: {
+      readonly principalId: string;
+      readonly reason: string;
+      readonly dryRun: boolean;
+    }) =>
+      post<PrincipalAdoption>(
+        `/v1/principals/${encodeURIComponent(principalId)}:adopt`,
+        { dry_run: dryRun },
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSuccess: (adoption) =>
+      adoption.adopted ? queryClient.invalidateQueries({ queryKey: principalKeys.unmapped }) : undefined,
   });
 }
 

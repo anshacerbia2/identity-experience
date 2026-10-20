@@ -17,3 +17,5 @@ export const sessionCookie = '__Host-ident_session';
 export const operatorPrincipal = 'prn_01TESTPRINCIPAL';
 export const subjectPrincipal = '0192f0e0-3333-7000-8000-000000000007';
 export const registrationId = '0192f0e0-1111-7000-8000-000000000001';
+// An identifier an orphan finding claims, which no Principal holds.
+export const orphanPrincipal = '0192f0e0-3333-7000-8000-0000000000cc';

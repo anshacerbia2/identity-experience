@@ -10,7 +10,14 @@ import type { MessageKey } from '@/core/i18n/messages';
 // A page in the navigation: where it goes, its icon, and its label.
 interface NavItem {
   readonly to:
-    '/' | '/principals' | '/workloads' | '/registrations' | '/changes' | '/emergency-grants' | '/projections';
+    | '/'
+    | '/principals'
+    | '/workloads'
+    | '/registrations'
+    | '/changes'
+    | '/emergency-grants'
+    | '/ceremony'
+    | '/projections';
   readonly icon: IconName;
   readonly label: MessageKey;
 }
@@ -42,6 +49,7 @@ const groups: readonly {
     items: [
       { to: '/changes', icon: 'check', label: 'shell.nav.changes' },
       { to: '/emergency-grants', icon: 'shield', label: 'shell.nav.emergency' },
+      { to: '/ceremony', icon: 'key', label: 'shell.nav.ceremony' },
     ],
   },
   {
@@ -58,6 +66,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
     <AppFrame
       name={<Message id="app.name" />}
       environment={<Message id="app.environment.development" />}
+      scope={<Message id="shell.scope" />}
       nav={
         <nav className={navClasses.nav} aria-labelledby="primary-nav-label">
           <span id="primary-nav-label" hidden>

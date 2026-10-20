@@ -1,7 +1,7 @@
 // What the stand-in Identity Control API answers, per path: enough of each read for every main page
 // to render its tables, states and empty states, in the shapes identity-control serves. The values are
 // invented; the shapes are the applications' contracts (apps/*/src/domain, packages/app-core).
-import { operatorPrincipal, registrationId, subjectPrincipal } from './shared.js';
+import { operatorPrincipal, orphanPrincipal, registrationId, subjectPrincipal } from './shared.js';
 
 const at = (daysAgo: number): string => new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 
@@ -19,6 +19,7 @@ const registration = {
   audience: ['billing-api'],
   redirect_uris: ['https://billing.example.com/auth/callback'],
   backchannel_logout_uri: 'https://billing.example.com/auth/back-channel-logout',
+  consent_required: false,
   state: 'active',
   version: 3,
   created_at: at(30),
@@ -45,7 +46,21 @@ const workload = {
 };
 
 const answers: Readonly<Record<string, unknown>> = {
-  '/v1/registrations': { registrations: [registration], next: null },
+  '/v1/registrations': {
+    registrations: [
+      registration,
+      // A partner's client: external, so it asks each person's consent (STD-IAM-002 1.9.0 §3.6).
+      {
+        ...registration,
+        registration_id: '0192f0e0-1111-7000-8000-000000000003',
+        client_key: 'partner-travel-portal',
+        audience_class: 'external',
+        consent_required: true,
+        backchannel_logout_uri: undefined,
+      },
+    ],
+    next: null,
+  },
   [`/v1/registrations/${registrationId}`]: registration,
   [`/v1/registrations/${registrationId}/findings`]: { findings: [] },
   [`/v1/registrations/${registrationId}/drift-exceptions`]: { exceptions: [] },
@@ -115,7 +130,57 @@ const answers: Readonly<Record<string, unknown>> = {
   '/v1/registration-requests:mine': { requests: [] },
   '/v1/application-developers': { developers: [] },
   '/v1/principals:dangling': { dangling: [] },
-  '/v1/principals:unmapped': { unmapped: [] },
+  // An orphan a restore to an older point left behind: its identifier is offered for adoption
+  // (TDD-identity-experience-003 1.32.0).
+  '/v1/principals:unmapped': {
+    unmapped: [
+      {
+        finding_id: '0192f0e0-ffff-7000-8000-000000000001',
+        finding_class: 'orphan',
+        claimed_principal_id: orphanPrincipal,
+        username: 'restored.after.backup',
+        user_disabled: false,
+        detected_at: at(0.1),
+      },
+    ],
+  },
+  // The bootstrap ceremony's record, unreviewed, run by people other than the one signed in, so the
+  // review is offered (STD-IAM-001 2.9.0 §3.10).
+  '/v1/bootstrap-ceremony': {
+    operator: 'Oscar Operator',
+    witness: 'Wendy Witness',
+    reason: 'First provider for the development estate, CHG-2026-0001, run from the bootstrap runbook',
+    principal_id: subjectPrincipal,
+    requested_at: at(30),
+    reviewed: false,
+    reviews: [],
+  },
+  // A person's consents: a partner's client with a registered lifetime, and one no registration
+  // describes, with a long scope list (TDD-identity-experience-002 1.11.0).
+  '/v1/me/consents': {
+    consents: [
+      {
+        security_ref: 'k1.consent.partner',
+        client: 'partner-travel-portal',
+        scopes: ['openid', 'scnehaux-profile'],
+        granted_at: at(10),
+        updated_at: null,
+        access_token_lifetime_seconds: 300,
+      },
+      {
+        security_ref: 'k1.consent.legacy',
+        client: 'regional-finance-reporting-partner-integration',
+        scopes: [
+          'openid',
+          'scnehaux-profile',
+          'partner-travel-bookings-read',
+          'partner-expense-reports-read',
+        ],
+        granted_at: at(20),
+        access_token_lifetime_seconds: null,
+      },
+    ],
+  },
   '/v1/principals:search': { principals: [] },
   '/v1/security-operations:unresolved': { operations: [] },
   '/v1/principals:quarantined': {

@@ -48,7 +48,30 @@ export const securityKeys = {
   sessions: ['me', 'sessions'] as const,
   authenticators: ['me', 'authenticators'] as const,
   addresses: ['me', 'notification-addresses'] as const,
+  consents: ['me', 'consents'] as const,
 };
+
+// A consent the person gave a client that asks for one: an `external` registration
+// (STD-IAM-002 1.9.0 §3.6, ADR-IAM-003 §5.11; TDD-identity-control-005 2.13.0, slice 3b). `client` is
+// the client's client_key and `scopes` what it may read. A withdrawal stops the next grant and the
+// refresh tokens issued on it; an access token already issued lives until it expires, at most
+// access_token_lifetime_seconds, which is null for a client no registration describes.
+export interface MyConsent {
+  readonly security_ref: string;
+  readonly client: string;
+  readonly scopes: readonly string[];
+  readonly granted_at: string;
+  readonly updated_at?: string | null;
+  readonly access_token_lifetime_seconds: number | null;
+}
+
+// accessEndsBy is the latest an access token issued before a withdrawal at `withdrawnAt` can be
+// presented: the withdrawal plus the client's registered access token lifetime, or null when no
+// registration states one.
+export const accessEndsBy = (consent: MyConsent, withdrawnAt: number): number | null =>
+  consent.access_token_lifetime_seconds === null
+    ? null
+    : withdrawnAt + consent.access_token_lifetime_seconds * 1_000;
 
 // A person's notification address (TDD-identity-control-008 1.2.0): where they are told when their
 // account changes. A pending one waits for the code sent to it. An active one with no verified_at is in
@@ -77,6 +100,15 @@ export function useMySessions() {
     queryFn: async ({ signal }) =>
       (await apiGet<{ readonly sessions: readonly MySession[] | null }>('/v1/me/sessions', signal))
         .sessions ?? [],
+  });
+}
+
+export function useMyConsents() {
+  return useQuery({
+    queryKey: securityKeys.consents,
+    queryFn: async ({ signal }) =>
+      (await apiGet<{ readonly consents: readonly MyConsent[] | null }>('/v1/me/consents', signal))
+        .consents ?? [],
   });
 }
 
@@ -115,7 +147,8 @@ export async function follow(operation: Operation, everyMs = 2_000, forMs = 30_0
 export type SelfCommandRequest =
   | { readonly action: 'terminate'; readonly securityRef: string }
   | { readonly action: 'terminate-all' }
-  | { readonly action: 'remove'; readonly securityRef: string };
+  | { readonly action: 'remove'; readonly securityRef: string }
+  | { readonly action: 'withdraw'; readonly securityRef: string };
 
 export type SelfCommand = SelfCommandRequest & { readonly idempotencyKey: string };
 
@@ -127,6 +160,8 @@ const commandPath = (command: SelfCommand) => {
       return '/v1/me/sessions:terminate-all' as const;
     case 'remove':
       return `/v1/me/authenticators/${encodeURIComponent(command.securityRef)}:remove` as const;
+    case 'withdraw':
+      return `/v1/me/consents/${encodeURIComponent(command.securityRef)}:withdraw` as const;
   }
 };
 

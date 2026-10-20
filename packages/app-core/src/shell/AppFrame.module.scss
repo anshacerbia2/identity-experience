@@ -1,4 +1,21 @@
+// The scope line's height: one line of small text and its padding. The bar sticks below it on a wide
+// screen, and the page pads its scroll position by it, so focus never lands under it.
+$scope-line: 2rem;
+
 @layer components {
+  // A component scrolled into view by focus lands below what stays in view, never under it
+  // (WCAG 2.2 SC 2.4.11, technique C43; STD-GLB-FE-005 2.2.0 §3.10). scroll-padding defines "offsets
+  // that define the optimal viewing region of a scrollport", used when an element is "scrolled into
+  // view (e.g. for targeting or focusing operations)" (CSS Scroll Snap 1 §4.2). The document is the
+  // scroller, so the padding is on the root, whenever this frame is on the page.
+  :root:has(.root) {
+    scroll-padding-block-start: calc($scope-line + var(--ds-layout-navbar-height) + var(--ds-spacing-xs));
+
+    @media (width < 60rem), (height < 30rem) {
+      scroll-padding-block-start: calc($scope-line + var(--ds-spacing-xs));
+    }
+  }
+
   // Mobile first: the rail sits above the page, and becomes a fixed column once there is room.
   .root {
     display: grid;
@@ -142,11 +159,41 @@
     min-inline-size: 0;
   }
 
+  // The scope line: what the person acts on, in one line that stays in view at every width (SAD-002
+  // 2.2.0 §8.7). Opaque, so what scrolls beneath never shows through its words. Its text is short by
+  // design and never wraps; were it ever longer than the line, it would end in an ellipsis rather than
+  // grow a second line.
+  .scope {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: var(--ds-z-sticky);
+    display: flex;
+    align-items: center;
+    gap: var(--ds-spacing-xs);
+    block-size: $scope-line;
+    padding-inline: var(--ds-spacing-lg);
+    border-block-end: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-subtle-default);
+    font-size: var(--ds-font-size-xs);
+    font-weight: var(--ds-font-weight-semibold);
+    letter-spacing: var(--ds-letter-spacing-wide);
+    white-space: nowrap;
+    color: var(--ds-color-neutral-text-strong-default);
+    background: var(--ds-color-neutral-canvas-default);
+  }
+
+  .scopeText {
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // On a wide screen the bar stays in view below the scope line. Under the wide layout, or on a short
+  // viewport, it is static and scrolls away (below).
   .bar {
     flex-wrap: wrap;
     padding-block: var(--ds-spacing-xs);
     position: sticky;
-    inset-block-start: 0;
+    inset-block-start: $scope-line;
     z-index: var(--ds-z-sticky);
     display: flex;
     align-items: center;
@@ -217,8 +264,28 @@
       padding-inline: var(--ds-spacing-md);
     }
 
+    .scope {
+      padding-inline: var(--ds-spacing-md);
+    }
+
     .main {
       padding: var(--ds-spacing-lg) var(--ds-spacing-md) var(--ds-spacing-2xl);
+    }
+  }
+
+  // Under the wide layout, and on a short viewport such as a laptop zoomed to 400%, only the scope line
+  // stays in view (STD-GLB-FE-005 2.2.0 §3.10). Technique C34 un-fixes sticky regions by media query,
+  // because "sticky regions may block a big portion of the screen", and the Understanding document of
+  // SC 1.4.10 suggests that "at smaller viewport sizes that such components are modified to have static
+  // positioning". The bar with the environment and the session, and the navigation rail, scroll away.
+  @media (width < 60rem), (height < 30rem) {
+    .bar {
+      position: static;
+    }
+
+    .rail {
+      position: static;
+      block-size: auto;
     }
   }
 }

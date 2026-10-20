@@ -14,6 +14,7 @@ export const en = {
   'app.environment.development': 'Development',
 
   'shell.nav.label': 'Primary',
+  'shell.scope': 'Provider scope: every identity',
   'shell.nav.overview': 'Overview',
   'shell.nav.section.identities': 'Identities',
   'shell.nav.section.applications': 'Applications',
@@ -51,6 +52,7 @@ export const en = {
   'registrations.column.client': 'Client',
   'registrations.column.profile': 'Profile',
   'registrations.column.audienceClass': 'Audience class',
+  'registrations.asksConsent': 'Asks consent',
   'registrations.column.state': 'State',
   'registrations.column.lifespan': 'Token lifetime',
   'registrations.column.findings': 'Open findings',
@@ -508,7 +510,7 @@ export const en = {
 
   'principals.unmapped.title': 'Kernel users no Principal accounts for',
   'principals.unmapped.description':
-    'Users the sweep found in the kernel outside the authorized path. There is nothing to do here: decide in the kernel whether each should exist, and the next sweep resolves the finding once the user is gone.',
+    'Users the sweep found in the kernel outside the authorized path. An identifier no Principal holds, left by a restore to an older point, is adopted again once four checks hold. For every other user, decide in the kernel whether it should exist; the next sweep resolves the finding once the user is gone.',
   'principals.unmapped.empty': 'The last sweep found none.',
   'principals.unmapped.caption': 'Open findings about kernel users, oldest first',
   'principals.unmapped.column.class': 'Finding',
@@ -521,6 +523,30 @@ export const en = {
   'principals.unmapped.none': 'None',
   'principals.unmapped.disabled': 'Disabled by the sweep',
   'principals.unmapped.enabled': 'Still enabled',
+  'principals.unmapped.column.action': 'Action',
+  'principals.adopt': 'Adopt identifier',
+  'principals.adopt.title': 'Adopt identifier {id}',
+  'principals.adopt.body':
+    'A restore to an older point left this person in the kernel with no Principal. Adoption gives them back the same identifier, so every reference to it, such as their Memberships, means them again. Plan first: it reads four checks and changes nothing.',
+  'principals.adopt.plan': 'Plan the adoption',
+  'principals.adopt.apply': 'Adopt',
+  'principals.adopt.caption': 'The four checks an adoption needs',
+  'principals.adopt.column.check': 'Check',
+  'principals.adopt.column.holds': 'Result',
+  'principals.adopt.column.detail': 'What it read',
+  'principals.adopt.holds': 'Holds',
+  'principals.adopt.fails': 'Does not hold',
+  'principals.adopt.check.orphan_finding': 'An open orphan finding claims the identifier',
+  'principals.adopt.check.one_kernel_user': 'Exactly one kernel user, a person, carries it',
+  'principals.adopt.check.newer_than_backup': 'It is newer than every mapping the restored database holds',
+  'principals.adopt.check.creation_on_record': 'The kernel’s admin events record this service creating it',
+  'principals.adopt.ready':
+    'Every check holds. Adopting maps the identifier to its kernel user, suspended: the user is disabled and its sessions end. Restore the Principal from its page to return it to service.',
+  'principals.adopt.refused':
+    'Not adoptable. identity-control says: {refusal}. Triage decides what happens to this user (the unmapped Principal triage runbook).',
+  'principals.adopt.done':
+    'Adopted. The Principal is suspended: restore it from its page to return it to service.',
+  'principals.adopt.open': 'Open the Principal',
 
   'operations.title': 'Parked security operations',
   'operations.description':
@@ -638,6 +664,55 @@ export const en = {
     'The person had no address to tell. Ask them to add one in the account application; no administrator can add one for them.',
 
   'shell.nav.emergency': 'Emergency access',
+  'shell.nav.ceremony': 'Bootstrap ceremony',
+  'ceremony.eyebrow': 'Provider authority',
+  'ceremony.title': 'Bootstrap ceremony',
+  'ceremony.lead':
+    'How the first Principal and its emergency grant came to exist: who ran the ceremony, who witnessed it, and why. A third person, independent of both and of the first Principal, reviews the record.',
+  'ceremony.none':
+    'No bootstrap ceremony is on record. The ceremony has not run against this Control Database.',
+  'ceremony.record.title': 'The record',
+  'ceremony.record.description':
+    'Written once by the ceremony. Nobody changes it: identity-control holds no right to update or delete it.',
+  'ceremony.reviewed': '{count, plural, one {Reviewed once} other {Reviewed # times}}',
+  'ceremony.unreviewed': 'Not reviewed yet',
+  'ceremony.field.operator': 'Operator',
+  'ceremony.field.witness': 'Witness',
+  'ceremony.field.reason': 'Reason',
+  'ceremony.field.principal': 'First Principal',
+  'ceremony.field.requested': 'Run on',
+  'ceremony.principal.none': 'None recorded: the ceremony did not create its Principal',
+  'ceremony.reviews.title': 'Reviews',
+  'ceremony.reviews.description': 'Each review is recorded once and never changed, oldest first.',
+  'ceremony.reviews.none': 'Nobody has reviewed the record yet.',
+  'ceremony.reviews.caption': 'Reviews of the ceremony record, oldest first',
+  'ceremony.reviews.column.reviewer': 'Reviewer',
+  'ceremony.reviews.column.outcome': 'Outcome',
+  'ceremony.reviews.column.statement': 'Statement',
+  'ceremony.reviews.column.recordedBy': 'Recorded by',
+  'ceremony.reviews.column.when': 'When',
+  'ceremony.outcome.satisfactory': 'Satisfactory',
+  'ceremony.outcome.findings': 'Findings',
+  'ceremony.review': 'Record review',
+  'ceremony.review.title': 'Record a review of the ceremony',
+  'ceremony.review.body':
+    'Read the record against the evidence the runbook lists. The review is recorded once, with your Principal, and cannot be changed. Your statement is the reason.',
+  'ceremony.review.reviewer': 'Reviewer',
+  'ceremony.review.reviewer.hint': 'Your name, as the runbook records the ceremony’s people.',
+  'ceremony.review.reviewer.required': 'Enter the reviewer’s name.',
+  'ceremony.review.reviewer.operator':
+    'This is the operator’s name. An independent person reviews the record, not the operator.',
+  'ceremony.review.reviewer.witness':
+    'This is the witness’s name. An independent person reviews the record, not the witness.',
+  'ceremony.review.outcome': 'Outcome',
+  'ceremony.review.submit': 'Record the review',
+  'ceremony.review.recorded': 'The review is recorded.',
+  'ceremony.review.notYou.firstPrincipal':
+    'You hold the first Principal, so you cannot review the ceremony that created it. An independent provider records the review.',
+  'ceremony.review.notYou.operator':
+    'You ran the ceremony as its operator, so you cannot review it. An independent provider records the review.',
+  'ceremony.review.notYou.witness':
+    'You witnessed the ceremony, so you cannot review it. An independent provider records the review.',
   'emergency.eyebrow': 'Provider authority',
   'emergency.title': 'Emergency grants',
   'emergency.lead':
@@ -745,6 +820,7 @@ export const id: Messages = {
   'app.environment.development': 'Development',
 
   'shell.nav.label': 'Utama',
+  'shell.scope': 'Lingkup provider: setiap identitas',
   'shell.nav.overview': 'Ringkasan',
   'shell.nav.section.identities': 'Identitas',
   'shell.nav.section.applications': 'Aplikasi',
@@ -782,6 +858,7 @@ export const id: Messages = {
   'registrations.column.client': 'Client',
   'registrations.column.profile': 'Profil',
   'registrations.column.audienceClass': 'Kelas audiens',
+  'registrations.asksConsent': 'Meminta persetujuan',
   'registrations.column.state': 'Status',
   'registrations.column.lifespan': 'Umur token',
   'registrations.column.findings': 'Temuan terbuka',
@@ -1237,7 +1314,7 @@ export const id: Messages = {
 
   'principals.unmapped.title': 'User kernel yang tidak dimiliki Principal mana pun',
   'principals.unmapped.description':
-    'User yang ditemukan pembanding di kernel di luar jalur resmi. Tidak ada tindakan di sini: putuskan di kernel apakah user itu boleh ada, dan pembanding berikutnya menutup temuan begitu user-nya hilang.',
+    'User yang ditemukan pembanding di kernel di luar jalur resmi. Pengenal yang tidak dimiliki Principal mana pun, sisa pemulihan ke titik yang lebih lama, diadopsi lagi setelah empat pemeriksaan terpenuhi. Untuk user lain, putuskan di kernel apakah user itu boleh ada; pembanding berikutnya menutup temuan begitu user-nya hilang.',
   'principals.unmapped.empty': 'Pembanding terakhir tidak menemukan satu pun.',
   'principals.unmapped.caption': 'Temuan terbuka tentang user kernel, yang terlama dulu',
   'principals.unmapped.column.class': 'Temuan',
@@ -1250,6 +1327,31 @@ export const id: Messages = {
   'principals.unmapped.none': 'Tidak ada',
   'principals.unmapped.disabled': 'Dinonaktifkan pembanding',
   'principals.unmapped.enabled': 'Masih aktif',
+  'principals.unmapped.column.action': 'Tindakan',
+  'principals.adopt': 'Adopsi pengenal',
+  'principals.adopt.title': 'Adopsi pengenal {id}',
+  'principals.adopt.body':
+    'Pemulihan ke titik yang lebih lama meninggalkan orang ini di kernel tanpa Principal. Adopsi mengembalikan pengenal yang sama, jadi setiap rujukan kepadanya, seperti Membership-nya, kembali berarti orang ini. Rencanakan dulu: rencana membaca empat pemeriksaan dan tidak mengubah apa pun.',
+  'principals.adopt.plan': 'Rencanakan adopsi',
+  'principals.adopt.apply': 'Adopsi',
+  'principals.adopt.caption': 'Empat pemeriksaan yang dibutuhkan adopsi',
+  'principals.adopt.column.check': 'Pemeriksaan',
+  'principals.adopt.column.holds': 'Hasil',
+  'principals.adopt.column.detail': 'Yang dibaca',
+  'principals.adopt.holds': 'Terpenuhi',
+  'principals.adopt.fails': 'Tidak terpenuhi',
+  'principals.adopt.check.orphan_finding': 'Temuan orphan yang terbuka mengklaim pengenal ini',
+  'principals.adopt.check.one_kernel_user': 'Tepat satu user kernel, seorang manusia, membawanya',
+  'principals.adopt.check.newer_than_backup':
+    'Pengenal lebih baru dari setiap mapping di basis data yang dipulihkan',
+  'principals.adopt.check.creation_on_record': 'Admin event kernel mencatat layanan ini membuatnya',
+  'principals.adopt.ready':
+    'Semua pemeriksaan terpenuhi. Adopsi memetakan pengenal ke user kernel-nya dalam keadaan ditangguhkan: user dinonaktifkan dan sesinya berakhir. Pulihkan Principal dari halamannya untuk mengaktifkannya lagi.',
+  'principals.adopt.refused':
+    'Tidak bisa diadopsi. identity-control berkata: {refusal}. Triase yang memutuskan nasib user ini (runbook triase Principal tanpa mapping).',
+  'principals.adopt.done':
+    'Diadopsi. Principal ditangguhkan: pulihkan dari halamannya untuk mengaktifkannya lagi.',
+  'principals.adopt.open': 'Buka Principal',
 
   'operations.title': 'Operasi keamanan yang tertahan',
   'operations.description':
@@ -1367,6 +1469,56 @@ export const id: Messages = {
     'Orangnya tidak punya alamat untuk diberi tahu. Minta dia menambahkannya di aplikasi akun; administrator tidak bisa menambahkannya untuknya.',
 
   'shell.nav.emergency': 'Akses darurat',
+  'shell.nav.ceremony': 'Seremoni bootstrap',
+  'ceremony.eyebrow': 'Kewenangan provider',
+  'ceremony.title': 'Seremoni bootstrap',
+  'ceremony.lead':
+    'Bagaimana Principal pertama dan hibah daruratnya dibuat: siapa yang menjalankan seremoni, siapa saksinya, dan mengapa. Orang ketiga, independen dari keduanya dan dari Principal pertama, meninjau catatannya.',
+  'ceremony.none':
+    'Tidak ada seremoni bootstrap yang tercatat. Seremoni belum dijalankan pada Control Database ini.',
+  'ceremony.record.title': 'Catatannya',
+  'ceremony.record.description':
+    'Ditulis sekali oleh seremoni. Tidak ada yang mengubahnya: identity-control tidak punya hak untuk memperbarui atau menghapusnya.',
+  'ceremony.reviewed': '{count, plural, other {Ditinjau # kali}}',
+  'ceremony.unreviewed': 'Belum ditinjau',
+  'ceremony.field.operator': 'Operator',
+  'ceremony.field.witness': 'Saksi',
+  'ceremony.field.reason': 'Alasan',
+  'ceremony.field.principal': 'Principal pertama',
+  'ceremony.field.requested': 'Dijalankan pada',
+  'ceremony.principal.none': 'Tidak tercatat: seremoni tidak membuat Principal-nya',
+  'ceremony.reviews.title': 'Tinjauan',
+  'ceremony.reviews.description':
+    'Setiap tinjauan dicatat sekali dan tidak pernah diubah, yang terlama lebih dulu.',
+  'ceremony.reviews.none': 'Belum ada yang meninjau catatannya.',
+  'ceremony.reviews.caption': 'Tinjauan atas catatan seremoni, yang terlama lebih dulu',
+  'ceremony.reviews.column.reviewer': 'Peninjau',
+  'ceremony.reviews.column.outcome': 'Hasil',
+  'ceremony.reviews.column.statement': 'Pernyataan',
+  'ceremony.reviews.column.recordedBy': 'Dicatat oleh',
+  'ceremony.reviews.column.when': 'Waktu',
+  'ceremony.outcome.satisfactory': 'Memuaskan',
+  'ceremony.outcome.findings': 'Ada temuan',
+  'ceremony.review': 'Catat tinjauan',
+  'ceremony.review.title': 'Catat tinjauan atas seremoni',
+  'ceremony.review.body':
+    'Baca catatan terhadap bukti yang dicantumkan runbook. Tinjauan dicatat sekali, dengan Principal-mu, dan tidak bisa diubah. Pernyataanmu adalah alasannya.',
+  'ceremony.review.reviewer': 'Peninjau',
+  'ceremony.review.reviewer.hint': 'Namamu, sebagaimana runbook mencatat orang-orang seremoni.',
+  'ceremony.review.reviewer.required': 'Masukkan nama peninjau.',
+  'ceremony.review.reviewer.operator':
+    'Ini nama operator. Orang yang independen yang meninjau catatan, bukan operator.',
+  'ceremony.review.reviewer.witness':
+    'Ini nama saksi. Orang yang independen yang meninjau catatan, bukan saksi.',
+  'ceremony.review.outcome': 'Hasil',
+  'ceremony.review.submit': 'Catat tinjauannya',
+  'ceremony.review.recorded': 'Tinjauan sudah dicatat.',
+  'ceremony.review.notYou.firstPrincipal':
+    'Kamu memegang Principal pertama, jadi kamu tidak bisa meninjau seremoni yang membuatnya. Provider yang independen mencatat tinjauannya.',
+  'ceremony.review.notYou.operator':
+    'Kamu menjalankan seremoni sebagai operatornya, jadi kamu tidak bisa meninjaunya. Provider yang independen mencatat tinjauannya.',
+  'ceremony.review.notYou.witness':
+    'Kamu menjadi saksi seremoni, jadi kamu tidak bisa meninjaunya. Provider yang independen mencatat tinjauannya.',
   'emergency.eyebrow': 'Kewenangan provider',
   'emergency.title': 'Grant darurat',
   'emergency.lead':

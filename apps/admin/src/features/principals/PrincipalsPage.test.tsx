@@ -19,6 +19,7 @@ const signedIn = {
 const lost = '0192f0e0-1111-7000-8000-000000000042';
 const duplicateOf = '0192f0e0-3333-7000-8000-000000000007';
 const parkedId = '0192f0e0-9999-7000-8000-000000000001';
+const orphanId = '0192f0e0-4444-7000-8000-00000000dead';
 const unmapped = [
   {
     finding_id: 'f-1',
@@ -30,7 +31,7 @@ const unmapped = [
   {
     finding_id: 'f-2',
     finding_class: 'orphan',
-    claimed_principal_id: '0192f0e0-4444-7000-8000-00000000dead',
+    claimed_principal_id: orphanId,
     username: 'ghost',
     user_disabled: false,
     detected_at: '2026-10-02T08:00:00Z',
@@ -265,7 +266,7 @@ describe('PrincipalsPage', () => {
     expect(await screen.findByText('Every active Principal has its Keycloak user.')).toBeInTheDocument();
   });
 
-  it('lists the kernel users no Principal accounts for, by class, and offers no action', async () => {
+  it('lists the kernel users no Principal accounts for, by class, and offers adoption on an orphan alone', async () => {
     api();
     renderApp('/principals');
     const table = await screen.findByRole('table', {
@@ -273,12 +274,119 @@ describe('PrincipalsPage', () => {
     });
     expect(within(table).getByText('No identifier')).toBeInTheDocument();
     expect(within(table).getByText('Identifier no Principal holds')).toBeInTheDocument();
-    expect(within(table).getByText('0192f0e0-4444-7000-8000-00000000dead')).toBeInTheDocument();
+    expect(within(table).getByText(orphanId)).toBeInTheDocument();
     expect(within(table).getByRole('link', { name: duplicateOf })).toHaveAttribute(
       'href',
       `/principals/${duplicateOf}`,
     );
     expect(within(table).getAllByText('Disabled by the sweep')).toHaveLength(2);
+    // An orphan's identifier is the only one adoption is offered for (TDD-identity-experience-003 1.32.0).
+    expect(
+      within(table)
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['Adopt identifier']);
+  });
+
+  it('plans an adoption first, shows each check, then adopts with the same reason and a key of its own', async () => {
+    const plan = (adopted: boolean) =>
+      json({
+        principal_id: orphanId,
+        adoptable: true,
+        checks: [
+          { check: 'orphan_finding', holds: true, detail: 'finding f-2 claims it' },
+          { check: 'one_kernel_user', holds: true, detail: 'one user carries it' },
+          { check: 'newer_than_backup', holds: true, detail: 'minted after the newest mapping' },
+          {
+            check: 'creation_on_record',
+            holds: true,
+            detail: 'admin event e-9 records this service creating it',
+          },
+        ],
+        adopted,
+        ...(adopted ? { state: 'suspended' } : {}),
+      });
+    const { sent } = api((request) => plan(!(request.body as { dry_run: boolean }).dry_run));
+    const { container } = renderApp('/principals');
+    await userEvent.click(await screen.findByRole('button', { name: 'Adopt identifier' }));
+    const panel = (await screen.findByRole('heading', { name: `Adopt identifier ${orphanId}` })).closest(
+      'section',
+    ) as HTMLElement;
+    expect(within(panel).queryByRole('button', { name: 'Adopt' })).not.toBeInTheDocument();
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Reason' }), 'Restore to 02:00, INC-12.');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Plan the adoption' }));
+
+    const checks = await within(panel).findByRole('table', { name: 'The four checks an adoption needs' });
+    expect(within(checks).getAllByText('Holds')).toHaveLength(4);
+    expect(within(checks).getByText('admin event e-9 records this service creating it')).toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Adopt' }));
+    expect(await within(panel).findByText(/Adopted\. The Principal is suspended/)).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'Open the Principal' })).toHaveAttribute(
+      'href',
+      `/principals/${orphanId}`,
+    );
+
+    const [planned, adopted] = posts(sent);
+    expect(planned?.url.pathname).toBe(`/api/v1/principals/${orphanId}:adopt`);
+    expect(planned?.body).toEqual({ dry_run: true });
+    expect(adopted?.body).toEqual({ dry_run: false });
+    for (const request of [planned, adopted]) {
+      expect(request?.headers['x-administrative-reason']).toBe('Restore to 02:00, INC-12.');
+      expect(request?.headers['idempotency-key']).toMatch(/^[0-9a-f-]{36}$/);
+    }
+    // A plan and an adoption are different requests: the adoption is never answered with the plan's replay.
+    expect(adopted?.headers['idempotency-key']).not.toBe(planned?.headers['idempotency-key']);
+  });
+
+  it('shows a plan the checks refuse with its refusal, and offers no adoption', async () => {
+    api(() =>
+      json({
+        principal_id: orphanId,
+        adoptable: false,
+        refusal: 'creation_on_record: no admin event records this service creating the user',
+        checks: [
+          { check: 'orphan_finding', holds: true, detail: 'finding f-2 claims it' },
+          { check: 'one_kernel_user', holds: true, detail: 'one user carries it' },
+          { check: 'newer_than_backup', holds: true, detail: 'minted after the newest mapping' },
+          {
+            check: 'creation_on_record',
+            holds: false,
+            detail: 'no admin event records this service creating the user',
+          },
+        ],
+        adopted: false,
+      }),
+    );
+    renderApp('/principals');
+    await userEvent.click(await screen.findByRole('button', { name: 'Adopt identifier' }));
+    const panel = (await screen.findByRole('heading', { name: `Adopt identifier ${orphanId}` })).closest(
+      'section',
+    ) as HTMLElement;
+    await userEvent.type(within(panel).getByRole('textbox', { name: 'Reason' }), 'Restore to 02:00, INC-12.');
+    await userEvent.click(within(panel).getByRole('button', { name: 'Plan the adoption' }));
+    expect(await within(panel).findByRole('alert')).toHaveTextContent(
+      'Not adoptable. identity-control says: creation_on_record: no admin event records this service creating the user.',
+    );
+    expect(within(panel).getByText('Does not hold')).toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: 'Adopt' })).not.toBeInTheDocument();
+  });
+
+  it('offers no adoption of the provider’s own identifier', async () => {
+    stubFetch((url) => {
+      if (url.pathname === '/auth/session') {
+        return json({ ...signedIn, principalId: orphanId });
+      }
+      if (url.pathname === '/api/v1/principals:unmapped') {
+        return json({ unmapped });
+      }
+      return undefined;
+    });
+    renderApp('/principals');
+    const table = await screen.findByRole('table', {
+      name: 'Open findings about kernel users, oldest first',
+    });
+    expect(within(table).getByText(orphanId)).toBeInTheDocument();
     expect(within(table).queryByRole('button')).not.toBeInTheDocument();
   });
 

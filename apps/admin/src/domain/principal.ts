@@ -59,6 +59,46 @@ export interface UnmappedUser {
   readonly detected_at: string;
 }
 
+// An orphan's identifier re-adopted after a restore to an older point (POST
+// /v1/principals/{principal_id}:adopt; ADR-IAM-001 §5.11 as amended 2026-10-20, TDD-identity-control-001
+// 1.23.0). A plan, `dry_run`, reads the four checks and changes nothing; the adoption needs all four to
+// hold and lands the mapping suspended, for a separate :restore to return it to service.
+export type AdoptCheckName =
+  'orphan_finding' | 'one_kernel_user' | 'newer_than_backup' | 'creation_on_record';
+
+export const adoptChecks: readonly AdoptCheckName[] = [
+  'orphan_finding',
+  'one_kernel_user',
+  'newer_than_backup',
+  'creation_on_record',
+];
+
+export interface AdoptCheck {
+  readonly check: AdoptCheckName;
+  readonly holds: boolean;
+  // What the check read, in the API's words: it names a check and a time, never a kernel identifier.
+  readonly detail: string;
+}
+
+export interface PrincipalAdoption {
+  readonly principal_id: string;
+  readonly adoptable: boolean;
+  // The first check that does not hold, "<check>: <detail>"; absent when every check holds.
+  readonly refusal?: string;
+  readonly checks: readonly AdoptCheck[];
+  readonly adopted: boolean;
+  // Present once the identifier is adopted: always suspended.
+  readonly state?: 'suspended';
+}
+
+// adoptable is whether an orphan finding's identifier may be offered for adoption by this provider:
+// it claims one, and it is not the provider's own, which the API refuses with 403 as it refuses every
+// action on the caller's own Principal.
+export const adoptable = (finding: UnmappedUser, self: string | null): boolean =>
+  finding.finding_class === 'orphan' &&
+  finding.claimed_principal_id !== undefined &&
+  finding.claimed_principal_id !== self;
+
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const isPrincipalId = (value: string): boolean => uuid.test(value.trim());

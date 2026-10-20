@@ -8,7 +8,7 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 import { registrationId, subjectPrincipal } from '../shared.js';
-import { signIn } from './support.js';
+import { planAdoption, signIn } from './support.js';
 
 // The WCAG 2.0, 2.1 and 2.2 A and AA rules axe implements.
 const wcagTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -31,6 +31,8 @@ const pages: readonly Main[] = [
       await page.getByRole('table', { name: 'Quarantined Principals, oldest first' }).waitFor();
       await page.getByRole('button', { name: 'Show the pending Principals' }).click();
       await page.getByRole('table', { name: 'Pending Principals, oldest first' }).waitFor();
+      // An orphan's adoption, planned, with its four checks shown (TDD-identity-experience-003 1.32.0).
+      await planAdoption(page);
     },
   },
   {
@@ -71,6 +73,15 @@ const pages: readonly Main[] = [
   { path: '/changes', ready: (page) => page.getByRole('heading', { level: 1 }) },
   { path: '/emergency-grants', ready: (page) => page.getByRole('table', { name: /Emergency grants/ }) },
   {
+    path: '/ceremony',
+    ready: (page) => page.getByText('Oscar Operator'),
+    // The review form, open (TDD-identity-experience-003 1.32.0 §The Bootstrap Ceremony's Review).
+    open: async (page) => {
+      await page.getByRole('button', { name: 'Record review' }).click();
+      await page.getByRole('heading', { name: 'Record a review of the ceremony' }).waitFor();
+    },
+  },
+  {
     path: '/projections',
     ready: (page) => page.getByRole('table', { name: 'Tenants not converged, oldest mark first' }),
     open: async (page) => {
@@ -79,6 +90,10 @@ const pages: readonly Main[] = [
     },
   },
   { path: '/developer/', ready: (page) => page.getByRole('heading', { level: 1 }) },
+  {
+    path: '/account/consents',
+    ready: (page) => page.getByRole('table', { name: 'Applications you allowed' }),
+  },
   {
     path: '/account/',
     ready: (page) => page.getByText('Where you are signed in').first(),

@@ -15,6 +15,29 @@ export const en = {
 
   'shell.nav.section.account': 'Your account',
   'shell.nav.security': 'Security',
+  'shell.nav.consents': 'Consents',
+  'shell.scope': 'Your own account',
+
+  'consents.pageTitle': 'Consents',
+  'consents.lead':
+    'The applications run by partners that you allowed to act for you. An application Scnehaux runs itself does not ask: its registration is the consent.',
+  'consents.title': 'Applications you allowed',
+  'consents.description':
+    'Withdrawing stops new access at once. Access an application already holds lasts until its token expires, at most the time shown.',
+  'consents.none':
+    'You have not allowed any application. Only an application a partner runs asks you, when you first sign in to it.',
+  'consents.column.client': 'Application',
+  'consents.column.scopes': 'What it may use',
+  'consents.column.granted': 'Allowed on',
+  'consents.column.lasts': 'Access it holds lasts',
+  'consents.lasts': 'Up to {minutes, plural, one {# minute} other {# minutes}}',
+  'consents.lasts.unbounded': 'Until its token expires',
+  'consents.withdraw': 'Withdraw',
+  'consents.withdraw.label': 'Withdraw your consent to {client}',
+  'consents.withdrawn':
+    'Consent to {client} withdrawn. It gets no new access, and access it already holds ends by {time} at the latest.',
+  'consents.withdrawn.unbounded':
+    'Consent to {client} withdrawn. It gets no new access, and access it already holds ends when its token expires.',
 
   'security.eyebrow': 'Your account',
   'security.title': 'Security',
@@ -104,6 +127,29 @@ export const id: Messages = {
 
   'shell.nav.section.account': 'Akunmu',
   'shell.nav.security': 'Keamanan',
+  'shell.nav.consents': 'Persetujuan',
+  'shell.scope': 'Akunmu sendiri',
+
+  'consents.pageTitle': 'Persetujuan',
+  'consents.lead':
+    'Aplikasi yang dijalankan partner yang kamu izinkan bertindak untukmu. Aplikasi yang dijalankan Scnehaux sendiri tidak meminta: pendaftarannya adalah persetujuannya.',
+  'consents.title': 'Aplikasi yang kamu izinkan',
+  'consents.description':
+    'Penarikan menghentikan akses baru seketika. Akses yang sudah dipegang aplikasi bertahan sampai tokennya kedaluwarsa, paling lama waktu yang ditampilkan.',
+  'consents.none':
+    'Kamu belum mengizinkan aplikasi apa pun. Hanya aplikasi yang dijalankan partner yang meminta, saat kamu pertama kali masuk ke sana.',
+  'consents.column.client': 'Aplikasi',
+  'consents.column.scopes': 'Yang boleh dipakai',
+  'consents.column.granted': 'Diizinkan pada',
+  'consents.column.lasts': 'Akses yang dipegang bertahan',
+  'consents.lasts': 'Paling lama {minutes, plural, other {# menit}}',
+  'consents.lasts.unbounded': 'Sampai tokennya kedaluwarsa',
+  'consents.withdraw': 'Tarik',
+  'consents.withdraw.label': 'Tarik persetujuanmu untuk {client}',
+  'consents.withdrawn':
+    'Persetujuan untuk {client} ditarik. Ia tidak mendapat akses baru, dan akses yang sudah dipegangnya berakhir paling lambat {time}.',
+  'consents.withdrawn.unbounded':
+    'Persetujuan untuk {client} ditarik. Ia tidak mendapat akses baru, dan akses yang sudah dipegangnya berakhir saat tokennya kedaluwarsa.',
 
   'security.eyebrow': 'Akunmu',
   'security.title': 'Keamanan',

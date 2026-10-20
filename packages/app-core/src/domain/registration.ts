@@ -26,6 +26,10 @@ export interface Registration {
   // Where the kernel posts a confidential client's logout tokens; absent for a client the kernel
   // cannot reach (ADR-IAM-009, TDD-identity-control-003 1.37.0).
   readonly backchannel_logout_uri?: string;
+  // Whether the client asks each person's consent. It is derived from the audience class, never
+  // chosen: an `external` registration asks, and no other class does (STD-IAM-002 1.9.0 §3.6,
+  // ADR-IAM-003 §5.11). Absent from an API before identity-control 64bbf63.
+  readonly consent_required?: boolean;
   readonly state: RegistrationState;
   readonly version: number;
   readonly created_at: string;
@@ -316,10 +320,12 @@ export interface RegistrationChange {
   readonly client_key: string;
   readonly base_version: number;
   readonly kind: ChangeKind;
-  readonly previous_redirect_uris: readonly string[] | null;
-  readonly redirect_uris: readonly string[] | null;
-  readonly previous_audience: readonly string[] | null;
-  readonly audience: readonly string[] | null;
+  // A redirect_uris or audience change's before and after; null for every other kind. The published
+  // document does not require them, so their absence reads as null.
+  readonly previous_redirect_uris?: readonly string[] | null;
+  readonly redirect_uris?: readonly string[] | null;
+  readonly previous_audience?: readonly string[] | null;
+  readonly audience?: readonly string[] | null;
   // A lifetime_class change's before and after; null for every other kind, and absent from a change
   // an API before TDD-identity-control-003 1.37.0 recorded.
   readonly previous_lifetime_class?: string | null;
