@@ -16,6 +16,7 @@ export const en = {
   'shell.nav.section.applications': 'Your applications',
   'shell.nav.registrations': 'My registrations',
   'shell.nav.workloads': 'My workloads',
+  'shell.scope': 'Owner scope: your applications',
 
   'mine.eyebrow': 'Developer Console',
   'mine.title': 'My registrations',
@@ -58,7 +59,7 @@ export const en = {
   'register.profile.resource.hint': 'An API that verifies the tokens other clients present to it.',
   'register.audienceClass': 'Audience class',
   'register.audienceClass.hint':
-    'Internal for Scnehaux users, external for partners. Privileged and workload clients are a provider’s to register.',
+    'Internal for Scnehaux users, external for partners. An external application asks each person’s consent; an internal one does not. Privileged and workload clients are a provider’s to register.',
   'register.audienceClass.internal': 'Internal',
   'register.audienceClass.external': 'External',
   'register.lifetimeClass': 'Token lifetime',
@@ -165,6 +166,7 @@ export const id: Messages = {
   'shell.nav.section.applications': 'Aplikasimu',
   'shell.nav.registrations': 'Registrasi saya',
   'shell.nav.workloads': 'Workload saya',
+  'shell.scope': 'Lingkup pemilik: aplikasimu',
 
   'mine.eyebrow': 'Developer Console',
   'mine.title': 'Registrasi saya',
@@ -207,7 +209,7 @@ export const id: Messages = {
   'register.profile.resource.hint': 'API yang memverifikasi token yang dibawa client lain kepadanya.',
   'register.audienceClass': 'Kelas audiens',
   'register.audienceClass.hint':
-    'Internal untuk pengguna Scnehaux, external untuk partner. Client privileged dan workload didaftarkan provider.',
+    'Internal untuk pengguna Scnehaux, external untuk partner. Aplikasi external meminta persetujuan setiap orang; aplikasi internal tidak. Client privileged dan workload didaftarkan provider.',
   'register.audienceClass.internal': 'Internal',
   'register.audienceClass.external': 'External',
   'register.lifetimeClass': 'Umur token',

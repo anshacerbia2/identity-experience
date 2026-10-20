@@ -1,9 +1,10 @@
 # Development client registration
 
 The Identity Experience BFF runs on a developer's machine and signs in against the development kernel
-on the server as its own confidential client, `identity-experience-bff`. Nothing of this repository
-runs on the server. This page states who makes that client, with what, from which keys, and how the
-laptop runs against it.
+on the server as that device's own confidential client, `identity-experience-bff-<device>`. Each
+device is its own registration, with its own single key (`ADR-IAM-001 §5.12`, `STD-GLB-009` rule 15).
+Nothing of this repository runs on the server. This page states who makes that client, with what,
+from which keys, and how the laptop runs against it.
 
 It follows the skeleton of STD-GLB-009 §Development Server Deployment for a laptop-run application.
 The procedure across the server's stacks is the architecture repository's development server runbook
@@ -22,7 +23,7 @@ The client:
 
 | Property              | Value                                                                                                                                                          |
 | :-------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Client                | `identity-experience-bff`                                                                                                                                      |
+| Client                | `identity-experience-bff-<device>`, one per developer device, such as `identity-experience-bff-ada-laptop` ([Keys](#keys))                                     |
 | Registered through    | identity-control's `POST /v1/registrations`, or adopted with `POST /v1/registrations:adopt`                                                                    |
 | Profile               | `confidential`: Authorization Code with PKCE `S256`, nothing else                                                                                              |
 | Audience class        | `privileged`, in the `provider-scope` form: the kernel's `scnehaux-provider` scope. Never `internal`                                                           |
@@ -73,7 +74,7 @@ From the server's operator: the client, registered or adopted with this laptop's
      ```text
      POST /v1/registrations
 
-     {"client_key":"identity-experience-bff","profile":"confidential","audience_class":"privileged",
+     {"client_key":"identity-experience-bff-<device>","profile":"confidential","audience_class":"privileged",
       "privileged_form":"provider-scope","application_ref":"identity-experience",
       "redirect_uris":["http://127.0.0.1:8090/auth/callback"],"audience":["identity-control-api"],
       "public_key":<keys/identity-experience-bff.jwk.json>}
@@ -95,10 +96,11 @@ From the server's operator: the client, registered or adopted with this laptop's
      pwsh ./scripts/dev-adopt-bff.ps1 -BffJwkFile ./identity-experience-bff.jwk.json -Apply   # adopt
      ```
 
-     It declares the client as above with every key the BFF holds, and converges `token_format` and
-     `audience_scope`. `-BffJwkFile` takes one or two JWK files, `-BffJwkFile a.jwk.json,b.jwk.json`
-     (identity-control's script after identity-control#102). The keys are compared as a set. After
-     adoption the first is `active` and the second `retiring`.
+     It declares the client as above with the key the BFF holds, and converges `token_format` and
+     `audience_scope`. That client is the device that made it; every other device registers its own,
+     as above. `-BffJwkFile` takes a second JWK only for a rotation in progress,
+     `-BffJwkFile current.jwk.json,next.jwk.json`: the keys are compared as a set, and after adoption
+     the first is `active` and the second `retiring` (`ADR-IAM-001 §5.12`).
 
    - **It exists, made with a secret before keys.** Give it the key first, with the kernel's tool, then
      adopt it as above:
@@ -115,6 +117,7 @@ From the server's operator: the client, registered or adopted with this laptop's
 
    | Variable                               | Value                                                                         |
    | :------------------------------------- | :---------------------------------------------------------------------------- |
+   | `IDENTITY_EXPERIENCE_CLIENT_ID`        | this device's own client, as registered in step 2; required, never defaulted  |
    | `IDENTITY_EXPERIENCE_ISSUER`           | the kernel's public issuer, exactly as its discovery document states it       |
    | `IDENTITY_EXPERIENCE_DEV_DATABASE_URL` | a database the session store may create its schema in; required               |
    | `IDENTITY_CONTROL_BASE_URL`            | where identity-control listens, for `/api/*`; default `http://127.0.0.1:8097` |
@@ -177,25 +180,20 @@ time, or two browser profiles.
 
 The key is 3072-bit RSA, and its `kid` is its RFC 7638 thumbprint. The script never overwrites a key.
 
-**Several devices.** Each laptop makes its own key pair and sends its public JWK; no private key is
-copied between machines. How the server takes them depends on whether the client is adopted yet:
+**Several devices: one registration per device (`ADR-IAM-001 §5.12`, `STD-GLB-009` rule 15).** Each
+laptop makes its own key pair, and the operator registers a client for it, as in First start step 2,
+with its own `client_key`, `identity-experience-bff-<device>`, and that device's public JWK. Each laptop
+sets its own `IDENTITY_EXPERIENCE_CLIENT_ID` in `.env`. No private key is copied between machines, and
+no device's key goes on another device's client.
 
-- **Not yet adopted.** The kernel's `set-client-key.sh` sets a client's whole key set in one call, so
-  every device's JWK goes in the same call. A key left out stops working. It takes one or two JWKs:
-
-  ```sh
-  ./set-client-key.sh scnehaux identity-experience-bff laptop-a.jwk.json laptop-b.jwk.json
-  ```
-
-  Adopting that client declares both keys: `dev-adopt-bff.ps1 -BffJwkFile laptop-a.jwk.json,laptop-b.jwk.json`.
-  The first becomes `active` and the second `retiring`. The retiring key is removed when
-  identity-control's `IDENTITY_CLIENT_KEY_ROTATION_OVERLAP` ends (168h by default), so the two devices
-  cannot both keep signing as the BFF after adoption. List first the key that must keep working.
-
-- **Adopted or registered.** The client's keys belong to its registration. `dev-adopt-bff.ps1` declares
-  every key it is given, one or two, and a key the registration does not declare is a difference
-  identity-control reports, so the operator adopts with every key the client holds. A further key goes through
-  identity-control, `POST /v1/registrations/{registration_id}/keys`, never through `set-client-key.sh`.
+- **Why not two keys on one client.** A registration holds one active key, and a second only while a
+  rotation overlaps. The ADR quotes OAuth: `client_id` "SHOULD vary between instances". With one
+  client per device, each device has its own sessions and events in the kernel, and a lost laptop is
+  suspended without touching the other.
+- **`set-client-key.sh` is never given two devices' keys.** It sets a client's whole key set for a
+  client made with a secret before keys, and only that client's own device key.
+- **The server's environment page lists each device's client** (`STD-GLB-009` rule 15), in the
+  architecture repository's `deploy/dev/`.
 
 **Rotating.** A new key is a rotation, never an overwrite. Make it under a new name, send its public
 half, and point `IDENTITY_EXPERIENCE_CLIENT_KEY_FILE` at the new private key once the server accepts it:
@@ -210,7 +208,8 @@ alone. After it, the new key goes through `POST /v1/registrations/{registration_
 
 ## Backups
 
-Nothing here needs a backup. The client lives in the kernel's database and its registration in
+`STD-GLB-009` rule 9 applies to "A stack that owns a database". This repository runs no stack on the
+server, so it owns no database there, and nothing here needs a backup. The client lives in the kernel's database and its registration in
 identity-control's, and each stack backs up its own. The laptop's session store, the
 `identity_experience_dev` schema, is disposable: drop it and `dev-local.ps1` makes it again, and you
 sign in again. The private key is not backed up either: a lost key is replaced by a new one, installed

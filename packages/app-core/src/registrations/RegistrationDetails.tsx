@@ -70,6 +70,13 @@ export function RegistrationDetails({ registration }: { readonly registration: R
         <Field label="registration.field.audienceClass">
           <code>{registration.audience_class}</code>
         </Field>
+        {registration.consent_required === undefined ? null : (
+          <Field label="registration.field.consent">
+            <CoreMessage
+              id={registration.consent_required ? 'registration.consent.asks' : 'registration.consent.none'}
+            />
+          </Field>
+        )}
         <Field label="registration.field.application">
           <code>{applicationReference(registration)}</code>
         </Field>

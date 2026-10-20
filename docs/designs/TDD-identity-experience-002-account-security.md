@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.10.0
+  version: 1.11.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-19
+  last_reviewed: 2026-10-20
   parent_sad: SAD-002
 ---
 
@@ -102,10 +102,9 @@ its marker.
 
 ### As Built: Sessions and Authenticators (1.2.0)
 
-Built on `TDD-identity-control-005` slice 3a. Consents and recovery are not built yet, and the page
-shows neither. Enrollment followed in 1.3.0 (below):
-- Consents wait for the API's slice 3b.
-- Recovery waits for the kernel's recovery pages.
+Built on `TDD-identity-control-005` slice 3a. Consents and recovery were not built then, and the page
+showed neither. Enrollment followed in 1.3.0, recovery codes in 1.5.0, and consents in 1.11.0 (below,
+§Consents).
 
 **Sessions.**
 - Each row shows when the session started, when it was last used, and the applications it is signed
@@ -236,6 +235,42 @@ Idempotency-Key; the version and the reason are the exit's for an administrator'
 console. The account application links back to neither, because most of the people who use it
 hold no role there.
 
+### Consents (1.11.0)
+
+Built on `TDD-identity-control-005` 2.13.0, slice 3b: `GET /v1/me/consents` and
+`POST /v1/me/consents/{security_ref}:withdraw`, at identity-control `64bbf63`.
+
+**Who asks.** `STD-IAM-002` 1.9.0 §3.6: "An `external` registration MUST require consent, and every
+scope it releases MUST be shown on the consent screen. An `internal`, `privileged` or `workload`
+registration MUST NOT require consent: its recorded registration (`ADR-IAM-003`) is the administrative
+consent." So a person has a consent only for a client a partner runs, given on the kernel's consent
+page the first time they signed in to it. For most people the list is empty, and the page says why.
+
+**The page.** **Consents** (`/account/consents`), beside Security in the account application's
+navigation, reads the list when it opens:
+
+| Column | From |
+| :-- | :-- |
+| Application | `client`, the client's `client_key` |
+| What it may use | `scopes`, the client scopes granted |
+| Allowed on | `granted_at` |
+| Access it holds lasts | `access_token_lifetime_seconds`, rounded up to whole minutes: "Up to 5 minutes"; "Until its token expires" when it is null, for a client no registration describes |
+| Action | **Withdraw** |
+
+**Withdrawing.** One command, `:withdraw`, with an Idempotency-Key kept per distinct request
+(`useIdempotencyKey`), and no reason, no version and no step-up: it only narrows what a client may do
+(§Assurance Per Operation, and `TDD-identity-control-005`). The API answers with a security operation,
+followed to its final state as a session's termination is.
+
+- **Withdrawal is not revocation, and the page says so** (§Consent Withdrawal Is Not Revocation).
+  Applied: "Consent to `<client>` withdrawn. It gets no new access, and access it already holds ends
+  by `<time>` at the latest", the time the withdrawal was sent plus the client's registered lifetime.
+  With no registered lifetime: "ends when its token expires". It never says access is removed.
+- The kernel's withdrawal also "refuses the refresh tokens issued on it" (`TDD-identity-control-005`
+  §3b), so the bound is one access token's lifetime.
+- A refused or unresolved operation is shown as the API's, as on the Security page.
+- The `security_ref` lives in the query's cache for the rendered page, never in browser storage.
+
 ## Data Model
 
 This repository holds no security state. Its client model is a read projection of API
@@ -251,8 +286,8 @@ POST  /api/v1/me/sessions:terminate-all
 GET   /api/v1/me/authenticators
 POST  /api/v1/me/authenticators:enroll
 POST  /api/v1/me/authenticators/{security_ref}:remove
-GET   /api/v1/me/consents
-POST  /api/v1/me/consents/{consent_id}:withdraw
+GET   /api/v1/me/consents                                         1.11.0
+POST  /api/v1/me/consents/{security_ref}:withdraw                  1.11.0
 GET   /api/v1/me/security-operations/{operation_id}
 GET   /api/v1/me/notification-addresses
 POST  /api/v1/me/notification-addresses
@@ -260,6 +295,10 @@ POST  /api/v1/me/notification-addresses/{address_id}:verify
 POST  /api/v1/me/notification-addresses/{address_id}:remove
 POST  /api/v1/me/notification-addresses/{address_id}:send-proof   1.10.0
 ```
+
+`GET /v1/me/consents` answers `{"consents": [{"security_ref", "client", "scopes", "granted_at",
+"updated_at", "access_token_lifetime_seconds"}]}` (`TDD-identity-control-005` 2.13.0). `:withdraw`
+takes no body and answers a security operation, `200` when final or `202` to follow (§Consents).
 
 Every path is scoped to the authenticated Principal by the API, never by a parameter the
 browser supplies. `/me` carries no identifier for the same reason: a path that accepts
@@ -379,8 +418,15 @@ Session, cookie, and refresh settings are inherited from
 
 ### Consent
 
-- Withdrawal is presented as taking effect within the token lifetime, not immediately.
-- A withdrawn consent stops the next authorization request for that client.
+- Withdrawal is presented as taking effect within the token lifetime, not immediately: the applied
+  sentence names the time access already held ends, and never says access is removed
+  (`ConsentsPage.test.tsx`, 1.11.0).
+- Each consent shows its client, its scopes, when it was given and how long access it holds lasts; an
+  empty list says only a partner's application asks; axe finds no violation.
+- Withdrawal sends an Idempotency-Key and the CSRF token, and no reason; a refused operation is shown
+  as the API's.
+- A withdrawn consent stops the next authorization request for that client: identity-control's
+  `TestAPersonWithdrawsAConsent`, and identity-kernel's consent compatibility test.
 
 ### Addresses (1.10.0)
 
@@ -442,4 +488,6 @@ change, and locked-out Principal recovery.
 | Conforms to | STD-GLB-001 1.5.0 — a person's own command carries an Idempotency-Key, no version and no reason (1.9.0) |
 | Governed by | `ADR-ORG-007` §5.3 — an invitation is accepted only with a proven address; the account application proves a creation address (1.10.0) |
 | Depends on | `TDD-identity-control-008` - `:send-proof`, and `:verify` on an address in use but not proven (1.10.0) |
+| Conforms to | STD-IAM-002 1.9.0 §3.6, ADR-IAM-003 §5.11 — only an `external` client asks consent; a person lists and withdraws theirs (1.11.0) |
+| Depends on | `TDD-identity-control-005` 2.13.0 — slice 3b, `GET /v1/me/consents` and `:withdraw` (1.11.0) |
 | Depends on | `identity-kernel` — recovery and MFA ceremonies are kernel-rendered |

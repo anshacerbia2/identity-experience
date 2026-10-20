@@ -1,9 +1,11 @@
 name: identity-control-commands
 
 # The classified command list in apps/admin/src/domain/operator-transitions.test.ts is a copy of
-# identity-control's internal/httpapi/commands.go. This job compares it with identity-control's main
-# and fails when they differ (TDD-identity-experience-003 1.31.0 §Operator Transitions). It is its
-# own workflow so that the unit tests stay offline and a failure here names the drift, not the code.
+# identity-control's internal/httpapi/commands.go, and contracts/identity-control/openapi.yaml a copy
+# of its published api/openapi.yaml. This job compares both with identity-control's main and fails
+# when either differs (TDD-identity-experience-003 1.31.0 §Operator Transitions, 1.32.0 §The Client
+# Is Contract-Tested). It is its own workflow so that the unit tests stay offline and a failure here
+# names the drift, not the code.
 #
 # It runs on every change here, and daily, because identity-control can change while nothing here
 # does. A scheduled run uses this repository's main.
@@ -37,3 +39,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/check-identity-control-commands.mjs
+
+      # The copy of identity-control's published OpenAPI document, which the client is contract-tested
+      # against in `pnpm test` (TDD-identity-experience-003 1.32.0 §The Client Is Contract-Tested,
+      # ADR-GLB-010 §5.1). It fails when identity-control's main publishes another document.
+      - name: compare the OpenAPI copy with identity-control main
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-identity-control-openapi.mjs

@@ -5,7 +5,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { registrationId, subjectPrincipal } from '../shared.js';
-import { signIn } from './support.js';
+import { planAdoption, signIn } from './support.js';
 
 const widths = [1440, 1280, 1024, 768, 390, 320] as const;
 const themes = ['dark', 'light'] as const;
@@ -116,7 +116,26 @@ const pages: readonly Main[] = [
     path: '/emergency-grants',
     ready: (page) => page.getByRole('table', { name: /Emergency grants/ }),
   },
-  { name: 'principals', path: '/principals', ready: (page) => page.getByRole('heading', { level: 1 }) },
+  {
+    name: 'principals',
+    path: '/principals',
+    ready: (page) => page.getByRole('heading', { level: 1 }),
+    open: planAdoption,
+  },
+  {
+    name: 'ceremony',
+    path: '/ceremony',
+    ready: (page) => page.getByText('Oscar Operator'),
+    open: async (page) => {
+      await page.getByRole('button', { name: 'Record review' }).click();
+      await page.getByRole('heading', { name: 'Record a review of the ceremony' }).waitFor();
+    },
+  },
+  {
+    name: 'consents',
+    path: '/account/consents',
+    ready: (page) => page.getByRole('table', { name: 'Applications you allowed' }),
+  },
   { name: 'overview', path: '/', ready: (page) => page.getByRole('heading', { level: 1 }) },
   { name: 'developer', path: '/developer/', ready: (page) => page.getByRole('heading', { level: 1 }) },
 ];
@@ -277,3 +296,121 @@ for (const theme of themes) {
     });
   }
 }
+
+// Only the scope line stays in view on a small or a short viewport, one line high, and tabbing backwards
+// through the page never leaves the focused element under it (STD-GLB-FE-005 2.2.0 §3.10, WCAG 2.2
+// SC 2.4.11; TDD-identity-experience-003 1.32.0 §Layout). 256 CSS px tall is a 1024 px tall screen at
+// 400% zoom.
+const short = [
+  { width: 320, height: 256 },
+  { width: 1280, height: 256 },
+] as const;
+
+// One line of the scope line's text, with its padding: anything taller is a second row.
+const oneLine = 40;
+
+// stuck is every element that stays where it is while the page scrolls, and is in view: its bottom
+// edge is the lowest point focus must stay below.
+async function stuck(page: Page): Promise<{ readonly bottom: number; readonly what: readonly string[] }> {
+  return page.evaluate(() => {
+    const found = [...document.body.querySelectorAll('*')].filter((element) => {
+      const position = getComputedStyle(element).position;
+      const box = element.getBoundingClientRect();
+      return (
+        (position === 'sticky' || position === 'fixed') && box.height > 0 && box.bottom > 0 && box.top < 1
+      );
+    });
+    return {
+      bottom: Math.max(0, ...found.map((element) => element.getBoundingClientRect().bottom)),
+      what: found.map((element) =>
+        element.hasAttribute('data-scope-line')
+          ? 'the scope line'
+          : `${element.tagName.toLowerCase()} "${element.textContent.trim().slice(0, 30)}"`,
+      ),
+    };
+  });
+}
+
+for (const main of pages) {
+  test(`${main.path} keeps only the scope line in view on a short viewport, and focus out from under it`, async ({
+    page,
+  }, testInfo) => {
+    await page.goto(main.path);
+    await expect(main.ready(page)).toBeVisible();
+    await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
+    if (main.open !== undefined) {
+      await main.open(page);
+    }
+    for (const size of short) {
+      await page.setViewportSize(size);
+      await page.evaluate(() => {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      });
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+      const line = await stuck(page);
+      expect(line.what, `${String(size.width)}×${String(size.height)}`).toEqual(['the scope line']);
+      expect(line.bottom, `${String(size.width)}×${String(size.height)}`).toBeLessThanOrEqual(oneLine);
+      // Scrolled to the end, so the screenshot shows what stays in view over the page.
+      await page.screenshot({
+        path: testInfo.outputPath(
+          `layout-short-${main.name}-${String(size.width)}x${String(size.height)}.png`,
+        ),
+      });
+
+      // From the end of the page backwards, each focused element at least partly below the line and in
+      // the viewport (SC 2.4.11: "not entirely hidden").
+      await page.locator('body').press('End');
+      await page.evaluate(() => {
+        (document.activeElement as HTMLElement | null)?.blur();
+      });
+      const hidden: string[] = [];
+      let stops = 0;
+      for (; stops < 80; stops++) {
+        await page.keyboard.press('Shift+Tab');
+        const focused = await page.evaluate(() => {
+          const element = document.activeElement;
+          if (element === null || element === document.body) {
+            return null;
+          }
+          const box = element.getBoundingClientRect();
+          return {
+            what: `${element.tagName.toLowerCase()} "${element.textContent.trim().slice(0, 30)}"`,
+            top: box.top,
+            bottom: box.bottom,
+            visible: box.width > 0 && box.height > 0,
+          };
+        });
+        if (focused === null) {
+          break;
+        }
+        if (focused.visible && (focused.bottom <= line.bottom || focused.top >= size.height)) {
+          hidden.push(`${focused.what}: ${focused.top.toFixed(0)}–${focused.bottom.toFixed(0)}px`);
+        }
+      }
+      expect(stops, 'tabbing reached focusable elements').toBeGreaterThan(0);
+      expect(hidden, `${String(size.width)}×${String(size.height)}`).toEqual([]);
+    }
+  });
+}
+
+// A status longer than its room wraps inside its pill rather than pushing the page sideways
+// (TDD-identity-experience-003 1.32.0 §Layout): the signed-in name, in the bar, made long here.
+test('a long status wraps inside its pill at 320 CSS px', async ({ page }, testInfo) => {
+  const longName = 'Ada Augusta King-Noel, Countess of Lovelace, Analytical Engine Programmer';
+  await page.route('**/auth/session', async (route) => {
+    const response = await route.fetch();
+    const session = (await response.json()) as Record<string, unknown>;
+    await route.fulfill({ response, json: { ...session, displayName: longName } });
+  });
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.goto('/account/');
+  const pill = page.getByText(longName);
+  await expect(pill).toBeVisible();
+  const box = await pill.boundingBox();
+  const lineHeight = await pill.evaluate((element) => parseFloat(getComputedStyle(element).fontSize) * 2);
+  expect(box?.height ?? 0, 'the pill wraps to more than one line').toBeGreaterThan(lineHeight);
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(320);
+  const findings = await measure(page);
+  await page.screenshot({ path: testInfo.outputPath('layout-long-pill-320.png'), fullPage: true });
+  expect(findings).toEqual([]);
+});

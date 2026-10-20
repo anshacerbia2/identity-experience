@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.20.0
+  version: 1.21.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-09
+  last_reviewed: 2026-10-20
   parent_sad: SAD-002
 ---
 
@@ -336,6 +336,11 @@ class.
 
 ## API / Interface
 
+The applications call identity-control through `/api/*` with a hand-written client, contract-tested
+against identity-control's published `api/openapi.yaml` (1.21.0, `ADR-GLB-010` §5.1;
+`TDD-identity-experience-003` 1.32.0 §The Client Is Contract-Tested). The BFF forwards those calls and
+changes none of them, so it is not part of that contract.
+
 ### BFF Endpoints
 
 ```text
@@ -632,6 +637,38 @@ Tenant disabled makes the kernel refuse the refresh outright.
 A Tenant the operator does not administer is still refused by the Control API, which checks
 current state on every request. The BFF surfaces the refusal rather than retrying.
 
+### Enrolment From an Invitation (planned, ADR-IAM-011)
+
+**Planned, not built.** `ADR-IAM-011`, accepted 2026-10-19: a person invited to a Tenant who has no
+account enrols at redemption, after proving the invited address with a code. Its §5.6 gives this
+repository "The enrolment page and its anonymous BFF routes: the code form, and the temporary password
+shown once with `no-store`". What the ADR decides, and this repository follows:
+
+- The acceptance page (organization-experience) hands the invitation token, in the fragment, to an
+  enrolment page here.
+- The BFF calls identity-control's anonymous `POST /v1/enrolments` with the token in the body. It always
+  answers `202` with one body, whatever the token: "An unknown, expired, revoked or accepted token, and
+  an address a Principal already holds proven, are not told apart".
+- The person returns the code with `POST /v1/enrolments/{enrolment_id}:verify`. On the right code
+  identity-control creates the Principal and issues a temporary password, shown once, as `ADR-IAM-010`
+  issues it; the page shows it as TDD-003 §A First Credential, Shown Once does: never cached, stored,
+  put in a URL or logged, and forwarded with `Cache-Control: no-store`.
+- Nothing here grants a Membership. The person signs in with the temporary password, chooses their own,
+  and accepts as `ADR-ORG-007 §5.1` decides.
+
+**It waits for** identity-control's `POST /v1/enrolments` and `:verify` (not in its published
+`api/openapi.yaml` at `64bbf63`), Organization Control's `POST /v1/invitations/resolve`, and
+organization-experience's **I do not have an account**. In production it also waits for the
+Notification Platform, which delivers the code.
+
+**Designed here before any code, when those exist** (none is decided yet, so none is built):
+
+- **Anonymous routes in the BFF.** Every route the BFF proxies today needs a session; these two have
+  none. Which of §Cross-Site Request Forgery Defence's three defences still apply without a session,
+  and what stands in for the session-bound token, is stated in this TDD first.
+- **Where the page lives.** An application this BFF serves, served without a sign-in.
+- **The token in the fragment.** How the page reads it and keeps it out of logs, history and referrers.
+
 ### What the BFF Must Not Do
 
 - It makes no authorization decision. Every command is reauthorized by the Identity
@@ -655,7 +692,7 @@ user-experience control only.
 | `IDENTITY_EXPERIENCE_ACCOUNT_WEB_ROOT` | none | The built account security experience, served under `/account/`. Unset, it is not served and its paths are the Admin Portal's |
 | `IDENTITY_EXPERIENCE_ISSUER` | none, required | Expected `iss`, validated on every ID token; `https` except on the developer's own machine |
 | `IDENTITY_EXPERIENCE_KEYCLOAK_INTERNAL_URL` | the issuer | Where the token, key and logout endpoints are reached server to server |
-| `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | Confidential client identifier |
+| `IDENTITY_EXPERIENCE_CLIENT_ID` | none, required | This deployment's confidential client: one registration per deployment, and per developer device (1.21.0, below) |
 | `IDENTITY_EXPERIENCE_CLIENT_KEY_FILE` | none, required | The client's private key as a PEM file (RSA ≥ 3072), mounted from the approved secret manager. Its `kid` is its thumbprint |
 | `IDENTITY_EXPERIENCE_REDIRECT_URI` | none, required | Exactly registered, no wildcard; must be the public origin's `/auth/callback` |
 | `IDENTITY_EXPERIENCE_SESSION_KEY` | none, required | 32 bytes, base64; seals the tokens a session row holds |
@@ -669,6 +706,20 @@ user-experience control only.
 
 The migration step reads `IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL` (the owning role)
 and `IDENTITY_EXPERIENCE_RUNTIME_ROLE` (the role granted DML); the server reads neither.
+
+**One client registration per device (1.21.0).** `ADR-IAM-001` §5.12, amended 2026-10-20: "A
+registration holds one active key, and a second only while a rotation overlaps. Concurrent instances
+that do not share custody, such as two developer devices, are separate registrations, each with its
+own single active key." `STD-GLB-009` rule 15 names the form, `identity-experience-bff-<device>`, and
+says "Each device sets its own `*_CLIENT_ID` and key". So:
+
+- On a laptop, `IDENTITY_EXPERIENCE_CLIENT_ID` comes from `.env`, and `scripts/dev-local.ps1` refuses to
+  start without it. Until 1.21.0 the script set `identity-experience-bff` itself, so every device
+  signed in as one client, and a second device's key went on that client beside the first.
+- A second device registers its own client with its own key (`deploy/dev/README.md` §Keys). A second
+  key on one registration is only for a rotation overlap.
+- A production BFF is one deployment whose replicas load one key from custody, so it is one
+  registration, as the ADR says.
 
 Keycloak states one issuer whatever address it is reached on, so the server metadata is
 written out rather than discovered: the browser is sent to the issuer's authorization
@@ -897,6 +948,15 @@ The session store is read on every request, so it is sized for the concurrent
 administrator population rather than for total sessions, and its latency budget is
 part of the proxy request budget rather than additional to it.
 
+## Backups (1.21.0)
+
+`STD-GLB-009` rule 9 applies to "A stack that owns a database" on a development server. This
+repository runs no stack there (`deploy/dev/README.md` §What runs). The laptop's session store, the
+`identity_experience_dev` schema, holds only sessions: it is disposable, and dropping it signs the
+laptop's browser out (`deploy/dev/README.md` §Backups). A production session store's retention is
+not decided here: `STD-GLB-002` §Durability & Recovery asks every store to declare one, and this
+store's declaration is owed before production.
+
 ## Operational Notes
 
 | Signal | Warning | Critical |
@@ -924,7 +984,10 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Governed by | ADR-IAM-001 — Adopt Keycloak Identity Kernel |
 | Conforms to | STD-IAM-001 §3.9 — no browser-held refresh tokens; BFF session control for privileged experiences |
 | Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication by `private_key_jwt` |
-| Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys |
+| Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys; one registration per developer device (1.21.0) |
+| Conforms to | STD-GLB-009 rule 15 — each device sets its own client id and key (1.21.0); rule 9 — no stack here owns a database (1.21.0) |
+| Governed by | ADR-IAM-011 — an invitee without an account enrols at redemption: planned, not built (1.21.0) |
+| Conforms to | ADR-GLB-010 §5.1 — the applications' hand-written Identity Control client is contract-tested against its published OpenAPI document (`TDD-identity-experience-003` 1.32.0) |
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
 | Governed by | ADR-IAM-006 §5.2, ADR-IAM-008 — the Tenant chosen per sign-in, one form per sign-in, checked on the callback (1.15.0) |
 | Conforms to | STD-GLB-001 — RFC 7807 problem details |

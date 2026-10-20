@@ -44,6 +44,7 @@ const billing: Registration = {
   audience: ['billing-api'],
   redirect_uris: ['https://billing.example.com/callback'],
   access_token_lifespan: 540,
+  consent_required: false,
   state: 'active',
   version: 3,
   created_at: '2026-09-01T10:00:00Z',
@@ -149,6 +150,8 @@ describe('the owner’s registration page', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'billing-web' })).toBeInTheDocument();
     // In the record, and as the registered set the changes start from.
     expect(screen.getAllByText('https://billing.example.com/callback')).toHaveLength(2);
+    // An internal client asks no consent: its registration is the consent (ADR-IAM-003 §5.11).
+    expect(screen.getByText('Asks no consent: its registration is the consent')).toBeInTheDocument();
 
     const keys = await section('Client keys');
     expect(await within(keys).findByText('thumb-billing')).toBeInTheDocument();

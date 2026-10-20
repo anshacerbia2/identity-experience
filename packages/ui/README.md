@@ -4,10 +4,12 @@ A temporary stand-in for the UI Platform's packages, `@scnx/core-ui` and `@scnx/
 they are not yet published. Every application in this repository takes its components, tokens and
 global foundations from here and from nowhere else.
 
-It exists under a pending exception. SAD-002 §10 rejects bypassing the UI Platform without an
-approved exception, and STD-GLB-FE-005 §3.5 makes applications consumers of the platform's token
-pipeline. ROADMAP.md records that the exception is not yet written. This package is shaped so that
-leaving it costs as little as possible.
+It exists under an approved exception, `ADR-IAM-012`, accepted on 2026-10-20 and expiring on
+2027-04-20. SAD-002 §10 rejects bypassing the UI Platform without an approved exception, and
+STD-GLB-FE-005 §3.5 makes applications consumers of the platform's token pipeline; the ADR is that
+exception. Its exit is the one this package is shaped for: once the platform releases its packages,
+`src/index.ts` re-exports them and the local copies are deleted. If they are not released by
+2027-04-20, a new exception ADR supersedes it (ROADMAP.md).
 
 ## How replacement works
 

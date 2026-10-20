@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CeremonyIndexRouteImport } from './routes/ceremony/index'
 import { Route as ChangesIndexRouteImport } from './routes/changes/index'
 import { Route as EmergencyGrantsIndexRouteImport } from './routes/emergency-grants/index'
 import { Route as PrincipalsIndexRouteImport } from './routes/principals/index'
@@ -22,6 +23,11 @@ import { Route as WorkloadsIndexRouteImport } from './routes/workloads/index'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CeremonyIndexRoute = CeremonyIndexRouteImport.update({
+  id: '/ceremony/',
+  path: '/ceremony/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChangesIndexRoute = ChangesIndexRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/ceremony/': typeof CeremonyIndexRoute
   '/changes/': typeof ChangesIndexRoute
   '/emergency-grants/': typeof EmergencyGrantsIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/ceremony': typeof CeremonyIndexRoute
   '/changes': typeof ChangesIndexRoute
   '/emergency-grants': typeof EmergencyGrantsIndexRoute
   '/principals': typeof PrincipalsIndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/principals/$principalId': typeof PrincipalsPrincipalIdRoute
   '/registrations/$registrationId': typeof RegistrationsRegistrationIdRoute
+  '/ceremony/': typeof CeremonyIndexRoute
   '/changes/': typeof ChangesIndexRoute
   '/emergency-grants/': typeof EmergencyGrantsIndexRoute
   '/principals/': typeof PrincipalsIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/principals/$principalId'
     | '/registrations/$registrationId'
+    | '/ceremony/'
     | '/changes/'
     | '/emergency-grants/'
     | '/principals/'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/principals/$principalId'
     | '/registrations/$registrationId'
+    | '/ceremony'
     | '/changes'
     | '/emergency-grants'
     | '/principals'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/'
     | '/principals/$principalId'
     | '/registrations/$registrationId'
+    | '/ceremony/'
     | '/changes/'
     | '/emergency-grants/'
     | '/principals/'
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrincipalsPrincipalIdRoute: typeof PrincipalsPrincipalIdRoute
   RegistrationsRegistrationIdRoute: typeof RegistrationsRegistrationIdRoute
+  CeremonyIndexRoute: typeof CeremonyIndexRoute
   ChangesIndexRoute: typeof ChangesIndexRoute
   EmergencyGrantsIndexRoute: typeof EmergencyGrantsIndexRoute
   PrincipalsIndexRoute: typeof PrincipalsIndexRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ceremony/': {
+      id: '/ceremony/'
+      path: '/ceremony'
+      fullPath: '/ceremony/'
+      preLoaderRoute: typeof CeremonyIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/changes/': {
@@ -220,6 +240,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrincipalsPrincipalIdRoute: PrincipalsPrincipalIdRoute,
   RegistrationsRegistrationIdRoute: RegistrationsRegistrationIdRoute,
+  CeremonyIndexRoute: CeremonyIndexRoute,
   ChangesIndexRoute: ChangesIndexRoute,
   EmergencyGrantsIndexRoute: EmergencyGrantsIndexRoute,
   PrincipalsIndexRoute: PrincipalsIndexRoute,

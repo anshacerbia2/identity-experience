@@ -141,7 +141,17 @@ function RegistrationTable({ state }: { readonly state: RegistrationState | unde
               <Table.Cell>
                 <Message id={profileLabel(registration.profile)} />
               </Table.Cell>
-              <Table.Cell mono>{registration.audience_class}</Table.Cell>
+              <Table.Cell mono>
+                {registration.audience_class}
+                {registration.consent_required === true ? (
+                  <>
+                    {' '}
+                    <StatusPill tone="info">
+                      <Message id="registrations.asksConsent" />
+                    </StatusPill>
+                  </>
+                ) : null}
+              </Table.Cell>
               <Table.Cell>
                 <StatusPill tone={stateTone[registration.state]}>
                   <Message id={stateLabel(registration.state)} />

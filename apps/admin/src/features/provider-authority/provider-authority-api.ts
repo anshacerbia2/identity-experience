@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
+import { ApiError, apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
+import type { BootstrapCeremony, CeremonyReview, ReviewOutcome } from '@/domain/ceremony';
 import type {
   EmergencyValidation,
   TenantContextReport,
@@ -20,7 +21,27 @@ export const providerAuthorityKeys = {
   emergency: ['provider-grants', 'emergency-validation'] as const,
   tenantReport: ['projections', 'tenant-context', 'report'] as const,
   unconverged: ['projections', 'tenant-context', 'unconverged'] as const,
+  ceremony: ['bootstrap-ceremony'] as const,
 };
+
+// useCeremony reads the bootstrap ceremony's record and its reviews (STD-IAM-001 2.9.0 §3.10). A
+// Control Database whose ceremony has not run answers 404, which reads as no record, not a failure.
+export function useCeremony() {
+  return useQuery({
+    queryKey: providerAuthorityKeys.ceremony,
+    queryFn: async ({ signal }): Promise<BootstrapCeremony | null> => {
+      try {
+        return await apiGet<BootstrapCeremony>('/v1/bootstrap-ceremony', signal);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    refetchOnWindowFocus: false,
+  });
+}
 
 // useEmergencyValidation reads every active emergency grant with its last use, the oldest due first.
 export function useEmergencyValidation() {
@@ -79,6 +100,34 @@ export function useTenantRedrive() {
         { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
       ),
     onSettled: () => queryClient.invalidateQueries({ queryKey: providerAuthorityKeys.unconverged }),
+  });
+}
+
+// useReviewCeremony records an independent review of the ceremony's record: the reviewer's name and
+// the outcome, with the statement as the reason. It is a replayed command: useCommandPost keeps one
+// Idempotency-Key per distinct request, so a retry after an outage answers with the review the first
+// attempt recorded, never a second one. The API refuses the operator, the witness and the first
+// Principal's holder with 409, which the page shows as the API's sentence.
+export function useReviewCeremony() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      reviewer,
+      outcome,
+      statement,
+    }: {
+      readonly reviewer: string;
+      readonly outcome: ReviewOutcome;
+      readonly statement: string;
+    }) =>
+      post<CeremonyReview>(
+        '/v1/bootstrap-ceremony:review',
+        { reviewer: reviewer.trim(), outcome },
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(statement) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: providerAuthorityKeys.ceremony }),
   });
 }
 

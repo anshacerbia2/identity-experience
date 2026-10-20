@@ -86,7 +86,10 @@ function api(
       return (
         overrides.registrations?.(url) ??
         json({
-          registrations: [registration('r-web', 'web'), registration('r-orders', 'orders')],
+          registrations: [
+            registration('r-web', 'web', { audience_class: 'external', consent_required: true }),
+            registration('r-orders', 'orders', { consent_required: false }),
+          ],
           next: null,
         })
       );
@@ -114,6 +117,9 @@ describe('RegistrationsPage', () => {
     expect(within(rows[1] as HTMLElement).getByText('1 open')).toBeInTheDocument();
     expect(within(rows[2] as HTMLElement).getByText('None')).toBeInTheDocument();
     expect(within(rows[1] as HTMLElement).getByText('240 s')).toBeInTheDocument();
+    // An external client asks each person's consent, from its class (STD-IAM-002 1.9.0 §3.6).
+    expect(within(rows[1] as HTMLElement).getByText('Asks consent')).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).queryByText('Asks consent')).not.toBeInTheDocument();
 
     expect(await screen.findByText('Drift found')).toBeInTheDocument();
     expect(screen.getByText('1 open finding')).toBeInTheDocument();
