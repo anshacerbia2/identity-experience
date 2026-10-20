@@ -288,12 +288,7 @@ const contracts: Readonly<Record<string, string>> = {
 // Where the document is behind identity-control's code, and the client follows the code. Each entry is
 // reported to identity-control; the test fails once the document defines the field, so the entry is
 // removed then.
-const documentGaps: Readonly<Record<string, string>> = {
-  'packages/app-core/src/domain/public-key.ts#PublicJwk.use':
-    'identity-control accepts it (internal/registration/publickey.go, publicMembers); PublicJWK omits it',
-  'packages/app-core/src/domain/public-key.ts#PublicJwk.alg':
-    'identity-control accepts it (internal/registration/publickey.go, publicMembers); PublicJWK omits it',
-};
+const documentGaps: Readonly<Record<string, string>> = {};
 
 // A request body the client sends, rather than an answer it reads: its name says so.
 const isRequest = (name: string): boolean => name.endsWith('Request') || name.endsWith('#PublicJwk');

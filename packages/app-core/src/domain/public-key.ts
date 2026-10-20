@@ -7,8 +7,8 @@ export interface PublicJwk {
   readonly n: string;
   readonly e: string;
   readonly kid?: string;
-  readonly use?: string;
-  readonly alg?: string;
+  readonly use?: 'sig';
+  readonly alg?: 'PS256';
 }
 
 // The members that carry private material: RSA's private exponent and CRT values, the other-primes
