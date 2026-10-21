@@ -298,12 +298,14 @@ for (const theme of themes) {
 }
 
 // Only the scope line stays in view on a small or a short viewport, one line high, and tabbing backwards
-// through the page never leaves the focused element under it (STD-GLB-FE-005 2.2.0 §3.10, WCAG 2.2
-// SC 2.4.11; TDD-identity-experience-003 1.32.0 §Layout). 256 CSS px tall is a 1024 px tall screen at
-// 400% zoom.
+// through the page never leaves the focused element under it (STD-GLB-FE-005 2.3.0 §3.10, WCAG 2.2
+// SC 2.4.11; TDD-identity-experience-003 1.33.0 §Layout). 256 CSS px tall is a 1024 px tall screen at
+// 400% zoom. The same tab check runs once above both thresholds (60rem wide, 30rem tall), where the
+// full banner may stay in view and wrap, so only the one-line assertion is left out there (2.3.0).
 const short = [
-  { width: 320, height: 256 },
-  { width: 1280, height: 256 },
+  { width: 320, height: 256, oneLine: true },
+  { width: 1280, height: 256, oneLine: true },
+  { width: 1280, height: 800, oneLine: false },
 ] as const;
 
 // One line of the scope line's text, with its padding: anything taller is a second row.
@@ -332,7 +334,7 @@ async function stuck(page: Page): Promise<{ readonly bottom: number; readonly wh
 }
 
 for (const main of pages) {
-  test(`${main.path} keeps only the scope line in view on a short viewport, and focus out from under it`, async ({
+  test(`${main.path} keeps only the scope line in view on a short viewport, and focus out from under it at every size`, async ({
     page,
   }, testInfo) => {
     await page.goto(main.path);
@@ -348,8 +350,10 @@ for (const main of pages) {
       });
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
       const line = await stuck(page);
-      expect(line.what, `${String(size.width)}×${String(size.height)}`).toEqual(['the scope line']);
-      expect(line.bottom, `${String(size.width)}×${String(size.height)}`).toBeLessThanOrEqual(oneLine);
+      if (size.oneLine) {
+        expect(line.what, `${String(size.width)}×${String(size.height)}`).toEqual(['the scope line']);
+        expect(line.bottom, `${String(size.width)}×${String(size.height)}`).toBeLessThanOrEqual(oneLine);
+      }
       // Scrolled to the end, so the screenshot shows what stays in view over the page.
       await page.screenshot({
         path: testInfo.outputPath(
@@ -373,17 +377,33 @@ for (const main of pages) {
             return null;
           }
           const box = element.getBoundingClientRect();
+          // Entirely under something painted over it: none of its centre and four inset corners is a
+          // point where it, or a part of it, is the topmost element (SC 2.4.11 "entirely hidden"). Above
+          // both thresholds the rail and the banner are sticky beside and above the page, so only what
+          // actually paints over the element counts.
+          const xs = [box.left + 1, box.left + box.width / 2, box.right - 1];
+          const ys = [box.top + 1, box.top + box.height / 2, box.bottom - 1];
+          const points = xs.flatMap((x) => ys.map((y) => [x, y] as const));
+          const inView = points.filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+          const covered =
+            inView.length > 0 &&
+            inView.every(([x, y]) => {
+              const top = document.elementFromPoint(x, y);
+              return top === null || !(element.contains(top) || top.contains(element));
+            });
           return {
             what: `${element.tagName.toLowerCase()} "${element.textContent.trim().slice(0, 30)}"`,
             top: box.top,
             bottom: box.bottom,
             visible: box.width > 0 && box.height > 0,
+            covered,
           };
         });
         if (focused === null) {
           break;
         }
-        if (focused.visible && (focused.bottom <= line.bottom || focused.top >= size.height)) {
+        const under = size.oneLine ? focused.bottom <= line.bottom : focused.covered;
+        if (focused.visible && (under || focused.top >= size.height)) {
           hidden.push(`${focused.what}: ${focused.top.toFixed(0)}–${focused.bottom.toFixed(0)}px`);
         }
       }

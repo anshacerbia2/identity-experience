@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.22.0
+  version: 1.23.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-20
+  last_reviewed: 2026-10-21
   parent_sad: SAD-002
 ---
 
@@ -290,6 +290,23 @@ Migrations are a separate step, `pnpm --filter @identity-experience/bff migrate`
 the owning role (`IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL`); it grants the serving role
 (`IDENTITY_EXPERIENCE_RUNTIME_ROLE`) its DML. The serving process never runs DDL. Rows
 past their expiry are refused when presented and purged every five minutes.
+
+**The record ends with its session (1.23.0, `STD-IAM-001` 3.0.0 §3.4).** The standard asks that the
+store delete a record at the earliest of the absolute timeout, the idle timeout, logout and revocation,
+and that the deletion be "the store's own (an expiry on the record), not only a refusal when the record
+is read". The store conforms, and the evidence is these:
+
+- **An expiry on the record.** `sessions.idle_expires_at` and `sessions.absolute_expires_at`
+  (`bff/migrations/0001_sessions.sql`, both indexed). The idle expiry never passes the absolute one
+  (`bff/src/session/sessions.ts`, `#idleExpiry`).
+- **Idle and absolute timeout.** `SessionStore.purgeExpired` deletes every row past either expiry, and
+  `bff/src/server.ts` runs it every five minutes, so a row nobody presents again is still deleted.
+  A presented one is destroyed on the way out (`Sessions.resolve`). Tests: `bff/test/auth.test.ts`,
+  "session lifetime": the idle and absolute refusals, and, since 1.23.0, the purge deleting an expired
+  row that was never presented and keeping a live one.
+- **Logout and revocation.** `SessionStore.destroy` on sign-out, `destroyForLogout` on a back-channel
+  logout (`bff/test/auth.test.ts`, the back-channel logout cases; `bff/test/containment.test.ts`).
+- **Not an authority.** The store holds nothing that is not rebuilt by a sign-in (§Backups).
 
 ## Runtime
 
@@ -658,7 +675,15 @@ shown once with `no-store`". What the ADR decides, and this repository follows:
 
 **It waits for** identity-control's `POST /v1/enrolments` and `:verify` (not in its published
 `api/openapi.yaml` at `eace65d`), Organization Control's `POST /v1/invitations/resolve`, and
-organization-experience's **I do not have an account**. In production it also waits for the
+organization-experience's **I do not have an account**. `ADR-IAM-011` §5.7 (amended 2026-10-21) fixes
+the two producer terms (1.23.0): identity-control's workload is admitted to the resolve route from a
+registry row, a new `invitation:resolve` entry beside the reporter's, "not from a scope, not from
+`client_id`, and not from its consumer registration", and the route answers one `404` with the same
+body for an unknown, expired, revoked or accepted token. So this page depends on identity-control
+ROADMAP item 17, which registers that workload and calls the route, and on organization-control
+ROADMAP item 56, which serves it. Nothing here calls either route: the BFF's only call is
+identity-control's anonymous `POST /v1/enrolments`, and its one answer stays the same whatever the
+token. In production it also waits for the
 Notification Platform, which delivers the code.
 
 **Designed here before any code, when those exist** (none is decided yet, so none is built):
@@ -779,6 +804,8 @@ the build emits styles and fonts as files served from this origin, never inline.
 - A session cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, `__Host-` prefixed, and
   carries no encoded state.
 - The session store holds neither a cookie value nor a token in plaintext.
+- The purge deletes a session past its expiry that was never presented, and keeps a live one (1.23.0,
+  `STD-IAM-001` 3.0.0 §3.4; `bff/test/auth.test.ts`, "session lifetime").
 
 ### Sign-in Correctness
 
@@ -948,14 +975,23 @@ The session store is read on every request, so it is sized for the concurrent
 administrator population rather than for total sessions, and its latency budget is
 part of the proxy request budget rather than additional to it.
 
-## Backups (1.21.0)
+## Backups (1.21.0, session store 1.23.0)
 
 `STD-GLB-009` rule 9 applies to "A stack that owns a database" on a development server. This
 repository runs no stack there (`deploy/dev/README.md` §What runs). The laptop's session store, the
 `identity_experience_dev` schema, holds only sessions: it is disposable, and dropping it signs the
-laptop's browser out (`deploy/dev/README.md` §Backups). A production session store's retention is
-not decided here: `STD-GLB-002` §Durability & Recovery asks every store to declare one, and this
-store's declaration is owed before production.
+laptop's browser out (`deploy/dev/README.md` §Backups).
+
+**The session store is excluded from backup and restore (1.23.0, `STD-IAM-001` 3.0.0 §3.4).** The
+standard: "The session store is excluded from backup, snapshot and replication that outlives it, so no
+copy of a session exists past its absolute lifetime. Restoring the platform brings it up with an empty
+session store, and every person signs in again". It is also "not an authoritative data store and
+declares no RPO or restore test" (`STD-GLB-002` §Durability & Recovery). This closes the retention
+declaration this section owed before production: it is the record's own expiry (§Data Model). This
+repository has no backup script and no restore drill: none runs on the server (`deploy/dev/README.md`
+§What runs), so no session store is included in one. A production deployment's backup job excludes the
+BFF's database (`sessions`, `login_states`) and its restore leaves them empty; that job belongs to the
+platform's deployment, not to this repository.
 
 ## Operational Notes
 
@@ -986,7 +1022,8 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication by `private_key_jwt` |
 | Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys; one registration per developer device (1.21.0) |
 | Conforms to | STD-GLB-009 rule 15 — each device sets its own client id and key (1.21.0); rule 9 — no stack here owns a database (1.21.0) |
-| Governed by | ADR-IAM-011 — an invitee without an account enrols at redemption: planned, not built (1.21.0) |
+| Governed by | ADR-IAM-011 — an invitee without an account enrols at redemption: planned, not built (1.21.0); §5.7 as amended 2026-10-21: waits on identity-control ROADMAP item 17 and organization-control item 56 (1.23.0) |
+| Conforms to | STD-IAM-001 3.0.0 §3.4 — the session record is deleted by an expiry on the record at the earliest of absolute timeout, idle timeout, logout and revocation; the store is excluded from backup and restore and is not an authority (1.23.0) |
 | Conforms to | ADR-GLB-010 §5.1 — the applications' hand-written Identity Control client is contract-tested against its published OpenAPI document (`TDD-identity-experience-003` 1.32.0) |
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
 | Governed by | ADR-IAM-006 §5.2, ADR-IAM-008 — the Tenant chosen per sign-in, one form per sign-in, checked on the callback (1.15.0) |

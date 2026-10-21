@@ -212,7 +212,7 @@ alone. After it, the new key goes through `POST /v1/registrations/{registration_
 server, so it owns no database there, and nothing here needs a backup. The client lives in the kernel's database and its registration in
 identity-control's, and each stack backs up its own. The laptop's session store, the
 `identity_experience_dev` schema, is disposable: drop it and `dev-local.ps1` makes it again, and you
-sign in again. The private key is not backed up either: a lost key is replaced by a new one, installed
+sign in again. It is never part of a backup or a restore (`STD-IAM-001` 3.0.0 §3.4): a record ends with its session, by its own expiry, and a restore brings the platform up with it empty. The private key is not backed up either: a lost key is replaced by a new one, installed
 as a rotation.
 
 ## Never do

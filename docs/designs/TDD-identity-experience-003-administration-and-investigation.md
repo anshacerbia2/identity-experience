@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.33.0
+  version: 1.34.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-20
+  last_reviewed: 2026-10-21
   parent_sad: SAD-002
 ---
 
@@ -1503,7 +1503,11 @@ the screen" [R18].
   through its words, and it holds no control, so it is never a tab stop.
 - **What scrolls away.** Under 60rem, and on a viewport under 30rem tall, the bar with the
   environment and the session, and the navigation rail, are static. At a wide and tall viewport the
-  bar stays in view below the scope line, as before.
+  bar stays in view below the scope line, as before. `STD-GLB-FE-005` 2.3.0 §3.10 (1.34.0) states the
+  thresholds: the sticky line is compact "when the viewport is narrower than `60rem` or shorter than
+  `30rem`, either one", and "Above both thresholds, the sticky region may hold the full banner, and
+  the full banner may wrap to more than one line there". `30rem` is the standard's choice, not a source
+  value; 256 CSS px stays the layout test's floor.
 - **Focus is never under it.** SC 2.4.11 asks that a focused component "is not entirely hidden due to
   author-created content" [R19], and failure F110 is "a sticky footer or header completely hiding
   focused elements" [R20]. The page sets `scroll-padding-block-start` on the root to the height of what
@@ -1513,7 +1517,11 @@ the screen" [R18].
 - **What the layout test checks.** At 320×256 and at 1280×256 CSS px (a 1024 px tall screen at 400%
   zoom, as the standard names it), on every page the layout test covers: what is sticky or fixed in
   view is one line, no taller than 40px; and tabbing backwards from the end of the page, every focused
-  element stays at least partly visible below it. It keeps a screenshot of each.
+  element stays at least partly visible below it. It keeps a screenshot of each. Since 1.34.0 the same
+  tab check also runs once above both thresholds, at 1280×800 CSS px, where the full banner may be
+  sticky and wrap: only the one-line assertion is left out there, and focus must still stay at least
+  partly visible below whatever is sticky (`STD-GLB-FE-005` 2.3.0 §3.10, "The same tab check runs once
+  above both thresholds, where the full banner may wrap").
 
 **A long status wraps inside its pill (1.32.0).** `StatusPill` set `white-space: nowrap`, which "does
 not allow wrapping" [R13]. A status longer than the room it had, such as a long display name in the bar
@@ -1597,6 +1605,7 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | STD-GLB-FE-005 §3.9 — focus indicators drawn with `outline` |
 | Conforms to | STD-GLB-FE-005 2.1.0 §3.10 — intrinsic sizing and reflow at 320 CSS px (1.30.0) |
 | Conforms to | STD-GLB-FE-005 2.2.0 §3.10, SAD-002 2.2.0 §8.7 — only the scope line stays sticky on a small or short viewport, and focus is never under it (1.32.0) |
+| Conforms to | STD-GLB-FE-005 2.3.0 §3.10 — `60rem` wide or `30rem` tall; above both the full banner may wrap, and the tab check runs there too (1.34.0) |
 | Governed by | `ADR-IAM-001` §5.11 as amended 2026-10-20 — an orphan's identifier is re-adopted, never re-issued (1.32.0) |
 | Conforms to | `STD-IAM-001` 2.9.0 §3.10 — the ceremony's record is reviewed by a third, independent person (1.32.0) |
 | Conforms to | `ADR-GLB-010` §5.1 as amended 2026-10-20 — the hand-written client is contract-tested against identity-control's published OpenAPI document (1.32.0) |
