@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.21.0
+  version: 1.22.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -657,7 +657,7 @@ shown once with `no-store`". What the ADR decides, and this repository follows:
   and accepts as `ADR-ORG-007 §5.1` decides.
 
 **It waits for** identity-control's `POST /v1/enrolments` and `:verify` (not in its published
-`api/openapi.yaml` at `64bbf63`), Organization Control's `POST /v1/invitations/resolve`, and
+`api/openapi.yaml` at `eace65d`), Organization Control's `POST /v1/invitations/resolve`, and
 organization-experience's **I do not have an account**. In production it also waits for the
 Notification Platform, which delivers the code.
 

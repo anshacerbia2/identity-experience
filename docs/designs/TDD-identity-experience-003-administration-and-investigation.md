@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.32.0
+  version: 1.33.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -205,7 +205,7 @@ send carries one, from `useCommandPost` in `packages/app-core`, unless the form 
 `/api` prefix and forwards the verified access token; it does not translate canonical
 Principal identifiers into kernel identifiers or make an authorization decision.
 
-### The Client Is Contract-Tested (1.32.0)
+### The Client Is Contract-Tested (1.33.0)
 
 The three applications reach identity-control through a hand-written client: each feature's `*-api.ts`
 builds the path, and its request and response types are interfaces in `domain/`. `ADR-GLB-010 §5.1`,
@@ -243,8 +243,9 @@ an OpenAPI 3.1 document, which "defines a standard, language-agnostic interface 
     field a request schema requires is one the client always sends.
 - **Where the document is behind identity-control's code,** and the client follows the code, the
   test names the gap with its evidence, and fails once the document closes it, so the entry goes too.
-  One is open: `PublicJWK` omits `use` and `alg`, which identity-control accepts
-  (`internal/registration/publickey.go`). It is reported to identity-control.
+  None is open. The copy is pinned at identity-control `eace65d` (`info.version` 1.1.0,
+  identity-control #115), whose `PublicJWK` publishes `use` (`sig`) and `alg` (`PS256`) and no other
+  member, and which publishes the 7-day `Idempotency-Key` window. The client's `PublicJwk` types them so.
 - `scripts/check-identity-control-openapi.mjs` compares the copy with the document identity-control's
   `main` publishes. It fails on a difference, naming both `info.version`s, and `--update` replaces the
   copy and its pin with `main`'s, at a commit, never a branch. It refuses a copy whose digest is not the
@@ -254,7 +255,7 @@ an OpenAPI 3.1 document, which "defines a standard, language-agnostic interface 
   things consistent again" [R17].
 - **The contract test found two differences when it was written.** `RegistrationChange`'s four set
   fields were read as always present, and the document leaves them optional; they are optional here
-  now, and an absent one reads as `null`, as the code already treated it. And the `PublicJWK` gap above.
+  now, and an absent one reads as `null`, as the code already treated it. And the `PublicJWK` gap, closed at `eace65d` (1.33.0).
 
 | Ref | Source |
 | :-- | :-- |
