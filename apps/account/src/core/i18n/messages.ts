@@ -115,6 +115,48 @@ export const en = {
   'security.addresses.provenHeld': 'Proven. That address can now be used to accept an invitation.',
   'security.addresses.stillValid':
     'A code sent to that address is still good, so no new one was sent. Enter it beside the address, or ask for a new one once it has expired, 10 minutes after it was sent.',
+  'enrolment.eyebrow': 'Invitation',
+  'enrolment.title': 'Create your account',
+  'enrolment.lead':
+    'You were invited to an organization and have no account yet. Prove the invited address with a code, and an account is made for it.',
+  'enrolment.missing.title': 'Open the link from your invitation',
+  'enrolment.missing.body':
+    'This page needs the link you were sent. Open it again, or ask the person who invited you for a new one.',
+  'enrolment.start.title': 'Get a code',
+  'enrolment.start.body': 'A code is sent to the address the invitation was sent to. Nothing else is needed.',
+  'enrolment.start.send': 'Send me a code',
+  'enrolment.request.limited':
+    'Too many requests came from your network. Try again in {minutes, plural, one {# minute} other {# minutes}}.',
+  'enrolment.request.refused': 'This link cannot be used. Ask the person who invited you for a new one.',
+  'enrolment.request.unavailable': 'Codes cannot be sent right now. Try again in a few minutes.',
+  'enrolment.code.title': 'Enter the code',
+  'enrolment.code.sent':
+    'If this invitation can still be used, a code is on its way to the address it was sent to. It is good for 10 minutes.',
+  'enrolment.code.label': 'Code',
+  'enrolment.code.hint': 'The {length} digits from the message.',
+  'enrolment.code.invalid': 'The code is {length} digits.',
+  'enrolment.code.submit': 'Create my account',
+  'enrolment.code.restart': 'Start again',
+  'enrolment.verify.wrong':
+    'The code is wrong, has expired, or has been tried too often. Start again from the invitation link.',
+  'enrolment.verify.limited':
+    'Too many codes were tried from your network. Try again in {minutes, plural, one {# minute} other {# minutes}}.',
+  'enrolment.verify.unavailable':
+    'Your account cannot be created right now. Your code stays good for its 10 minutes: try it again shortly.',
+  'enrolment.created.title': 'Your account is ready',
+  'enrolment.created.body':
+    'Sign in with this username and temporary password. You choose your own password next.',
+  'enrolment.created.username': 'Username',
+  'enrolment.created.password': 'Temporary password',
+  'enrolment.created.lapses': 'Works until',
+  'enrolment.created.once':
+    'This password is shown once, here. It is not stored anywhere and cannot be shown again. It works for your first sign-in only.',
+  'enrolment.created.copy': 'Copy the password',
+  'enrolment.created.copied': 'Copied.',
+  'enrolment.created.copyFailed': 'It could not be copied. Select it and copy it yourself.',
+  'enrolment.created.next':
+    'After you have chosen your password, open the invitation link again to accept the invitation.',
+  'enrolment.created.continue': 'Continue to sign in',
 };
 
 export type MessageKey = keyof typeof en;
@@ -229,6 +271,48 @@ export const id: Messages = {
   'security.addresses.provenHeld': 'Terbukti. Alamat itu sekarang bisa dipakai untuk menerima undangan.',
   'security.addresses.stillValid':
     'Kode yang dikirim ke alamat itu masih berlaku, jadi tidak ada kode baru yang dikirim. Masukkan kode itu di samping alamatnya, atau minta yang baru setelah kedaluwarsa, 10 menit setelah dikirim.',
+  'enrolment.eyebrow': 'Undangan',
+  'enrolment.title': 'Buat akun Anda',
+  'enrolment.lead':
+    'Anda diundang ke sebuah organisasi dan belum punya akun. Buktikan alamat yang diundang dengan kode, lalu akun dibuat untuk alamat itu.',
+  'enrolment.missing.title': 'Buka tautan dari undangan Anda',
+  'enrolment.missing.body':
+    'Halaman ini memerlukan tautan yang dikirim kepada Anda. Buka lagi tautan itu, atau minta tautan baru kepada orang yang mengundang Anda.',
+  'enrolment.start.title': 'Dapatkan kode',
+  'enrolment.start.body': 'Kode dikirim ke alamat tujuan undangan. Tidak ada lagi yang diperlukan.',
+  'enrolment.start.send': 'Kirimi saya kode',
+  'enrolment.request.limited':
+    'Terlalu banyak permintaan dari jaringan Anda. Coba lagi dalam {minutes} menit.',
+  'enrolment.request.refused':
+    'Tautan ini tidak dapat digunakan. Minta tautan baru kepada orang yang mengundang Anda.',
+  'enrolment.request.unavailable': 'Kode tidak dapat dikirim saat ini. Coba lagi dalam beberapa menit.',
+  'enrolment.code.title': 'Masukkan kode',
+  'enrolment.code.sent':
+    'Jika undangan ini masih dapat digunakan, kode sedang dikirim ke alamat tujuan undangan. Kode berlaku 10 menit.',
+  'enrolment.code.label': 'Kode',
+  'enrolment.code.hint': '{length} angka dari pesan.',
+  'enrolment.code.invalid': 'Kode terdiri dari {length} angka.',
+  'enrolment.code.submit': 'Buat akun saya',
+  'enrolment.code.restart': 'Mulai lagi',
+  'enrolment.verify.wrong':
+    'Kode salah, kedaluwarsa, atau sudah terlalu sering dicoba. Mulai lagi dari tautan undangan.',
+  'enrolment.verify.limited':
+    'Terlalu banyak kode dicoba dari jaringan Anda. Coba lagi dalam {minutes} menit.',
+  'enrolment.verify.unavailable':
+    'Akun Anda tidak dapat dibuat saat ini. Kode Anda tetap berlaku selama 10 menitnya: coba lagi sebentar lagi.',
+  'enrolment.created.title': 'Akun Anda siap',
+  'enrolment.created.body':
+    'Masuk dengan nama pengguna dan kata sandi sementara ini. Selanjutnya Anda memilih kata sandi sendiri.',
+  'enrolment.created.username': 'Nama pengguna',
+  'enrolment.created.password': 'Kata sandi sementara',
+  'enrolment.created.lapses': 'Berlaku sampai',
+  'enrolment.created.once':
+    'Kata sandi ini ditampilkan sekali, di sini. Tidak disimpan di mana pun dan tidak dapat ditampilkan lagi. Hanya berlaku untuk masuk pertama kali.',
+  'enrolment.created.copy': 'Salin kata sandi',
+  'enrolment.created.copied': 'Tersalin.',
+  'enrolment.created.copyFailed': 'Tidak dapat disalin. Pilih dan salin sendiri.',
+  'enrolment.created.next': 'Setelah memilih kata sandi, buka lagi tautan undangan untuk menerima undangan.',
+  'enrolment.created.continue': 'Lanjut masuk',
 };
 
 export const messages: Readonly<Record<Locale, Messages>> = { en, id };

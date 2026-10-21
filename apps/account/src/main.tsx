@@ -1,3 +1,6 @@
+// First, before the router reads the location: the enrolment page's invitation token leaves the
+// address bar (core/invitation-fragment.ts, TDD-identity-experience-001 1.24.0).
+import './core/invitation-fragment';
 import '@fontsource-variable/inter';
 import '@fontsource-variable/jetbrains-mono';
 import '@identity-experience/ui/styles.scss';

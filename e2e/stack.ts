@@ -9,14 +9,15 @@
 //
 // IDENTITY_EXPERIENCE_TEST_DATABASE_URL names the PostgreSQL the BFF's own tests use; the stack makes
 // a schema of its own there and drops it when it stops.
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { fixture } from './fixtures.js';
-import { auxPort, bffOrigin, bffPort, controlOrigin, foreignOrigin } from './shared.js';
+import { auxPort, bffOrigin, bffPort, controlOrigin, enrolmentCode, foreignOrigin } from './shared.js';
+import { parseClientKey } from '../bff/src/auth/client-key.js';
 import { buildServer } from '../bff/src/server.js';
 import { testClientKey } from '../bff/test/support/client-key.js';
 import { createTestDatabase } from '../bff/test/support/database.js';
@@ -48,10 +49,66 @@ const listen = (server: ReturnType<typeof createServer>, port: number): Promise<
     });
   });
 
+// The enrolment workload (TDD-identity-experience-001 1.24.0): its own client and key, and the token
+// the stand-in kernel issues it below.
+const enrolmentClientId = 'identity-experience-enrolment-e2e';
+const enrolmentToken = 'e2e-enrolment-workload-token';
+const enrolmentKey = parseClientKey(
+  generateKeyPairSync('rsa', { modulusLength: 3072 })
+    .privateKey.export({ type: 'pkcs8', format: 'pem' })
+    .toString(),
+);
+
+// enrolment answers identity-control's two enrolment routes as TDD-identity-control-001 1.27.0 says,
+// for the enrolment workload's token and a Forwarded header alone: every token a 202 with a fresh
+// identifier, and the right code a 201 with the temporary password, once.
+function enrolment(url: URL, request: IncomingMessage, response: ServerResponse): boolean {
+  const verify = /^\/v1\/enrolments\/[0-9a-f-]{36}:verify$/.test(url.pathname);
+  if (request.method !== 'POST' || (url.pathname !== '/v1/enrolments' && !verify)) {
+    return false;
+  }
+  const problem = (status: number): void => {
+    send(response, status, JSON.stringify({ status }), 'application/problem+json');
+  };
+  if (request.headers.authorization !== `Bearer ${enrolmentToken}`) {
+    problem(403);
+    return true;
+  }
+  if (!/^for=/.test(request.headers.forwarded ?? '')) {
+    problem(400);
+    return true;
+  }
+  void readBody(request).then((text) => {
+    const body = JSON.parse(text) as { code?: string };
+    if (!verify) {
+      send(response, 202, JSON.stringify({ enrolment_id: randomUUID() }), 'application/json');
+    } else if (body.code !== enrolmentCode) {
+      problem(400);
+    } else {
+      send(
+        response,
+        201,
+        JSON.stringify({
+          principal_id: randomUUID(),
+          username: 'ada.lovelace@invited.example',
+          temporary_password: 'K7QH2M9XRT4WZP6VDN3BC8FA',
+          lapses_at: new Date(Date.now() + 86_400_000).toISOString(),
+        }),
+        'application/json',
+      );
+    }
+  });
+  return true;
+}
+
 // The Identity Control API: every GET answered from fixtures.ts, every POST refused as the API
 // refuses a command it cannot take, so no test passes on a command the stand-in pretended to apply.
+// The enrolment routes alone are answered, above.
 const api = createServer((request, response) => {
   const url = new URL(request.url ?? '/', 'http://api');
+  if (enrolment(url, request, response)) {
+    return;
+  }
   const answer = request.method === 'GET' ? fixture(url.pathname) : undefined;
   if (answer === undefined) {
     send(
@@ -96,6 +153,8 @@ const bff = await buildServer({
   upstreamTimeoutMs: 5_000,
   tenantSignIn: false,
   databaseUrl: database.url,
+  enrolment: { clientId: enrolmentClientId, clientKey: enrolmentKey },
+  trustedIngress: null,
 });
 await bff.listen({ host: '127.0.0.1', port: bffPort });
 
@@ -134,6 +193,18 @@ const aux = createServer((request, response) => {
   if (url.pathname.startsWith('/realms/test/')) {
     void readBody(request)
       .then(async (body) => {
+        // The enrolment workload's client credentials grant: the stand-in kernel serves only the
+        // sign-in client, so the token is issued here (bff/test/enrolment.test.ts checks the assertion).
+        const form = new URLSearchParams(body);
+        if (form.get('grant_type') === 'client_credentials' && form.get('client_id') === enrolmentClientId) {
+          send(
+            response,
+            200,
+            JSON.stringify({ access_token: enrolmentToken, expires_in: 300, token_type: 'Bearer' }),
+            'application/json',
+          );
+          return;
+        }
         const headers = new Headers();
         for (const [name, value] of Object.entries(request.headers)) {
           if (typeof value === 'string' && name !== 'host' && name !== 'content-length') {

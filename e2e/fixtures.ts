@@ -238,6 +238,32 @@ const answers: Readonly<Record<string, unknown>> = {
   '/v1/workloads:orphaned': { workloads: [] },
   '/v1/workloads:unused': { workloads: [] },
   '/v1/workloads:reviews-overdue': { workloads: [] },
+  // The enrolment caller record (TDD-identity-experience-003 1.35.0 §Enrolment Callers): one active
+  // caller, the e2e stack's own enrolment workload, and one retired, with long reasons.
+  '/v1/enrolment-callers': {
+    enrolment_callers: [
+      {
+        principal_id: '0192f0e0-8888-7000-8000-000000000001',
+        purpose: 'The enrolment BFF of a laptop that was replaced after its disk failed',
+        registered_by: 'prn_01TESTPRINCIPAL',
+        register_reason: 'Wiring the enrolment page on the old laptop, per deploy/dev/README.md',
+        registered_at: '2026-10-20T08:00:00Z',
+        retired_by: 'prn_01TESTPRINCIPAL',
+        retire_reason: 'The laptop was replaced; its enrolment workload is retired with it, INC-7',
+        retired_at: '2026-10-21T08:00:00Z',
+      },
+      {
+        principal_id: '0192f0e0-7777-7000-8000-000000000001',
+        purpose: 'The enrolment BFF of the browser test stack',
+        registered_by: 'prn_01TESTPRINCIPAL',
+        register_reason: 'Wiring the enrolment page for the browser tests',
+        registered_at: '2026-10-21T09:00:00Z',
+        retired_by: null,
+        retire_reason: null,
+        retired_at: null,
+      },
+    ],
+  },
   '/v1/provider-grants:emergency-validation': {
     scope: 'provider:identity-control',
     validation_period_days: 90,

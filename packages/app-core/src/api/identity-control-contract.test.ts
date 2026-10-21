@@ -22,7 +22,14 @@ import pinText from '../../../../contracts/identity-control/source.json?raw';
 //   or sends, and every field the client treats as always present is one the document requires.
 
 const sources = import.meta.glob<string>(
-  ['../../../../apps/*/src/**/*.{ts,tsx}', '../**/*.{ts,tsx}', '!**/*.test.{ts,tsx}', '!**/test/**'],
+  [
+    '../../../../apps/*/src/**/*.{ts,tsx}',
+    '../**/*.{ts,tsx}',
+    // The BFF's own calls: the enrolment routes, which it sends as its workload (1.35.0).
+    '../../../../bff/src/enrolment/*.ts',
+    '!**/*.test.{ts,tsx}',
+    '!**/test/**',
+  ],
   { query: '?raw', import: 'default', eager: true },
 );
 
@@ -267,6 +274,12 @@ const contracts: Readonly<Record<string, string>> = {
   'apps/admin/src/domain/temporary-password.ts#TemporaryPasswordAnswer': 'TemporaryPasswordAnswer',
   'apps/admin/src/domain/temporary-password.ts#TemporaryPasswordIssuance':
     'TemporaryPasswordAnswer.temporary_password',
+  'apps/admin/src/domain/enrolment.ts#EnrolmentCaller': 'EnrolmentCaller',
+  'bff/src/enrolment/routes.ts#EnrolmentRequest': 'post /v1/enrolments request',
+  'bff/src/enrolment/routes.ts#VerifyEnrolmentRequest': 'post /v1/enrolments/{enrolment_id}:verify request',
+  'bff/src/enrolment/routes.ts#EnrolmentAccepted': 'post /v1/enrolments 202',
+  'bff/src/enrolment/routes.ts#EnrolmentCompleted': 'post /v1/enrolments/{enrolment_id}:verify 201',
+  'apps/admin/src/domain/enrolment.ts#RegisterEnrolmentCallerRequest': 'post /v1/enrolment-callers request',
   'apps/admin/src/domain/workload.ts#CreateWorkloadRequest': 'CreateWorkloadRequest',
   'apps/admin/src/domain/workload.ts#WorkloadSweep': 'WorkloadSweepResult',
   'packages/app-core/src/domain/workload.ts#Workload': 'Workload',
@@ -313,7 +326,8 @@ function resolve(schema: unknown): Json {
   return schema;
 }
 
-// schemaAt reads a contract's target: `Name.field[]`, or `method path status.field`.
+// schemaAt reads a contract's target: `Name.field[]`, or `method path status.field`, or
+// `method path request.field`.
 function schemaAt(target: string): Json {
   const [head, ...rest] = target.split(' ');
   let schema: Json;
@@ -325,9 +339,12 @@ function schemaAt(target: string): Json {
   } else {
     const [path, statusAndSteps] = rest;
     const [status, ...steps] = (statusAndSteps ?? '').split('.');
-    let answer = ((((spec['paths'] as Json)[path ?? ''] as Json)[head ?? ''] as Json)['responses'] as Json)[
-      status ?? ''
-    ] as Json;
+    const operation = ((spec['paths'] as Json)[path ?? ''] as Json)[head ?? ''] as Json;
+    // `request` in place of a status is the operation's request body, for one the document declares
+    // inline rather than as a named schema.
+    let answer = (
+      status === 'request' ? operation['requestBody'] : (operation['responses'] as Json)[status ?? '']
+    ) as Json;
     if (typeof answer['$ref'] === 'string') {
       answer = ((spec['components'] as Json)['responses'] as Json)[
         answer['$ref'].replace('#/components/responses/', '')

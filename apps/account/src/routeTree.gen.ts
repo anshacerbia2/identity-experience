@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ConsentsRouteImport } from './routes/consents'
+import { Route as EnrolRouteImport } from './routes/enrol'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const ConsentsRoute = ConsentsRouteImport.update({
   path: '/consents',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EnrolRoute = EnrolRouteImport.update({
+  id: '/enrol',
+  path: '/enrol',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/consents': typeof ConsentsRoute
+  '/enrol': typeof EnrolRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/consents': typeof ConsentsRoute
+  '/enrol': typeof EnrolRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/consents': typeof ConsentsRoute
+  '/enrol': typeof EnrolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/consents'
+  fullPaths: '/' | '/consents' | '/enrol'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/consents'
-  id: '__root__' | '/' | '/consents'
+  to: '/' | '/consents' | '/enrol'
+  id: '__root__' | '/' | '/consents' | '/enrol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ConsentsRoute: typeof ConsentsRoute
+  EnrolRoute: typeof EnrolRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/enrol': {
+      id: '/enrol'
+      path: '/enrol'
+      fullPath: '/enrol'
+      preLoaderRoute: typeof EnrolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ConsentsRoute: ConsentsRoute,
+  EnrolRoute: EnrolRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

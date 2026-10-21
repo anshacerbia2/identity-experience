@@ -10,6 +10,9 @@ import { apiProxy } from './api/proxy.js';
 import { Oidc } from './auth/oidc.js';
 import { authRoutes } from './auth/routes.js';
 import type { Config } from './config.js';
+import { ingressList } from './enrolment/client-address.js';
+import { enrolmentRoutes } from './enrolment/routes.js';
+import { WorkloadToken } from './enrolment/workload-token.js';
 import { accountPrefix, developerPrefix, isAccountPath, isDeveloperPath } from './http/applications.js';
 import { registerCanonicalHost } from './http/canonical-host.js';
 import { sendProblem } from './http/problem.js';
@@ -94,6 +97,27 @@ export async function buildServer(
     sessions,
     identityControlBaseUrl: config.identityControlBaseUrl,
     timeoutMs: config.upstreamTimeoutMs,
+  });
+
+  // The enrolment page's anonymous routes, under /auth/ with the BFF's other own endpoints. They read
+  // no session (TDD-identity-experience-001 1.24.0 §Enrolment From an Invitation).
+  const internalRealm = config.oidc.internalBaseUrl.replace(/\/+$/, '');
+  await app.register(enrolmentRoutes, {
+    publicOrigin: config.publicOrigin,
+    identityControlBaseUrl: config.identityControlBaseUrl,
+    timeoutMs: config.upstreamTimeoutMs,
+    token:
+      config.enrolment === null
+        ? null
+        : new WorkloadToken({
+            tokenEndpoint: `${internalRealm}/protocol/openid-connect/token`,
+            issuer: config.oidc.issuer,
+            clientId: config.enrolment.clientId,
+            clientKey: config.enrolment.clientKey,
+            timeoutMs: config.upstreamTimeoutMs,
+            now,
+          }),
+    ingress: config.trustedIngress === null ? null : ingressList(config.trustedIngress),
   });
 
   app.get('/healthz', async (_request, reply) =>

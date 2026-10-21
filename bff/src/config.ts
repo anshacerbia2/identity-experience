@@ -3,6 +3,7 @@
 // variable per restart.
 
 import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 
 import { ClientKeyError, parseClientKey, type ClientKey } from './auth/client-key.js';
 
@@ -42,6 +43,26 @@ export interface Config {
   readonly tenantSignIn: boolean;
 
   readonly databaseUrl: string;
+
+  // enrolment is the BFF's own enrolment workload, which calls identity-control's two enrolment
+  // routes for a person who is not signed in (ADR-IAM-011 §5.8; TDD-identity-experience-001 1.24.0
+  // §Enrolment From an Invitation). Null when this deployment does not serve enrolment: the routes
+  // then answer 503.
+  readonly enrolment: EnrolmentConfig | null;
+
+  // trustedIngress is the one ingress hop in front of this process, as an address or a CIDR range. A
+  // connection from it states the client's address in X-Forwarded-For, which the ingress overwrites;
+  // a connection from anywhere else is the client itself. Null when nothing is in front, as on a
+  // developer's machine (TDD-identity-experience-001 1.24.0 §The Client Address).
+  readonly trustedIngress: string | null;
+}
+
+export interface EnrolmentConfig {
+  // clientId is the enrolment workload's own client, one per deployment and per developer device
+  // (STD-GLB-009 rule 15), never the sign-in client.
+  readonly clientId: string;
+  // clientKey is that client's own private key, never the sign-in client's.
+  readonly clientKey: ClientKey;
 }
 
 export interface OidcConfig {
@@ -142,7 +163,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   // clientKeyFrom reads the client's private key from the file the environment names. The path is
   // configuration; the key is not, so it is read from a file the secret manager mounts and never
   // from a variable. No message carries the key.
-  const clientKeyFrom = (path: string): ClientKey | undefined => {
+  const clientKeyFrom = (
+    path: string,
+    name = 'IDENTITY_EXPERIENCE_CLIENT_KEY_FILE',
+  ): ClientKey | undefined => {
     if (path === '') {
       return undefined;
     }
@@ -150,7 +174,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       return parseClientKey(readFileSync(path, 'utf8'));
     } catch (error) {
       problems.push(
-        `IDENTITY_EXPERIENCE_CLIENT_KEY_FILE: ${error instanceof ClientKeyError ? error.message : `${path} could not be read`}`,
+        `${name}: ${error instanceof ClientKeyError ? error.message : `${path} could not be read`}`,
       );
       return undefined;
     }
@@ -221,6 +245,40 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 
   const databaseUrl = required('IDENTITY_EXPERIENCE_DATABASE_URL');
 
+  // The enrolment workload: both variables, or neither. Its client and its key are its own, so a
+  // lost device's enrolment caller is retired without touching its sign-in client, and the other way
+  // round (STD-GLB-009 rule 15, ADR-IAM-001 §5.12).
+  const enrolmentClientId = optional('IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID');
+  const enrolmentKeyFile = optional('IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE');
+  let enrolment: EnrolmentConfig | null = null;
+  if (enrolmentClientId !== '' || enrolmentKeyFile !== '') {
+    if (enrolmentClientId === '' || enrolmentKeyFile === '') {
+      problems.push(
+        'IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID and IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE are set together or not at all',
+      );
+    } else if (enrolmentClientId === clientId) {
+      problems.push(
+        'IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID must be its own client, not IDENTITY_EXPERIENCE_CLIENT_ID',
+      );
+    } else {
+      const enrolmentKey = clientKeyFrom(enrolmentKeyFile, 'IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE');
+      if (enrolmentKey !== undefined && clientKey !== undefined && enrolmentKey.kid === clientKey.kid) {
+        problems.push(
+          "IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE must be its own key, not the sign-in client's",
+        );
+      } else if (enrolmentKey !== undefined) {
+        enrolment = { clientId: enrolmentClientId, clientKey: enrolmentKey };
+      }
+    }
+  }
+
+  const trustedIngress = optional('IDENTITY_EXPERIENCE_TRUSTED_INGRESS') || null;
+  if (trustedIngress !== null && !isAddressOrRange(trustedIngress)) {
+    problems.push(
+      `IDENTITY_EXPERIENCE_TRUSTED_INGRESS: ${trustedIngress} is not one IP address or CIDR range`,
+    );
+  }
+
   if (problems.length > 0) {
     throw new ConfigError(problems);
   }
@@ -239,5 +297,22 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     upstreamTimeoutMs,
     tenantSignIn: false,
     databaseUrl,
+    enrolment,
+    trustedIngress,
   };
+}
+
+// isAddressOrRange accepts one IPv4 or IPv6 address, with an optional prefix length within its
+// family's bounds.
+export function isAddressOrRange(value: string): boolean {
+  const [address = '', prefix, ...rest] = value.split('/');
+  const family = isIP(address);
+  if (family === 0 || rest.length > 0) {
+    return false;
+  }
+  if (prefix === undefined) {
+    return true;
+  }
+  const bits = Number(prefix);
+  return /^\d{1,3}$/.test(prefix) && bits >= 0 && bits <= (family === 4 ? 32 : 128);
 }

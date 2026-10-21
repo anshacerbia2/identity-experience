@@ -102,6 +102,20 @@ if (-not (Test-Path $clientKey)) {
     throw "No client key at $clientKey. Run: node scripts/new-client-key.mjs, then have the server's operator register $($env:IDENTITY_EXPERIENCE_CLIENT_ID) with keys\identity-experience-bff.jwk.json (deploy/dev/README.md)."
 }
 $env:IDENTITY_EXPERIENCE_CLIENT_KEY_FILE = $clientKey
+# The enrolment page's workload (TDD-identity-experience-001 1.24.0): this device's own second
+# client, with its own key, registered as an enrolment caller (deploy/dev/README.md, First start
+# step 4). Optional: without it the enrolment page answers that enrolment is unavailable. No
+# ingress stands in front of this machine, so IDENTITY_EXPERIENCE_TRUSTED_INGRESS stays unset and the
+# client address is the browser's own connection.
+$enrolmentClient = Get-OrDefault 'IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID' ''
+if ($enrolmentClient -ne '') {
+    $enrolmentKey = Get-OrDefault 'IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE' (Join-Path $root 'keys\identity-experience-enrolment.pem')
+    if (-not (Test-Path $enrolmentKey)) {
+        throw "No enrolment key at $enrolmentKey. Run: node scripts/new-client-key.mjs identity-experience-enrolment, then have the server's operator run scripts/dev-wire-enrolment.ps1 with keys\identity-experience-enrolment.jwk.json (deploy/dev/README.md)."
+    }
+    $env:IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID = $enrolmentClient
+    $env:IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE = $enrolmentKey
+}
 $env:IDENTITY_EXPERIENCE_REDIRECT_URI = "$origin/auth/callback"
 $env:IDENTITY_EXPERIENCE_SESSION_KEY = $dotenv['IDENTITY_EXPERIENCE_SESSION_KEY']
 $env:IDENTITY_EXPERIENCE_DATABASE_URL = $sessionDatabase

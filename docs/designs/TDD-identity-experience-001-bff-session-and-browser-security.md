@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.23.0
+  version: 1.24.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -356,7 +356,9 @@ class.
 The applications call identity-control through `/api/*` with a hand-written client, contract-tested
 against identity-control's published `api/openapi.yaml` (1.21.0, `ADR-GLB-010` §5.1;
 `TDD-identity-experience-003` 1.32.0 §The Client Is Contract-Tested). The BFF forwards those calls and
-changes none of them, so it is not part of that contract.
+changes none of them, so it is not part of that contract. Its own two calls are: the enrolment
+routes it sends as its enrolment workload (1.24.0, §Enrolment From an Invitation), whose paths and
+bodies the same contract test reads from `bff/src/enrolment/`.
 
 ### BFF Endpoints
 
@@ -366,6 +368,8 @@ GET   /auth/callback
 POST  /auth/logout
 POST  /auth/back-channel-logout
 GET   /auth/session
+POST  /auth/enrolment          no session: the enrolment page (1.24.0, §Enrolment From an Invitation)
+POST  /auth/enrolment/verify   no session: the enrolment page (1.24.0)
 ALL   /api/*
 ```
 
@@ -654,45 +658,170 @@ Tenant disabled makes the kernel refuse the refresh outright.
 A Tenant the operator does not administer is still refused by the Control API, which checks
 current state on every request. The BFF surfaces the refusal rather than retrying.
 
-### Enrolment From an Invitation (planned, ADR-IAM-011)
+### Enrolment From an Invitation (built 1.24.0, ADR-IAM-011)
 
-**Planned, not built.** `ADR-IAM-011`, accepted 2026-10-19: a person invited to a Tenant who has no
-account enrols at redemption, after proving the invited address with a code. Its §5.6 gives this
-repository "The enrolment page and its anonymous BFF routes: the code form, and the temporary password
-shown once with `no-store`". What the ADR decides, and this repository follows:
+**Built in 1.24.0.** `ADR-IAM-011` §5.1 to §5.9 (accepted 2026-10-20, amended twice on 2026-10-21) and
+`STD-IAM-001` 3.1.0 §3.1. Its §5.6 gives this repository "The enrolment page and its anonymous BFF
+routes: the code form, and the temporary password shown once with `no-store`". The producer is
+identity-control's `POST /v1/enrolments` and `:verify` (`TDD-identity-control-001` 1.27.0 §Enrolment
+From an Invitation, its `api/openapi.yaml` 1.2.0, identity-control #118), pinned in
+`contracts/identity-control/`. Nothing here grants a Membership: the person signs in with the temporary
+password, chooses their own, and accepts the invitation from its link, signed in, as `ADR-ORG-007 §5.1`
+decides (§5.4).
 
-- The acceptance page (organization-experience) hands the invitation token, in the fragment, to an
-  enrolment page here.
-- The BFF calls identity-control's anonymous `POST /v1/enrolments` with the token in the body. It always
-  answers `202` with one body, whatever the token: "An unknown, expired, revoked or accepted token, and
-  an address a Principal already holds proven, are not told apart".
-- The person returns the code with `POST /v1/enrolments/{enrolment_id}:verify`. On the right code
-  identity-control creates the Principal and issues a temporary password, shown once, as `ADR-IAM-010`
-  issues it; the page shows it as TDD-003 §A First Credential, Shown Once does: never cached, stored,
-  put in a URL or logged, and forwarded with `Cache-Control: no-store`.
-- Nothing here grants a Membership. The person signs in with the temporary password, chooses their own,
-  and accepts as `ADR-ORG-007 §5.1` decides.
+```text
+browser                         BFF                                   identity-control
+/account/enrol#<token>
+POST /auth/enrolment {token}  ->  workload token, Forwarded: for=<a>  -> POST /v1/enrolments {token}     -> 202 {enrolment_id}
+POST /auth/enrolment/verify   ->  workload token, Forwarded: for=<a>  -> POST /v1/enrolments/{id}:verify -> 201, once
+     {enrolment_id, code}
+```
 
-**It waits for** identity-control's `POST /v1/enrolments` and `:verify` (not in its published
-`api/openapi.yaml` at `eace65d`), Organization Control's `POST /v1/invitations/resolve`, and
-organization-experience's **I do not have an account**. `ADR-IAM-011` §5.7 (amended 2026-10-21) fixes
-the two producer terms (1.23.0): identity-control's workload is admitted to the resolve route from a
-registry row, a new `invitation:resolve` entry beside the reporter's, "not from a scope, not from
-`client_id`, and not from its consumer registration", and the route answers one `404` with the same
-body for an unknown, expired, revoked or accepted token. So this page depends on identity-control
-ROADMAP item 17, which registers that workload and calls the route, and on organization-control
-ROADMAP item 56, which serves it. Nothing here calls either route: the BFF's only call is
-identity-control's anonymous `POST /v1/enrolments`, and its one answer stays the same whatever the
-token. In production it also waits for the
-Notification Platform, which delivers the code.
+**The page's address: `/account/enrol`, with the token in the fragment.** organization-experience's
+acceptance page links to `https://<this BFF's public origin>/account/enrol#<token>`, the token
+percent-encoded, as its own invitation link carries it (`/invitations/accept#<token>`). The page is a
+route of the account application (`TDD-identity-experience-002`), served by this BFF without a sign-in.
+On the development laptop it is `http://127.0.0.1:8090/account/enrol#<token>`.
 
-**Designed here before any code, when those exist** (none is decided yet, so none is built):
+**The token in the fragment.** A browser separates the fragment before it asks a server for anything:
+RFC 3986 §3.5, "the fragment identifier is separated from the rest of the URI prior to a dereference"
+[R14]. So no server, this BFF included, receives the token when the link opens, and no access log holds
+it.
 
-- **Anonymous routes in the BFF.** Every route the BFF proxies today needs a session; these two have
-  none. Which of §Cross-Site Request Forgery Defence's three defences still apply without a session,
-  and what stands in for the session-bound token, is stated in this TDD first.
-- **Where the page lives.** An application this BFF serves, served without a sign-in.
-- **The token in the fragment.** How the page reads it and keeps it out of logs, history and referrers.
+- `apps/account/src/core/invitation-fragment.ts` is the first module `main.tsx` imports, so it runs
+  before the router reads the location. On `/account/enrol` it takes the fragment, decodes it, and
+  removes it from the address bar with `history.replaceState`, which loads nothing. No link, sign-in
+  `return_to` or history entry the page makes afterwards can carry it.
+- The token is held in that module's memory alone: never in browser storage, a cookie or a URL. A
+  reload has no token, and the page asks the person to open the link again. It is sent only in the body
+  of `POST /auth/enrolment`, and dropped once the account exists.
+- `Referrer-Policy: no-referrer` (§Security Headers) holds on every response, and the page's requests
+  set `referrerPolicy: 'no-referrer'` too, so no `Referer` carries the page's address.
+
+**The BFF calls enrolment as its own workload.** The routes are anonymous as to the person and not as
+to the caller (`ADR-IAM-011 §5.8`). The BFF holds a second client, the enrolment workload, beside its
+sign-in client:
+
+- **Its own registration and key.** `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID` and
+  `_CLIENT_KEY_FILE` (§Configuration). A workload Principal with an owner (`ADR-IAM-003 §5.8`), created
+  through identity-control's `POST /v1/workloads`, and admitted to the two routes by its enrolment
+  caller record (`POST /v1/enrolment-callers`, `TDD-identity-experience-003` 1.35.0 §Enrolment
+  Callers). One per deployment, and one per developer device, as `STD-GLB-009` rule 15 says: "Each
+  device sets its own `*_CLIENT_ID` and key". The configuration refuses the sign-in client's identifier
+  or key for it, so a lost device's caller is retired without touching its sign-in, and the other way
+  round. `scripts/dev-wire-enrolment.ps1` registers it from zero (`deploy/dev/README.md`, First start
+  step 4).
+- **Its token.** An OAuth client credentials grant at the kernel's token endpoint, authenticated by a
+  PS256 assertion signed with the workload's key (`private_key_jwt`, `ADR-IAM-001 §5.12`), never a
+  secret (`bff/src/enrolment/workload-token.ts`). It is held in memory until 30 seconds before it
+  expires, and dropped when identity-control answers `401`, so the next request presents a fresh one;
+  that request is not retried. It is never logged, stored or sent to the browser.
+- **No person's token.** No one is signed in, and a session cookie the browser happens to hold is
+  not read on these routes.
+
+**The client address (§5.8).** identity-control counts requests per client address, from the
+`Forwarded` header it reads on this workload's call alone. RFC 7239 §5.2: "The "for" parameter is used
+to disclose information about the client that initiated the request" [R15]. §8.1: the header "cannot be
+relied upon to be correct, as it may be modified, whether mistakenly or for malicious reasons, by every
+node on the way to the server" [R15]. So the BFF states the address the platform's own edge accepted,
+and trusts one hop and no chain behind it (`bff/src/enrolment/client-address.ts`):
+
+- **Nothing in front** (`IDENTITY_EXPERIENCE_TRUSTED_INGRESS` unset, as on a laptop): the BFF is the
+  edge, and the address is that of the TCP connection it accepted.
+- **One ingress in front** (`IDENTITY_EXPERIENCE_TRUSTED_INGRESS` its address or CIDR range): on a
+  connection from it, the address is the one `X-Forwarded-For` value the ingress wrote. The ingress
+  overwrites any forwarding header a client sent (§Deployment Edge, below), so the header holds one
+  address. A list, a second header, a value that is not an address, or no header is a misconfigured
+  ingress: the BFF answers `503` and logs it, and sends nothing. On a connection from anywhere else, the
+  header is not read and the connection's address is the client's.
+- **What the BFF sends.** `Forwarded: for=192.0.2.1`, or `for="[2001:db8::17]"` for IPv6, which RFC
+  7239 §6 says "MUST be quoted" in brackets [R15]. An IPv4-mapped IPv6 address is sent as IPv4. A
+  `Forwarded` or `X-Forwarded-For` the browser sent is never forwarded. Fastify keeps `trustProxy:
+  false`, so nothing else in the BFF reads a forwarding header.
+- **Privacy.** RFC 7239 §8.3: the address "is considered to be privacy sensitive by many people" [R15].
+  The BFF logs no client address on these routes; identity-control keeps only a keyed hash of it, for
+  its window.
+
+**Deployment edge.** No ingress fronts this BFF in any environment the platform deploys today: on the
+development laptop the BFF is the edge, and the kernel's Caddy (`identity-kernel` `deploy/dev/Caddyfile`)
+proxies Keycloak alone. A deployment that puts an ingress in front must make it replace every
+forwarding header. Caddy does by default: "For these X-Forwarded-* headers, by default, the proxy will
+ignore their values from incoming requests, to prevent spoofing", and "It sets or augments the
+X-Forwarded-For header field" [R16]. It passes other headers through unmodified, so the ingress also
+removes `Forwarded` and `X-Real-IP` (`header_up -Forwarded`, `header_up -X-Real-IP`), declares no
+`trusted_proxies`, and the BFF's `IDENTITY_EXPERIENCE_TRUSTED_INGRESS` names the ingress's address.
+That deployment is not in this repository, and is reported to the architecture repository.
+
+**Forgery defences without a session.** §Cross-Site Request Forgery Defence protects cookie-borne
+authority with `SameSite`, `Origin` and a session-bound token. These two routes carry no authority from
+the browser: no cookie is read, no session exists, and the token or code in the body is the person's
+own. What a forged request could do is send a code to an invited address with a token the forger
+already holds, or spend a code's attempts. So the routes keep the checks that need no session, each
+independent, in an `onRequest` hook that refuses with `403` before the body is parsed
+(`bff/src/enrolment/routes.ts`):
+
+1. **`Origin` equals the public origin.** OWASP: "If the Origin header is present, verify that its value
+   matches the target origin" [R17]. A request without one is refused, as on the session routes.
+2. **`Sec-Fetch-Site: same-origin`.** OWASP: "Treat cross-site as untrusted for state-changing actions",
+   and, when the header is absent, "Fail-safe (recommended for sensitive endpoints): treat absence as
+   unknown and block the request." [R17] A `same-site` request is refused too: no sibling site is
+   trusted.
+3. **`Content-Type: application/json`.** A cross-site page can post without a preflight only with
+   "application/x-www-form-urlencoded, multipart/form-data or text/plain", and OWASP: "a simple
+   mitigation is for the server or API to disallow these simple content types" [R17]. The BFF answers no
+   preflight and sends no CORS header, so a JSON post from another origin never leaves the browser.
+
+The session-bound CSRF token has no stand-in: OWASP's remedy for a request before sign-in is "creating
+pre-sessions (sessions before a user is authenticated)" [R17], which protects a login form's session
+from being fixed; these routes create no session to fix, and a pre-session would add a cookie and a row
+for each anonymous visitor. `Cross-Origin-Resource-Policy: same-origin` also makes a cross-origin
+`no-cors` read of the answer fail in the browser. The body is parsed in the routes' scope alone, as
+JSON of at most 4 KiB, and must be exactly `{"token"}` (1 to 1024 characters) or
+`{"enrolment_id","code"}` (a UUID, and 1 to 64 characters); anything else is `400`, which depends on the
+body alone. The token, the code and the password are never logged: Fastify's request lines carry the
+path, and the routes' own lines name a rule, never a value.
+
+**One sentence per answer.** identity-control answers every token the same `202` and every refused
+code the same `400` (`ADR-IAM-011 §5.1`, `§5.9`), so the BFF and the page keep that: the BFF passes on
+no detail of identity-control's body, and the page chooses its sentence from the status alone
+(`apps/account/src/domain/enrolment.ts`).
+
+| Route | identity-control | The BFF answers | The page says |
+| :-- | :-- | :-- | :-- |
+| request | `202` `{enrolment_id}` | `202`, `no-store` | "If this invitation can still be used, a code is on its way to the address it was sent to. It is good for 10 minutes." |
+| request | `429`, `Retry-After` | `429`, `Retry-After` | "Too many requests came from your network. Try again in N minutes." |
+| request | `400` (a malformed body) | `400` | "This link cannot be used. Ask the person who invited you for a new one." |
+| request | `401`, `403`, `5xx`, unreachable; or no workload, no client address | `503` | "Codes cannot be sent right now. Try again in a few minutes." |
+| verify | `201` | `201`, `no-store` | The username, the temporary password and when it lapses, shown once |
+| verify | `400` (every refused code) | `400` | "The code is wrong, has expired, or has been tried too often. Start again from the invitation link." |
+| verify | `429`, `Retry-After` | `429`, `Retry-After` | "Too many codes were tried from your network. Try again in N minutes." |
+| verify | `401`, `403`, `5xx`, unreachable | `503` | "Your account cannot be created right now. Your code stays good for its 10 minutes: try it again shortly." |
+
+A `429` counts the client address, whatever the token, so it says nothing about any invitation
+(`ADR-IAM-011 §5.8`). A `401` or `403` from identity-control is this deployment's misconfiguration (a
+lapsed token, or a retired caller), never the person's, so it is the same `503` as an outage and is
+logged. The verification's `503` sentence follows identity-control: "A `503` leaves the code good:
+retry it."
+
+**The temporary password, shown once.** `STD-IAM-001` 3.1.0 §3.1 names "the person who has just
+proven the address they enrol with" as the exception's second recipient. Every condition holds here:
+
+- The BFF holds the value in memory for the one response, with `Cache-Control: no-store`, and never logs
+  it; the request asked for no cache either (`cache: 'no-store'`).
+- The page holds it in its component's state alone, never in a query cache, browser storage or a URL.
+  A reload, or leaving the page, discards it, and nothing can show it again. It offers Copy, and the
+  value is selected whole on a click.
+- **Then hosted login.** Continue to sign in is `/auth/login?return_to=/account/`: the kernel asks for
+  the temporary password and forces its change, since it is temporary in the kernel (`ADR-IAM-010`).
+  The page then says to open the invitation link again to accept, signed in.
+
+**A strict content security policy.** The page is the account application's shell, so it carries
+§Security Headers: `default-src 'none'`, `script-src 'self'`, no `unsafe-inline` and no `unsafe-eval`,
+`connect-src 'self'` (the page calls only this origin), `form-action 'self'` and `frame-ancestors 'none'`.
+The page needs nothing the policy refuses.
+
+**When enrolment is not configured.** Without the enrolment workload, both routes answer `503` and log
+why, and the page says codes cannot be sent. organization-experience's link then still opens the page.
 
 ### What the BFF Must Not Do
 
@@ -728,6 +857,9 @@ user-experience control only.
 | `IDENTITY_CONTROL_BASE_URL` | none, required | Identity Control API |
 | `IDENTITY_EXPERIENCE_UPSTREAM_TIMEOUT` | `10s` | Bound on one proxied call |
 | `IDENTITY_EXPERIENCE_LISTEN_HOST`, `_LISTEN_PORT` | `0.0.0.0`, `8080` | Listening address |
+| `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID` | none | The enrolment workload's own client, one per deployment and per device; never the sign-in client. Set with the next, or neither: unset, the enrolment routes answer `503` (1.24.0) |
+| `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE` | none | Its own private key as a PEM file (RSA ≥ 3072); never the sign-in key (1.24.0) |
+| `IDENTITY_EXPERIENCE_TRUSTED_INGRESS` | none | The one ingress hop in front of the BFF, as an address or a CIDR range; on its connections the client address is its `X-Forwarded-For`. Unset: the connection's own address (1.24.0, §Enrolment From an Invitation) |
 
 The migration step reads `IDENTITY_EXPERIENCE_MIGRATION_DATABASE_URL` (the owning role)
 and `IDENTITY_EXPERIENCE_RUNTIME_ROLE` (the role granted DML); the server reads neither.
@@ -852,6 +984,34 @@ the build emits styles and fonts as files served from this origin, never inline.
   withholds it. What is asserted is the cookie header Chromium sent. MDN: Lax sends the cookie
   cross-site only for "a top-level navigation" that "uses a safe method", which "excludes POST" and
   excludes "requests made using the fetch() API" and "navigations inside <iframe> elements" [R13].
+
+### Enrolment (1.24.0)
+
+- **`bff/test/enrolment.test.ts`**, against stand-ins for the kernel's token endpoint and
+  identity-control: the request and the verification are sent as the enrolment workload, with its
+  client credentials assertion checked, `Forwarded: for=<address>` and no Idempotency-Key; the token is
+  held, and a fresh one is presented after identity-control's `401`. No `Origin`, another `Origin`, a
+  cross-site, same-site or absent `Sec-Fetch-Site`, and a form or text body are each refused `403` with
+  nothing sent; a malformed body is `400` with nothing sent. A forwarding header the browser sent is
+  ignored with nothing in front; behind the trusted ingress its one `X-Forwarded-For` value is the
+  address, a connection from elsewhere is its own, and a missing or listed value is `503`. `429` keeps
+  `Retry-After`; `401`, `403` and `5xx` are `503`; identity-control's detail is never passed on. The
+  temporary password answers once with `no-store`, and no log line, at `trace`, holds the password, the
+  code, the invitation token or the workload token. The configuration refuses one variable without the
+  other, the sign-in client and the sign-in key, and anything but one address or range.
+- **`apps/account`**: the fragment is taken on the enrolment page alone, cleared from the address bar
+  and held in memory (`invitation-fragment.test.ts`); each status maps to one outcome
+  (`domain/enrolment.test.ts`); the page asks for the link without a token, creates the account, refuses
+  a code that is not 8 digits unsent, and says each table row's sentence (`EnrolmentPage.test.tsx`,
+  with axe).
+- **In Chromium** (`e2e/tests/enrolment.spec.ts`, against the real BFF and stand-ins): not signed in,
+  at 320 CSS px, the link's token leaves the address bar and no request URL; the shell is `no-store`
+  with the strict policy and `no-referrer`; the request carries `Origin`, `Sec-Fetch-Site: same-origin`,
+  JSON and no `Referer`; a wrong code shows the one refusal; the right one shows the password once, and a
+  reload shows nothing; nothing is in browser storage; axe finds nothing at each step, and a screenshot of
+  each is kept. A cross-site page's `no-cors` post reads nothing, and a cross-site request is `403`. The
+  page's refused and created states are in `accessibility.spec.ts` and `layout.spec.ts` in both themes at
+  every width, with the short viewport.
 
 ### Revocation
 
@@ -1022,7 +1182,10 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Conforms to | STD-IAM-001 §3.2 — Authorization Code with PKCE `S256`; confidential client authentication by `private_key_jwt` |
 | Governed by | ADR-IAM-001 §5.12 — confidential clients authenticate with registered keys; one registration per developer device (1.21.0) |
 | Conforms to | STD-GLB-009 rule 15 — each device sets its own client id and key (1.21.0); rule 9 — no stack here owns a database (1.21.0) |
-| Governed by | ADR-IAM-011 — an invitee without an account enrols at redemption: planned, not built (1.21.0); §5.7 as amended 2026-10-21: waits on identity-control ROADMAP item 17 and organization-control item 56 (1.23.0) |
+| Governed by | ADR-IAM-011 §5.1 to §5.9, as amended twice on 2026-10-21 — an invitee without an account enrols at redemption: the enrolment page at `/account/enrol` and its anonymous routes, built (1.24.0) |
+| Conforms to | STD-IAM-001 3.1.0 §3.1 — the temporary password shown once to the enrolling person, `no-store`, never logged or stored (1.24.0) |
+| Conforms to | STD-GLB-009 rule 15 — the enrolment workload is its own client and key per device (1.24.0) |
+| Depends on | `identity-control` — `POST /v1/enrolments` and `:verify`, and the enrolment caller record (`TDD-identity-control-001` 1.27.0, `api/openapi.yaml` 1.2.0) (1.24.0) |
 | Conforms to | STD-IAM-001 3.0.0 §3.4 — the session record is deleted by an expiry on the record at the earliest of absolute timeout, idle timeout, logout and revocation; the store is excluded from backup and restore and is not an authority (1.23.0) |
 | Conforms to | ADR-GLB-010 §5.1 — the applications' hand-written Identity Control client is contract-tested against its published OpenAPI document (`TDD-identity-experience-003` 1.32.0) |
 | Conforms to | STD-IAM-002 §3.1, §3.3 — `privileged` audience class and lifetime class `L0` |
@@ -1064,4 +1227,8 @@ outbox.
 | R10 | IETF RFC 9110, *HTTP Semantics*, §15.5.2, <https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2>, accessed 2026-10-08: "The 401 (Unauthorized) status code indicates that the request has not been applied because it lacks valid authentication credentials for the target resource." |
 | R11 | PostgreSQL 17 Documentation, *Appendix A. PostgreSQL Error Codes*, <https://www.postgresql.org/docs/17/errcodes-appendix.html>, accessed 2026-10-08: "According to the standard, the first two characters of an error code denote a class of errors, while the last three characters indicate a specific condition within that class. Thus, an application that does not recognize the specific error code might still be able to infer what to do from the error class." Classes "08 — Connection Exception", "53 — Insufficient Resources", "57 — Operator Intervention", "58 — System Error (errors external to PostgreSQL itself)". |
 | R12 | OpenID Foundation, *OpenID Connect Back-Channel Logout 1.0*, §2.8, <https://openid.net/specs/openid-connect-backchannel-1_0.html>, accessed 2026-10-08: "If the logout request was invalid or the logout failed, the RP MUST respond with HTTP 400 Bad Request." |
+| R14 | IETF RFC 3986, *Uniform Resource Identifier (URI): Generic Syntax*, §3.5, <https://www.rfc-editor.org/rfc/rfc3986#section-3.5>, accessed 2026-10-21: "the fragment identifier is separated from the rest of the URI prior to a dereference". |
+| R15 | IETF RFC 7239, *Forwarded HTTP Extension*, <https://www.rfc-editor.org/rfc/rfc7239>, accessed 2026-10-21. §5.2: "The "for" parameter is used to disclose information about the client that initiated the request". §6: "It is important to note that an IPv6 address and any nodename with node-port specified MUST be quoted", with `nodename = IPv4address / "[" IPv6address "]"`. §8.1: "The "Forwarded" HTTP header field cannot be relied upon to be correct, as it may be modified, whether mistakenly or for malicious reasons, by every node on the way to the server". §8.3: "The client's IP address, that may be forwarded in the "for" parameter of this header field, is considered to be privacy sensitive by many people". |
+| R16 | Caddy, *reverse_proxy*, Defaults and `trusted_proxies`, <https://caddyserver.com/docs/caddyfile/directives/reverse_proxy>, accessed 2026-10-21: "By default, Caddy passes through incoming headers—including Host—to the backend without modifications, with three exceptions: It sets or augments the X-Forwarded-For header field."; "For these X-Forwarded-* headers, by default, the proxy will ignore their values from incoming requests, to prevent spoofing."; `trusted_proxies`: "a list of IP ranges (CIDRs) from which incoming requests are trusted to have sent good values for these headers". |
+| R17 | OWASP, *Cross-Site Request Forgery Prevention Cheat Sheet*, <https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html>, accessed 2026-10-21: "If the Origin header is present, verify that its value matches the target origin."; Fetch Metadata: "Treat cross-site as untrusted for state-changing actions."; "Fail-safe (recommended for sensitive endpoints): treat absence as unknown and block the request."; "For a request to be deemed simple, it must have one of the following content types - application/x-www-form-urlencoded, multipart/form-data or text/plain."; "Therefore a simple mitigation is for the server or API to disallow these simple content types."; "Login CSRF can be mitigated by creating pre-sessions (sessions before a user is authenticated)". |
 | R13 | MDN Web Docs, *Set-Cookie*, `SameSite=Lax`, <https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie>, accessed 2026-10-09: "Send the cookie only for requests originating from the same site that set the cookie, and for cross-site requests that meet both of the following criteria: The request is a top-level navigation … This would exclude, for example, requests made using the fetch() API, or requests for subresources from <img> or <script> elements, or navigations inside <iframe> elements … The request uses a safe method: in particular, this excludes POST, PUT, and DELETE." |
