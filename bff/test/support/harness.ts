@@ -61,6 +61,8 @@ export function testConfig(overrides: Partial<Config> & Pick<Config, 'oidc' | 'd
     identityControlBaseUrl: 'http://127.0.0.1:9',
     upstreamTimeoutMs: 5_000,
     tenantSignIn: false,
+    enrolment: null,
+    trustedIngress: null,
     ...overrides,
   };
 }

@@ -19,3 +19,8 @@ export const subjectPrincipal = '0192f0e0-3333-7000-8000-000000000007';
 export const registrationId = '0192f0e0-1111-7000-8000-000000000001';
 // An identifier an orphan finding claims, which no Principal holds.
 export const orphanPrincipal = '0192f0e0-3333-7000-8000-0000000000cc';
+
+// The code the stand-in Identity Control API takes for every enrolment (stack.ts); any other is the one
+// refusal. The invitation token the enrolment page is opened with: in the fragment alone.
+export const enrolmentCode = '48213907';
+export const invitationToken = 'inv_e2e9Qk2nV7xLr4ZpT8sWm3Yb6Hc';

@@ -4,7 +4,7 @@
 // here. A full-page screenshot of each width is kept with the test's output, for review.
 import { expect, test, type Page } from '@playwright/test';
 
-import { registrationId, subjectPrincipal } from '../shared.js';
+import { enrolmentCode, invitationToken, registrationId, subjectPrincipal } from '../shared.js';
 import { planAdoption, signIn } from './support.js';
 
 const widths = [1440, 1280, 1024, 768, 390, 320] as const;
@@ -27,6 +27,32 @@ const answer = (body: unknown) => ({
   headers: { 'cache-control': 'no-store' },
   body: JSON.stringify(body),
 });
+
+// The enrolment page (TDD-identity-experience-001 1.24.0), opened from its link, the token in the
+// fragment: a code asked for and a wrong one returned, so the one refusal shows beside the form; or
+// the right one, so the temporary password shows once.
+async function enrolmentRefused(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Send me a code' }).click();
+  await page.getByRole('textbox', { name: 'Code' }).fill('00000000');
+  await page.getByRole('button', { name: 'Create my account' }).click();
+  await page.getByRole('alert').filter({ hasText: 'The code is wrong' }).waitFor();
+}
+
+async function enrolmentCreated(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Send me a code' }).click();
+  await page.getByRole('textbox', { name: 'Code' }).fill(enrolmentCode);
+  await page.getByRole('button', { name: 'Create my account' }).click();
+  await page.getByText('K7QH2M9XRT4WZP6VDN3BC8FA').waitFor();
+}
+
+// The enrolment callers on the Workloads page, listed and with the registration form open
+// (TDD-identity-experience-003 1.35.0 §Enrolment Callers).
+async function enrolmentCallers(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Show the enrolment callers' }).click();
+  await page.getByRole('table', { name: 'Workloads admitted to the enrolment routes' }).waitFor();
+  await page.getByRole('button', { name: 'Register a caller' }).click();
+  await page.getByRole('heading', { name: 'Register an enrolment caller' }).waitFor();
+}
 
 const pages: readonly Main[] = [
   {
@@ -104,7 +130,24 @@ const pages: readonly Main[] = [
       await page.getByRole('region', { name: 'The report an operator posts' }).waitFor();
     },
   },
-  { name: 'workloads', path: '/workloads', ready: (page) => page.getByRole('heading', { level: 1 }) },
+  {
+    name: 'workloads',
+    path: '/workloads',
+    ready: (page) => page.getByRole('heading', { level: 1 }),
+    open: enrolmentCallers,
+  },
+  {
+    name: 'enrolment-refused',
+    path: `/account/enrol#${invitationToken}`,
+    ready: (page) => page.getByRole('button', { name: 'Send me a code' }),
+    open: enrolmentRefused,
+  },
+  {
+    name: 'enrolment-created',
+    path: `/account/enrol#${invitationToken}-created`,
+    ready: (page) => page.getByRole('button', { name: 'Send me a code' }),
+    open: enrolmentCreated,
+  },
   {
     name: 'registrations',
     path: '/registrations',

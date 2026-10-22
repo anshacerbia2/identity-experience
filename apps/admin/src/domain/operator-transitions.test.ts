@@ -5,7 +5,8 @@ import design from '../../../../docs/designs/TDD-identity-experience-003-adminis
 // TDD-identity-experience-003 1.27.0 §Operator Transitions. Every mutating route identity-control
 // classifies in internal/httpapi/commands.go (STD-GLB-001 1.4.0 §Commands Require an Idempotency-Key),
 // as it stands at identity-control 64bbf63 (TDD-identity-experience-003 1.32.0: the consent withdrawal,
-// the ceremony review, and :adopt under a route already listed): the serviceKeyed, replayedKey and
+// the ceremony review, and :adopt under a route already listed), with the enrolment routes of
+// identity-control #118 (1.35.0): the serviceKeyed, replayedKey and
 // keyOptional tables, and adoptKey. identity-control's TestEveryMutatingRouteIsClassified holds every mutating route in one of
 // them, so this list is every command it serves. When it classifies a new route, the route is added
 // here, and this test then fails until the design's table says what these applications offer for it.
@@ -41,6 +42,8 @@ const classified: readonly string[] = [
   'POST /v1/me/notification-addresses',
   'POST /v1/me/notification-addresses/{address_action}',
   'POST /v1/bootstrap-ceremony:review',
+  'POST /v1/enrolment-callers',
+  'POST /v1/enrolment-callers/{caller_action}',
   // adoptKey
   'POST /v1/registrations:adopt',
   // keyOptional
@@ -53,6 +56,8 @@ const classified: readonly string[] = [
   'POST /v1/projections/tenant-context/tenants/{tenant_action}',
   'POST /v1/deliveries',
   'POST /v1/principals/{principal_id}/identifiers:match',
+  'POST /v1/enrolments',
+  'POST /v1/enrolments/{enrolment_action}',
 ];
 
 interface Row {

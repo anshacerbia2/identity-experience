@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.34.0
+  version: 1.35.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -243,9 +243,16 @@ an OpenAPI 3.1 document, which "defines a standard, language-agnostic interface 
     field a request schema requires is one the client always sends.
 - **Where the document is behind identity-control's code,** and the client follows the code, the
   test names the gap with its evidence, and fails once the document closes it, so the entry goes too.
-  None is open. The copy is pinned at identity-control `eace65d` (`info.version` 1.1.0,
+  None is open. The copy was pinned at identity-control `eace65d` (`info.version` 1.1.0,
   identity-control #115), whose `PublicJWK` publishes `use` (`sig`) and `alg` (`PS256`) and no other
   member, and which publishes the 7-day `Idempotency-Key` window. The client's `PublicJwk` types them so.
+  Since 1.35.0 it is pinned at identity-control #118's head, `74d9bb0` (`info.version` 1.2.0, the
+  enrolment routes and the enrolment caller record), a commit that stays reachable once #118 merges;
+  until then the daily comparison with `main` fails, by design.
+- **The BFF's own calls are read too (1.35.0).** The enrolment routes are the one place the BFF calls
+  identity-control itself, as its enrolment workload (`TDD-identity-experience-001` 1.24.0), so
+  `bff/src/enrolment/` is read with the applications, and its request and answer interfaces are paired
+  with the operations. A request body the document declares inline is named `<method> <path> request`.
 - `scripts/check-identity-control-openapi.mjs` compares the copy with the document identity-control's
   `main` publishes. It fails on a difference, naming both `info.version`s, and `--update` replaces the
   copy and its pin with `main`'s, at a commit, never a branch. It refuses a copy whose digest is not the
@@ -954,6 +961,28 @@ identifier an operator quotes. It never renders the server's detail text as the
 application's own. A 401 means the BFF ended the session, so the shell reads the session
 again and shows the user signed out rather than a page of errors.
 
+### Enrolment Callers (1.35.0)
+
+`ADR-IAM-011` §5.8 (amended 2026-10-21): identity-control "admits it from a record naming its
+`principal_id`, as `ADR-ORG-001 §5.11` admits a reporter, for these two routes alone". The record is
+`TDD-identity-control-001` 1.27.0 §Enrolment From an Invitation's `identity.enrolment_caller`, which "A
+provider registers and retires", with a reason. Every transition of it has an action here, as
+§Operator Transitions asks:
+
+- **The list.** The Workloads page lists every enrolment caller, oldest first, retired ones included
+  (`GET /v1/enrolment-callers`): the workload's `principal_id`, its purpose, active or retired, who
+  registered it and why, and, once retired, who retired it and why.
+- **Register a caller.** A provider names an active workload Principal by `principal_id`, a purpose
+  (1 to 500 characters) and an administrative reason (`POST /v1/enrolment-callers`). The workload is the
+  BFF's own enrolment workload, one per device (`TDD-identity-experience-001` 1.24.0, `STD-GLB-009`
+  rule 15). identity-control refuses a Principal that is not an active workload (`400`) and a second
+  active row (`409`); the form shows the sentence for the status.
+- **Retire.** On an active row, with a reason (`POST /v1/enrolment-callers/{principal_id}:retire`). The
+  workload's next enrolment request is refused, so the enrolment page answers that enrolment is
+  unavailable until another caller is registered.
+- Both commands carry an Idempotency-Key (§API / Interface), one per distinct request, because
+  identity-control replays them (`replayedKey`).
+
 ### Emergency Grants (1.24.0)
 
 **The page.** Governance, **Emergency access** (`/emergency-grants`), reads
@@ -1115,10 +1144,15 @@ these applications offer it, or `None` with the reason.
 | `POST /v1/me/notification-addresses/{address_action}` | `:verify`, `:remove`, `:send-proof` | the person | Account application: prove, remove, or send a proof to an unproven address (`TDD-identity-experience-002` 1.10.0) |
 | `POST /v1/deliveries` | Organization Control's delivery | Organization Control | None: a service's push, authenticated as Organization Control, never a person's (`TDD-identity-control-006`) |
 | `POST /v1/principals/{principal_id}/identifiers:match` | whether a Principal holds a proven address | Organization Control | None: Organization Control's workload asks it at an invitation's acceptance, never a person (`ADR-ORG-007` §5.3, `TDD-identity-control-008`) |
+| `POST /v1/enrolment-callers` | register a workload as the enrolment caller | provider | Admin Portal, Workloads, Enrolment callers: Register a caller (1.35.0, §Enrolment Callers) |
+| `POST /v1/enrolment-callers/{caller_action}` | `:retire` | provider | Admin Portal, Workloads, Enrolment callers: Retire (1.35.0, §Enrolment Callers) |
+| `POST /v1/enrolments` | ask for a code from an invitation | the BFF's enrolment workload, for a person not signed in | Account application, the enrolment page `/account/enrol`: Send me a code, through the BFF's `POST /auth/enrolment` (`TDD-identity-experience-001` 1.24.0 §Enrolment From an Invitation) |
+| `POST /v1/enrolments/{enrolment_action}` | `:verify` | the BFF's enrolment workload, for a person not signed in | Account application, the enrolment page: Create my account, through the BFF's `POST /auth/enrolment/verify` (`TDD-identity-experience-001` 1.24.0) |
 
 - `apps/admin/src/domain/operator-transitions.test.ts` holds identity-control's classified list as
   it stands at identity-control `64bbf63` (1.32.0: the consent withdrawal, the ceremony review, and
-  `:adopt` under a route already listed), and fails when a route there has no row here, or a row
+  `:adopt` under a route already listed), with identity-control #118's four enrolment routes (1.35.0:
+  the caller record's two under `replayedKey`, the enrolment's two under `keyOptional`), and fails when a route there has no row here, or a row
   names a route it does not hold. When identity-control classifies a new route, it is added to the
   test's list, which then fails until this table says what these applications offer for it.
 - A row whose last cell starts with `None` states its reason; every other row names an action.
@@ -1323,6 +1357,15 @@ these applications offer it, or `None` with the reason.
 - `packages/app-core/src/api/identity-control-contract.test.ts`, in `pnpm test` (§The Client Is
   Contract-Tested).
 - `scripts/check-identity-control-openapi.mjs`, in `.github/workflows/identity-control-commands.yml`.
+
+### Enrolment Callers (1.35.0)
+
+- `EnrolmentCallers.test.tsx`: the record is read only when opened, and lists the active and the
+  retired caller, offering Retire on the active one alone; a registration sends `principal_id`, the
+  purpose, the reason, an Idempotency-Key and the CSRF token, refuses an identifier that is not a UUID
+  unsent, and shows a refusal attributed to the API; a retirement sends its reason and a key. With axe.
+- In Chromium, the Workloads page with the callers listed and the registration form open is in
+  `accessibility.spec.ts` and `layout.spec.ts`, in both themes at every width.
 
 ### Accessibility in a Browser (1.24.0, both themes since 1.26.0)
 
@@ -1610,5 +1653,7 @@ review, and locked-out subject after authenticator revocation.
 | Conforms to | `STD-IAM-001` 2.9.0 §3.10 — the ceremony's record is reviewed by a third, independent person (1.32.0) |
 | Conforms to | `ADR-GLB-010` §5.1 as amended 2026-10-20 — the hand-written client is contract-tested against identity-control's published OpenAPI document (1.32.0) |
 | Depends on | `TDD-identity-control-001` 1.23.0 — `:adopt`, `GET /v1/bootstrap-ceremony`, `POST /v1/bootstrap-ceremony:review` (1.32.0) |
+| Governed by | `ADR-IAM-011` §5.8 as amended 2026-10-21 — the enrolment caller record, registered and retired by a provider (1.35.0) |
+| Depends on | `TDD-identity-control-001` 1.27.0 — `GET`/`POST /v1/enrolment-callers` and `:retire` (1.35.0) |
 | Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
 | Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |

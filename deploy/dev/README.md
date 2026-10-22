@@ -17,7 +17,13 @@ in the kernel's `scnehaux` realm, and its registration, in identity-control.
 
 On the laptop, `scripts/dev-local.ps1` builds the applications and the BFF and serves them on
 `http://127.0.0.1:8090`: the admin application at `/`, the Developer Console at `/developer/`, and the
-account security experience at `/account/`. The BFF keeps its sessions in a local PostgreSQL.
+account security experience at `/account/`, with the enrolment page at `/account/enrol`. The BFF keeps
+its sessions in a local PostgreSQL.
+
+Each device has two clients, each with its own key: the sign-in client below, and the enrolment
+workload, `identity-experience-enrolment-<device>`, which calls identity-control's enrolment routes for
+a person who is not signed in (`ADR-IAM-011 §5.8`, `TDD-identity-experience-001` 1.24.0). The
+enrolment workload is optional: without it the page says that enrolment is unavailable.
 
 The client:
 
@@ -135,6 +141,40 @@ From the server's operator: the client, registered or adopted with this laptop's
    `dev-local: open http://127.0.0.1:8090 and sign in.` Sign in as a Principal the kernel knows, such as
    the bootstrap operator.
 
+4. **The enrolment workload, for the enrolment page.** Its own key pair, its own workload in
+   identity-control, and its registration as an enrolment caller (`ADR-IAM-011 §5.8`,
+   `TDD-identity-control-001` 1.27.0). On the laptop:
+
+   ```powershell
+   node scripts/new-client-key.mjs identity-experience-enrolment   # send keys/identity-experience-enrolment.jwk.json
+   ```
+
+   On the server, the operator runs this repository's wiring script against identity-control, with the
+   same secrets identity-control's `dev-smoke.ps1` reads (`IDENTITY_CALLER_KEY_FILE`,
+   `IDENTITY_CALLER_PASSWORD`, and `IDENTITY_OPERATOR_TOTP_FILE` where the operator has one):
+
+   ```powershell
+   pwsh ./scripts/dev-wire-enrolment.ps1 -IdentityRepo /srv/identity-control -Device <device> `
+       -JwkFile ./identity-experience-enrolment.jwk.json
+   ```
+
+   It creates the workload `identity-experience-enrolment-<device>` (`POST /v1/workloads`, the operator
+   its accountable owner, audience `identity-control-api`), registers it as an enrolment caller
+   (`POST /v1/enrolment-callers`), and prints the client. On the laptop, set it in `.env`, and run
+   `./scripts/dev-local.ps1` again:
+
+   | Variable                                        | Value                                                              |
+   | :---------------------------------------------- | :----------------------------------------------------------------- |
+   | `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID`       | `identity-experience-enrolment-<device>`, as the script printed it |
+   | `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_KEY_FILE` | empty for `keys/identity-experience-enrolment.pem`                 |
+
+   Nothing stands in front of the laptop's BFF, so `IDENTITY_EXPERIENCE_TRUSTED_INGRESS` stays unset:
+   the client address identity-control counts is the browser's own connection, `127.0.0.1`. The code
+   reaches the server's development mail catcher (`ADR-IAM-011 §5.5`). The page is reached from
+   organization-experience's **I do not have an account**, as
+   `http://127.0.0.1:8090/account/enrol#<invitation token>`. The Admin Portal's Workloads page lists the
+   enrolment callers, and retires one.
+
 ## Updating
 
 On the laptop, `git pull`, then `./scripts/dev-local.ps1`. It rebuilds and applies any new session
@@ -165,6 +205,10 @@ The BFF joins no Docker network. It reaches the server over HTTPS and the dev tu
   its port 8082 to the tunnel, owner-only, run `devtunnel connect <tunnel>` on the laptop, and set
   `IDENTITY_CONTROL_BASE_URL=http://127.0.0.1:8082` (identity-control `deploy/dev/README.md` §Calling
   the API).
+- **identity-control's enrolment routes**, at the same address, for the enrolment page's
+  `POST /auth/enrolment` and `/auth/enrolment/verify`. The BFF calls them as the enrolment workload,
+  with a token from the kernel's token endpoint at `IDENTITY_EXPERIENCE_ISSUER`, and states the client
+  address in `Forwarded`.
 
 The organization-experience BFF, on `127.0.0.1:8091`, sets the same session cookie,
 `__Host-ident_session`, because the cookie is part of the pattern it conforms to. A browser scopes
@@ -173,10 +217,12 @@ time, or two browser profiles.
 
 ## Keys
 
-| Key                                     | Made by                                          | Lives                                                        |
-| :-------------------------------------- | :----------------------------------------------- | :----------------------------------------------------------- |
-| `keys/identity-experience-bff.pem`      | `node scripts/new-client-key.mjs`, on the laptop | the laptop only, mode 0600, gitignored. It never leaves      |
-| `keys/identity-experience-bff.jwk.json` | the same script, beside it                       | sent to the server's operator, who installs it on the client |
+| Key                                           | Made by                                                         | Lives                                                         |
+| :-------------------------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------------ |
+| `keys/identity-experience-bff.pem`            | `node scripts/new-client-key.mjs`, on the laptop                | the laptop only, mode 0600, gitignored. It never leaves       |
+| `keys/identity-experience-bff.jwk.json`       | the same script, beside it                                      | sent to the server's operator, who installs it on the client  |
+| `keys/identity-experience-enrolment.pem`      | `node scripts/new-client-key.mjs identity-experience-enrolment` | the laptop only, mode 0600, gitignored. Never the sign-in key |
+| `keys/identity-experience-enrolment.jwk.json` | the same script, beside it                                      | sent to the server's operator, for `dev-wire-enrolment.ps1`   |
 
 The key is 3072-bit RSA, and its `kid` is its RFC 7638 thumbprint. The script never overwrites a key.
 
@@ -219,6 +265,9 @@ as a rotation.
 
 - **Copy `keys/identity-experience-bff.pem` anywhere, or commit `.env` or `keys/`.** Only the public JWK
   leaves the laptop.
+- **Use one key, or one client, for sign-in and enrolment.** The BFF refuses to start with the
+  enrolment workload set to the sign-in client or its key. A lost device's enrolment caller is retired
+  without touching its sign-in client.
 - **Run `create-bff-client.sh` to make or change the client.** It is superseded. A new server registers
   the client through identity-control, and the script refuses a client that exists.
 - **Run identity-control's `create-kernel-clients.sh` or `dev-keycloak.ps1` for this client.** They make
@@ -233,15 +282,16 @@ as a rotation.
 
 ## Troubleshooting
 
-| Symptom                                                                   | Cause                                                                                                    | Fix                                                                                                            |
-| :------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| After sign-in, the browser lands back on Keycloak instead of the BFF      | The BFF ran on a port the tunnel forwards, such as `localhost:8080`, and the tunnel rewrote the redirect | Run it on `http://127.0.0.1:8090`, as `dev-local.ps1` does. Use `127.0.0.1`, not `localhost`, for the callback |
-| Keycloak answers "Restart login cookie not found"                         | The sign-in began on another host than the kernel's fixed public origin                                  | Start from the BFF, which sends the browser to the public issuer                                               |
-| Keycloak answers `403` "Invalid origin"                                   | The tunnel port rewrites the browser's `Origin`                                                          | The server's operator sets `--origin-header unchanged` on that port (identity-kernel `deploy/dev/README.md`)   |
-| Signing in to this BFF signs the browser out of organization-experience's | Both set `__Host-ident_session`, and a browser scopes cookies by host, not by port                       | One BFF at a time, or two browser profiles                                                                     |
-| `/api/*` answers 503                                                      | identity-control does not listen on `IDENTITY_CONTROL_BASE_URL`                                          | Start it there, or point the variable at the server's through the tunnel ([Wiring](#wiring-to-other-services)) |
-| `dev-local.ps1` stops with "No client key at ..."                         | The key pair was never made on this laptop                                                               | `node scripts/new-client-key.mjs`, then send the JWK                                                           |
-| The token exchange is refused after the callback                          | The server holds no public key matching this laptop's private key                                        | The operator installs this laptop's JWK ([Keys](#keys))                                                        |
-| Every provider route refuses the BFF's token                              | The client lost `scnehaux-provider`, for example adopted as `internal`                                   | Declare it `privileged`, `provider-scope`, as above                                                            |
-| Every session ends when the BFF restarts                                  | `IDENTITY_EXPERIENCE_SESSION_KEY` changed or was emptied                                                 | Keep the value the script wrote to `.env`                                                                      |
-| An account cannot sign in after failed passwords                          | The kernel's brute-force detection locked it                                                             | identity-kernel `deploy/dev/README.md` §Troubleshooting                                                        |
+| Symptom                                                                   | Cause                                                                                                                                     | Fix                                                                                                            |
+| :------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| After sign-in, the browser lands back on Keycloak instead of the BFF      | The BFF ran on a port the tunnel forwards, such as `localhost:8080`, and the tunnel rewrote the redirect                                  | Run it on `http://127.0.0.1:8090`, as `dev-local.ps1` does. Use `127.0.0.1`, not `localhost`, for the callback |
+| Keycloak answers "Restart login cookie not found"                         | The sign-in began on another host than the kernel's fixed public origin                                                                   | Start from the BFF, which sends the browser to the public issuer                                               |
+| Keycloak answers `403` "Invalid origin"                                   | The tunnel port rewrites the browser's `Origin`                                                                                           | The server's operator sets `--origin-header unchanged` on that port (identity-kernel `deploy/dev/README.md`)   |
+| Signing in to this BFF signs the browser out of organization-experience's | Both set `__Host-ident_session`, and a browser scopes cookies by host, not by port                                                        | One BFF at a time, or two browser profiles                                                                     |
+| `/api/*` answers 503                                                      | identity-control does not listen on `IDENTITY_CONTROL_BASE_URL`                                                                           | Start it there, or point the variable at the server's through the tunnel ([Wiring](#wiring-to-other-services)) |
+| The enrolment page says enrolment is unavailable                          | `IDENTITY_EXPERIENCE_ENROLMENT_CLIENT_ID` is unset, its caller was retired, or identity-control is unreachable; the BFF's log names which | First start step 4; the Admin Portal's Workloads, Enrolment callers                                            |
+| `dev-local.ps1` stops with "No client key at ..."                         | The key pair was never made on this laptop                                                                                                | `node scripts/new-client-key.mjs`, then send the JWK                                                           |
+| The token exchange is refused after the callback                          | The server holds no public key matching this laptop's private key                                                                         | The operator installs this laptop's JWK ([Keys](#keys))                                                        |
+| Every provider route refuses the BFF's token                              | The client lost `scnehaux-provider`, for example adopted as `internal`                                                                    | Declare it `privileged`, `provider-scope`, as above                                                            |
+| Every session ends when the BFF restarts                                  | `IDENTITY_EXPERIENCE_SESSION_KEY` changed or was emptied                                                                                  | Keep the value the script wrote to `.env`                                                                      |
+| An account cannot sign in after failed passwords                          | The kernel's brute-force detection locked it                                                                                              | identity-kernel `deploy/dev/README.md` §Troubleshooting                                                        |

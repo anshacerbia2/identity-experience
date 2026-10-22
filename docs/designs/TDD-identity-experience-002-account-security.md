@@ -3,7 +3,7 @@ doc_meta:
   id: TDD-identity-experience-002
   title: Account Security — Sessions, Devices, Authenticators, and Consent
   owner: Identity Experience Team
-  version: 1.11.0
+  version: 1.12.0
   status: approved
   classification: restricted
   review_cycle_days: 90
@@ -99,6 +99,13 @@ API access and its step-up handling, the session, the query client, preferences 
 Each application's pages, navigation and message catalogue are its own. A sign-in started from
 the account application returns to it, and one that does not complete lands on `/account/` with
 its marker.
+
+**The enrolment page (1.12.0).** `/account/enrol` is a route of this application for a person who has
+no account yet: invited to a Tenant, they arrive from organization-experience's link with the invitation
+token in the fragment, prove the invited address with a code, and see a temporary password once
+(`ADR-IAM-011`). It needs no sign-in, and it calls the BFF's two anonymous enrolment routes, not `/api`.
+Its design, forgery defences and sentences are `TDD-identity-experience-001` 1.24.0 §Enrolment From an
+Invitation.
 
 ### As Built: Sessions and Authenticators (1.2.0)
 

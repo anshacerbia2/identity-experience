@@ -4,6 +4,7 @@ import { apiGet, useCommandPost } from '@identity-experience/app-core/api';
 import { normalizeReason } from '@identity-experience/app-core/domain/reason';
 import { useSession } from '@identity-experience/app-core/session';
 
+import type { EnrolmentCaller, RegisterEnrolmentCallerRequest } from '@/domain/enrolment';
 import type {
   ConditionRow,
   CreateWorkloadRequest,
@@ -22,6 +23,7 @@ export const workloadKeys = {
   one: (principalId: string) => ['workloads', principalId] as const,
   conditions: ['workloads', 'conditions'] as const,
   condition: (condition: WorkloadCondition) => ['workloads', 'conditions', condition] as const,
+  enrolmentCallers: ['workloads', 'enrolment-callers'] as const,
 };
 
 function useCsrfToken(): string {
@@ -146,5 +148,57 @@ export function useWorkloadSweep() {
   return useMutation({
     mutationFn: () => post<WorkloadSweep>('/v1/workloads:sweep', {}, { csrfToken: token }),
     onSettled: () => queryClient.invalidateQueries({ queryKey: workloadKeys.all }),
+  });
+}
+
+type EnrolmentCallers = { readonly enrolment_callers: readonly EnrolmentCaller[] | null };
+
+// useEnrolmentCallers reads the workloads admitted to the enrolment routes, oldest first, retired ones
+// included, once the list is opened (ADR-IAM-011 §5.8, TDD-identity-experience-003 1.35.0 §Enrolment
+// Callers).
+export function useEnrolmentCallers(open: boolean) {
+  return useQuery({
+    queryKey: workloadKeys.enrolmentCallers,
+    enabled: open,
+    queryFn: async ({ signal }) =>
+      (await apiGet<EnrolmentCallers>('/v1/enrolment-callers', signal)).enrolment_callers ?? [],
+  });
+}
+
+// useRegisterEnrolmentCaller admits a workload to the enrolment routes, and useRetireEnrolmentCaller
+// ends that, each with a reason. The command post holds one Idempotency-Key per distinct request,
+// which identity-control replays.
+export function useRegisterEnrolmentCaller() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({
+      request,
+      reason,
+    }: {
+      readonly request: RegisterEnrolmentCallerRequest;
+      readonly reason: string;
+    }) =>
+      post<EnrolmentCaller>('/v1/enrolment-callers', request, {
+        csrfToken: token,
+        headers: { 'x-administrative-reason': normalizeReason(reason) },
+      }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: workloadKeys.enrolmentCallers }),
+  });
+}
+
+export function useRetireEnrolmentCaller() {
+  const post = useCommandPost();
+  const queryClient = useQueryClient();
+  const token = useCsrfToken();
+  return useMutation({
+    mutationFn: ({ principalId, reason }: { readonly principalId: string; readonly reason: string }) =>
+      post<EnrolmentCaller>(
+        `/v1/enrolment-callers/${encodeURIComponent(principalId)}:retire`,
+        {},
+        { csrfToken: token, headers: { 'x-administrative-reason': normalizeReason(reason) } },
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: workloadKeys.enrolmentCallers }),
   });
 }

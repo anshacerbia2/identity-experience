@@ -431,6 +431,40 @@ export const en = {
   'changeQueue.done.superseded':
     '{clientKey} changed since this was proposed, so nothing was applied. Its owner proposes it again.',
 
+  'enrolmentCallers.title': 'Enrolment callers',
+  'enrolmentCallers.description':
+    'The workloads identity-control admits to the enrolment routes: the BFF of each device, calling them for a person who is not signed in. A provider registers and retires each one, with a reason.',
+  'enrolmentCallers.caption': 'Workloads admitted to the enrolment routes',
+  'enrolmentCallers.show': 'Show the enrolment callers',
+  'enrolmentCallers.empty':
+    'No workload is registered as an enrolment caller, so the enrolment page is unavailable.',
+  'enrolmentCallers.column.workload': 'Workload',
+  'enrolmentCallers.column.state': 'State',
+  'enrolmentCallers.column.purpose': 'Purpose',
+  'enrolmentCallers.column.reason': 'Reason',
+  'enrolmentCallers.column.registered': 'Registered',
+  'enrolmentCallers.state.active': 'Active',
+  'enrolmentCallers.state.retired': 'Retired',
+  'enrolmentCallers.register.open': 'Register a caller',
+  'enrolmentCallers.register.title': 'Register an enrolment caller',
+  'enrolmentCallers.register.body':
+    'Name the BFF’s enrolment workload by principal_id. A Principal that is not an active workload, and a workload already registered, are refused.',
+  'enrolmentCallers.register.principal': 'principal_id',
+  'enrolmentCallers.register.principal.invalid': 'A principal_id is a UUID.',
+  'enrolmentCallers.register.purpose': 'Purpose',
+  'enrolmentCallers.register.purpose.hint':
+    'What the workload calls enrolment for, such as the BFF of one device.',
+  'enrolmentCallers.register.purpose.required': 'A purpose is required.',
+  'enrolmentCallers.register.purpose.long': 'A purpose is at most {max} characters.',
+  'enrolmentCallers.register': 'Register',
+  'enrolmentCallers.retire.open': 'Retire {principal}',
+  'enrolmentCallers.retire.title': 'Retire an enrolment caller',
+  'enrolmentCallers.retire.body':
+    'Its next enrolment request is refused. The enrolment page it serves is unavailable until another caller is registered.',
+  'enrolmentCallers.retire': 'Retire',
+  'enrolmentCallers.done.registered': 'The enrolment caller is registered.',
+  'enrolmentCallers.done.retired': 'The enrolment caller is retired.',
+
   'developers.title': 'Application developers',
   'developers.description':
     'People who may create non-production registrations without provider authority, and become their first owner. A provider grants and revokes the standing, with a reason.',
@@ -1236,6 +1270,40 @@ export const id: Messages = {
   'changeQueue.done.withdraw': 'Perubahan pada {clientKey} ditarik.',
   'changeQueue.done.superseded':
     '{clientKey} berubah sejak ini diusulkan, jadi tidak ada yang diterapkan. Owner-nya mengusulkan lagi.',
+
+  'enrolmentCallers.title': 'Pemanggil pendaftaran',
+  'enrolmentCallers.description':
+    'Workload yang diizinkan identity-control memanggil rute pendaftaran: BFF tiap perangkat, yang memanggilnya untuk orang yang belum masuk. Provider mendaftarkan dan mempensiunkan masing-masing, dengan alasan.',
+  'enrolmentCallers.caption': 'Workload yang diizinkan memanggil rute pendaftaran',
+  'enrolmentCallers.show': 'Tampilkan pemanggil pendaftaran',
+  'enrolmentCallers.empty':
+    'Belum ada workload yang terdaftar sebagai pemanggil pendaftaran, jadi halaman pendaftaran tidak tersedia.',
+  'enrolmentCallers.column.workload': 'Workload',
+  'enrolmentCallers.column.state': 'Status',
+  'enrolmentCallers.column.purpose': 'Tujuan',
+  'enrolmentCallers.column.reason': 'Alasan',
+  'enrolmentCallers.column.registered': 'Didaftarkan',
+  'enrolmentCallers.state.active': 'Aktif',
+  'enrolmentCallers.state.retired': 'Dipensiunkan',
+  'enrolmentCallers.register.open': 'Daftarkan pemanggil',
+  'enrolmentCallers.register.title': 'Daftarkan pemanggil pendaftaran',
+  'enrolmentCallers.register.body':
+    'Sebutkan workload pendaftaran milik BFF dengan principal_id. Principal yang bukan workload aktif, dan workload yang sudah terdaftar, ditolak.',
+  'enrolmentCallers.register.principal': 'principal_id',
+  'enrolmentCallers.register.principal.invalid': 'principal_id berupa UUID.',
+  'enrolmentCallers.register.purpose': 'Tujuan',
+  'enrolmentCallers.register.purpose.hint':
+    'Untuk apa workload ini memanggil pendaftaran, misalnya BFF satu perangkat.',
+  'enrolmentCallers.register.purpose.required': 'Tujuan wajib diisi.',
+  'enrolmentCallers.register.purpose.long': 'Tujuan paling banyak {max} karakter.',
+  'enrolmentCallers.register': 'Daftarkan',
+  'enrolmentCallers.retire.open': 'Pensiunkan {principal}',
+  'enrolmentCallers.retire.title': 'Pensiunkan pemanggil pendaftaran',
+  'enrolmentCallers.retire.body':
+    'Permintaan pendaftaran berikutnya darinya ditolak. Halaman pendaftaran yang dilayaninya tidak tersedia sampai pemanggil lain didaftarkan.',
+  'enrolmentCallers.retire': 'Pensiunkan',
+  'enrolmentCallers.done.registered': 'Pemanggil pendaftaran sudah didaftarkan.',
+  'enrolmentCallers.done.retired': 'Pemanggil pendaftaran sudah dipensiunkan.',
 
   'developers.title': 'Application developer',
   'developers.description':
