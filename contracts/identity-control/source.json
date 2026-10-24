@@ -1,7 +1,7 @@
 {
   "repository": "anshacerbia2/identity-control",
   "path": "api/openapi.yaml",
-  "commit": "74d9bb0e8216d84e415d9d4facfd8f2f505ea8b4",
-  "version": "1.2.0",
-  "sha256": "44ce91e3a85b2907fa634375a869bde01b42f398bca405173379024608d2500d"
+  "commit": "595a0c9a7daa1f0466f9aaa6fa4f1ad7ddeae65d",
+  "version": "1.3.0",
+  "sha256": "4db2c0f266b8de92595eb33c1faa43733e2f59e3bf9963086d42ab3c34ffd89b"
 }
