@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-001
   title: Backend-for-Frontend Session and Browser Security
   owner: Identity Experience Team
-  version: 1.24.0
+  version: 1.25.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-21
+  last_reviewed: 2026-10-24
   parent_sad: SAD-002
 ---
 
@@ -750,7 +750,15 @@ ignore their values from incoming requests, to prevent spoofing", and "It sets o
 X-Forwarded-For header field" [R16]. It passes other headers through unmodified, so the ingress also
 removes `Forwarded` and `X-Real-IP` (`header_up -Forwarded`, `header_up -X-Real-IP`), declares no
 `trusted_proxies`, and the BFF's `IDENTITY_EXPERIENCE_TRUSTED_INGRESS` names the ingress's address.
-That deployment is not in this repository, and is reported to the architecture repository.
+That deployment is not in this repository. The rule is the platform's since 2026-10-24 (1.25.0):
+`STD-GLB-009` 4.0.0 §Security & Access Governance, "A production ingress overwrites every forwarding
+header a client sent, and the service behind it trusts exactly one hop", authorized by `ADR-GLB-022`.
+Its text matches this section: the ingress writes one address and deletes `Forwarded` and `X-Real-IP`;
+the service reads the connection's address with nothing configured, the one `X-Forwarded-For` value
+on a connection from the one ingress, and refuses and logs a misconfigured ingress. Its rule 10 asks a
+service for tests of those three cases, which `bff/test/enrolment.test.ts` holds, and a production
+pipeline for a gate that sends a forged value of each forwarding header; that gate belongs to the
+deployment that adds the ingress.
 
 **Forgery defences without a session.** §Cross-Site Request Forgery Defence protects cookie-borne
 authority with `SameSite`, `Origin` and a session-bound token. These two routes carry no authority from
@@ -1185,6 +1193,7 @@ failure, client key rotation, and suspected session fixation. They are written (
 | Governed by | ADR-IAM-011 §5.1 to §5.9, as amended twice on 2026-10-21 — an invitee without an account enrols at redemption: the enrolment page at `/account/enrol` and its anonymous routes, built (1.24.0) |
 | Conforms to | STD-IAM-001 3.1.0 §3.1 — the temporary password shown once to the enrolling person, `no-store`, never logged or stored (1.24.0) |
 | Conforms to | STD-GLB-009 rule 15 — the enrolment workload is its own client and key per device (1.24.0) |
+| Conforms to | STD-GLB-009 4.0.0 §Security & Access Governance and rule 10, `ADR-GLB-022` — one trusted ingress hop that overwrites every forwarding header; the three cases tested (1.25.0) |
 | Depends on | `identity-control` — `POST /v1/enrolments` and `:verify`, and the enrolment caller record (`TDD-identity-control-001` 1.27.0, `api/openapi.yaml` 1.2.0) (1.24.0) |
 | Conforms to | STD-IAM-001 3.0.0 §3.4 — the session record is deleted by an expiry on the record at the earliest of absolute timeout, idle timeout, logout and revocation; the store is excluded from backup and restore and is not an authority (1.23.0) |
 | Conforms to | ADR-GLB-010 §5.1 — the applications' hand-written Identity Control client is contract-tested against its published OpenAPI document (`TDD-identity-experience-003` 1.32.0) |
