@@ -2,12 +2,11 @@ import { Link } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
 
 import { AppFrame, navClasses } from '@identity-experience/app-core/shell';
-import { Icon, type IconName } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
 
-// A page in the navigation: where it goes, its icon, and its label.
+// A page in the navigation: where it goes, and its label.
 interface NavItem {
   readonly to:
     | '/'
@@ -18,7 +17,6 @@ interface NavItem {
     | '/emergency-grants'
     | '/ceremony'
     | '/projections';
-  readonly icon: IconName;
   readonly label: MessageKey;
 }
 
@@ -29,33 +27,33 @@ const groups: readonly {
   readonly label: MessageKey | null;
   readonly items: readonly NavItem[];
 }[] = [
-  { id: 'home', label: null, items: [{ to: '/', icon: 'grid', label: 'shell.nav.overview' }] },
+  { id: 'home', label: null, items: [{ to: '/', label: 'shell.nav.overview' }] },
   {
     id: 'identities',
     label: 'shell.nav.section.identities',
     items: [
-      { to: '/principals', icon: 'users', label: 'shell.nav.principals' },
-      { to: '/workloads', icon: 'grid', label: 'shell.nav.workloads' },
+      { to: '/principals', label: 'shell.nav.principals' },
+      { to: '/workloads', label: 'shell.nav.workloads' },
     ],
   },
   {
     id: 'applications',
     label: 'shell.nav.section.applications',
-    items: [{ to: '/registrations', icon: 'pulse', label: 'shell.nav.registrations' }],
+    items: [{ to: '/registrations', label: 'shell.nav.registrations' }],
   },
   {
     id: 'governance',
     label: 'shell.nav.section.governance',
     items: [
-      { to: '/changes', icon: 'check', label: 'shell.nav.changes' },
-      { to: '/emergency-grants', icon: 'shield', label: 'shell.nav.emergency' },
-      { to: '/ceremony', icon: 'key', label: 'shell.nav.ceremony' },
+      { to: '/changes', label: 'shell.nav.changes' },
+      { to: '/emergency-grants', label: 'shell.nav.emergency' },
+      { to: '/ceremony', label: 'shell.nav.ceremony' },
     ],
   },
   {
     id: 'monitoring',
     label: 'shell.nav.section.monitoring',
-    items: [{ to: '/projections', icon: 'globe', label: 'shell.nav.projections' }],
+    items: [{ to: '/projections', label: 'shell.nav.projections' }],
   },
 ];
 
@@ -91,7 +89,6 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
                       activeProps={{ 'aria-current': 'page' }}
                       activeOptions={{ exact: item.to === '/' }}
                     >
-                      <Icon name={item.icon} />
                       <Message id={item.label} />
                     </Link>
                   </li>

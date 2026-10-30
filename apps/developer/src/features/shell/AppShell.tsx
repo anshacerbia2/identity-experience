@@ -2,7 +2,6 @@ import { Link } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
 
 import { AppFrame, navClasses } from '@identity-experience/app-core/shell';
-import { Icon } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 
@@ -28,13 +27,11 @@ export function AppShell({ children }: { readonly children: ReactNode }): ReactE
                   activeProps={{ 'aria-current': 'page' }}
                   activeOptions={{ exact: true }}
                 >
-                  <Icon name="grid" />
                   <Message id="shell.nav.registrations" />
                 </Link>
               </li>
               <li>
                 <Link to="/workloads" className={navClasses.item} activeProps={{ 'aria-current': 'page' }}>
-                  <Icon name="key" />
                   <Message id="shell.nav.workloads" />
                 </Link>
               </li>

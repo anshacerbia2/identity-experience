@@ -16,26 +16,19 @@
     padding-block: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-compact);
   }
 
+  // The page's head, in the brand book's voices: the group in the HUD, the heading, the lede.
   .eyebrow {
-    font-family: $font-mono;
-    font-size: var(--ds-typography-label-small-font-size);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-primary-text-default-default);
+    color: $muted;
+
+    @include hud;
   }
 
   .title {
-    font-size: var(--ds-typography-heading-medium-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: -0.03em;
-    overflow-wrap: anywhere;
-    color: var(--ds-color-neutral-text-strong-default);
+    @include page-title;
   }
 
   .lead {
-    max-inline-size: 40rem;
-    line-height: var(--ds-typography-article-readable-line-height);
-    color: var(--ds-color-neutral-text-subtle-default);
+    @include lede;
   }
 
   .summary {
@@ -64,10 +57,9 @@
   }
 
   .filterLabel {
-    font-size: var(--ds-typography-label-small-font-size);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-neutral-text-subtle-default);
+    color: $muted;
+
+    @include hud;
   }
 
   .filterList {
@@ -76,18 +68,18 @@
     gap: var(--ds-dimension-spacing-stack-compact);
     padding: var(--ds-dimension-spacing-stack-compact);
     border: var(--ds-dimension-border-width-default) solid var(--ds-color-neutral-border-subtle-default);
-
-    // Not a full pill: on a narrow screen the list wraps, and a pill around two rows reads broken.
-    border-radius: var(--ds-dimension-radius-panel);
+    border-radius: var(--ds-dimension-radius-control);
     background: var(--ds-color-neutral-surface-sunken-default);
   }
 
+  // Square, as the platform's segmented control is in scnx-platform: a round shape here would mean
+  // nothing (the brand book's 02 Square).
   .filterItem {
     display: inline-flex;
     align-items: center;
     min-block-size: var(--ds-dimension-size-control-compact);
     padding-inline: var(--ds-dimension-spacing-control-default);
-    border-radius: var(--ds-dimension-radius-pill);
+    border-radius: var(--ds-dimension-radius-control);
     font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-default-default);
 

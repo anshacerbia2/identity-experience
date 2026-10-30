@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 
-import { Icon, type IconName, Panel, StatusPill, type StatusTone } from '@identity-experience/ui';
+import { StatusPill, type StatusTone } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
@@ -11,7 +11,6 @@ import styles from './OverviewPage.module.scss';
 // order, and it shows no figure: a number on this page would be a number nobody measured.
 
 interface Surface {
-  readonly icon: IconName;
   readonly title: MessageKey;
   readonly body: MessageKey;
   readonly tone: StatusTone;
@@ -20,21 +19,18 @@ interface Surface {
 
 const surfaces: readonly Surface[] = [
   {
-    icon: 'key',
     title: 'overview.card.signin.title',
     body: 'overview.card.signin.body',
     tone: 'success',
     status: 'overview.status.ready',
   },
   {
-    icon: 'pulse',
     title: 'overview.card.registrations.title',
     body: 'overview.card.registrations.body',
     tone: 'success',
     status: 'overview.status.ready',
   },
   {
-    icon: 'users',
     title: 'overview.card.principals.title',
     body: 'overview.card.principals.body',
     tone: 'info',
@@ -61,27 +57,18 @@ export function OverviewPage(): ReactElement {
         </StatusPill>
       </section>
 
-      <ul className={styles['grid']}>
+      <ul className={styles['cells']}>
         {surfaces.map((surface) => (
-          <li key={surface.title}>
-            <Panel.Root className={styles['card']}>
-              <Panel.Header>
-                <span className={styles['cardIcon']} aria-hidden="true">
-                  <Icon name={surface.icon} />
-                </span>
-                <Panel.Title>
-                  <Message id={surface.title} />
-                </Panel.Title>
-                <Panel.Description>
-                  <Message id={surface.body} />
-                </Panel.Description>
-              </Panel.Header>
-              <Panel.Body>
-                <StatusPill tone={surface.tone}>
-                  <Message id={surface.status} />
-                </StatusPill>
-              </Panel.Body>
-            </Panel.Root>
+          <li key={surface.title} className={styles['cell']}>
+            <h2 className={styles['cellTitle']}>
+              <Message id={surface.title} />
+            </h2>
+            <p className={styles['cellBody']}>
+              <Message id={surface.body} />
+            </p>
+            <StatusPill tone={surface.tone}>
+              <Message id={surface.status} />
+            </StatusPill>
           </li>
         ))}
       </ul>

@@ -1,5 +1,5 @@
-// Roles the applications' stylesheets read beyond a single token: Sass values only, no CSS output
-// besides the layer order (layers). Every value is a platform token, a mix of one, or a local value
+// Roles the applications' stylesheets read beyond a single token: Sass values and mixins only, no CSS
+// output besides the layer order (layers). Every value is a platform token, a mix of one, or a local value
 // with its purpose stated (STD-UIP-TKN-002 §3.1, STD-GLB-FE-005 §3.2); the brand book names the roles
 // (scnehaux-design scnx-platform/Brand-Book.html).
 @forward 'layers';
@@ -19,7 +19,51 @@ $icon-text: 1rem;
 $icon-nav: 1.25rem;
 
 // The frame's local geometry, values with no reusable semantic role: the rail's width, the bar's
-// height and the widest a page's column runs.
+// height (the brand book's nav strip, 48px) and the widest a page's column runs.
 $layout-rail: 16.5rem;
-$layout-bar: 3.75rem;
+$layout-bar: 3rem;
 $layout-page: 80rem;
+
+// The brand book's drawing (03 Lines, 05 Colour): roles, not colours. Each is a token or a mix of
+// one, made in OKLab: the neutral tokens have so little chroma that an OKLCH mix loses their hue and
+// turns a grey warm. They are Sass values, so each use resolves against the theme root it sits in.
+$text: var(--ds-color-neutral-text-default-default);
+$muted: var(--ds-color-neutral-text-subtle-default);
+
+// Every divider: text at 16%. One line, never two: areas are cells that share it.
+$line: color-mix(in oklab, #{$text} 16%, transparent);
+
+// Blue means here: the current place, a selection, a check. Never a button's fill.
+$signal: var(--ds-color-primary-surface-solid-default);
+
+// A navigation item under the pointer, and the current one, a little stronger.
+$hover: color-mix(in oklab, #{$text} 6%, transparent);
+$current: color-mix(in oklab, #{$text} 7%, transparent);
+
+// The HUD voice: IBM Plex Mono 500, 10 to 11px, tracked, upper case, for bars, eyebrows, facts,
+// navigation labels and readouts. The platform has no type token for it (label.small is a 12px
+// sans), so the size is the brand book's (06 Type).
+@mixin hud($size: 0.6875rem, $tracking: $hud-tracking) {
+  font: var(--ds-typography-weight-medium) #{$size} / 1.4 $font-mono;
+  letter-spacing: $tracking;
+  text-transform: uppercase;
+}
+
+// A page's heading, the brand book's section heading: Inter 500, tight, from 2rem to 3.25rem. The
+// platform's heading sizes stop at 3rem 700, so the brand book lists the size and tracking.
+@mixin page-title {
+  font-size: clamp(2rem, 4.2vw, 3.25rem);
+  font-weight: var(--ds-typography-weight-medium);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+  color: var(--ds-color-neutral-text-strong-default);
+}
+
+// The paragraph under a page's heading, the brand book's lede: 17px, line 1.6, muted.
+@mixin lede {
+  max-inline-size: 44rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: $muted;
+}

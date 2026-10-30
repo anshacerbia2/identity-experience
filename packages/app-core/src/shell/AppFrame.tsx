@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { ReactElement, ReactNode } from 'react';
 
-import { Icon, StatusPill } from '@identity-experience/ui';
+import { StatusPill } from '@identity-experience/ui';
 
 import styles from './AppFrame.module.scss';
 import { CoreMessage } from '../i18n/CoreMessage';
@@ -19,6 +19,16 @@ export const navClasses = {
   list: styles['navList'],
   item: styles['navItem'],
 } as const;
+
+// The Scnehaux mark: two slanted bars, the upper one set right, in its own 21 × 9 box (scnehaux-design
+// brand/Brand.html), in the ink role, so it is light on the dark mode and dark on the light one.
+function BrandMark(): ReactElement {
+  return (
+    <svg className={styles['brandMark']} viewBox="2 8 21 9" aria-hidden="true" focusable="false">
+      <path d="M23 8L20 12L9 12L12 8ZM16 13L13 17L2 17L5 13Z" />
+    </svg>
+  );
+}
 
 // AppFrame is the frame every page of every application renders in: a navigation rail, the scope
 // line, a top bar stating the environment and the session, and the page. The application names
@@ -51,9 +61,7 @@ export function AppFrame({
 
       <aside className={styles['rail']}>
         <Link to="/" className={styles['brand']}>
-          <span className={styles['brandMark']} aria-hidden="true">
-            <Icon name="shield" />
-          </span>
+          <BrandMark />
           <span className={styles['brandName']}>{name}</span>
         </Link>
         {nav}
@@ -61,12 +69,15 @@ export function AppFrame({
 
       <div className={styles['column']}>
         <p className={styles['scope']} data-scope-line="">
-          <Icon name="shield" />
+          {/* Blue means here: the scope is where the person is. */}
+          <span className={styles['here']} aria-hidden="true" />
           <span className={styles['scopeText']}>{scope}</span>
         </p>
 
         <header className={styles['bar']}>
-          <StatusPill tone="warning">{environment}</StatusPill>
+          <div className={styles['barStart']}>
+            <StatusPill tone="warning">{environment}</StatusPill>
+          </div>
           <div className={styles['barEnd']}>
             <SessionControl />
             <LocaleSwitch />

@@ -1,0 +1,74 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use '../shell/bar';
+
+// The preferences' cells in the frame's bar (AppFrame), in the HUD voice, each target as tall as the
+// bar: the language, its current code in ground on an ink bar as the brand book marks a current
+// area, and the theme, an icon in a square cell.
+@layer components {
+  .locale {
+    @include bar.cell;
+
+    display: flex;
+    align-items: stretch;
+    padding-inline: 0.25rem;
+  }
+
+  .code {
+    display: flex;
+    align-items: center;
+    min-block-size: $layout-bar;
+    padding-inline: 0.625rem;
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    @include hud(0.6875rem);
+
+    line-height: 1;
+
+    &:hover {
+      color: $text;
+    }
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+
+    // The bar stands 1px above the box's middle, where the capitals' own middle is.
+    &[aria-pressed='true'] {
+      color: var(--ds-color-neutral-text-contrast-default);
+      background: linear-gradient(
+          var(--ds-color-neutral-surface-solid-default),
+          var(--ds-color-neutral-surface-solid-default)
+        )
+        center calc(50% - 1px) / calc(100% - 0.5rem) 1.375rem no-repeat;
+    }
+  }
+
+  .theme {
+    @include bar.cell;
+
+    display: grid;
+    place-items: center;
+    inline-size: $layout-bar;
+    min-block-size: $layout-bar;
+    font-size: $icon-text;
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    &:hover {
+      color: $text;
+      background: $hover;
+    }
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .code[aria-pressed='true'] {
+      color: HighlightText;
+      background: Highlight;
+    }
+  }
+}

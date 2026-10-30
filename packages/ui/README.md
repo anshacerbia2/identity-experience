@@ -136,15 +136,23 @@ Every spacing token is under `--ds-dimension-`. `3xs` (0.125rem) has no counterp
 
 ### Roles (`src/styles/_roles.scss`)
 
-Sass values, no custom properties, so no ad-hoc custom property is declared (STD-GLB-FE-005 §3.2).
-Each is a token, or a local value with its purpose stated:
+Sass values and mixins, no custom properties, so no ad-hoc custom property is declared
+(STD-GLB-FE-005 §3.2). Each is a token, a mix of one, or a local value with its purpose stated. The
+brand book (scnehaux-design `scnx-platform/Brand-Book.html`) names the roles and lists the literals:
 
-| Role                                          | Value                                                            | Purpose                                |
-| :-------------------------------------------- | :--------------------------------------------------------------- | :------------------------------------- |
-| `$font-mono`                                  | `'IBM Plex Mono', var(--ds-typography-code-default-font-family)` | The HUD voice; identifiers and figures |
-| `$hud-tracking`                               | `0.15em`                                                         | The HUD voice's tracking; no token     |
-| `$icon-glyph`, `$icon-text`, `$icon-nav`      | `0.75rem`, `1rem`, `1.25rem`                                     | Icon sizes; no token                   |
-| `$layout-rail`, `$layout-bar`, `$layout-page` | `16.5rem`, `3.75rem`, `80rem`                                    | The frame's local geometry             |
+| Role                                          | Value                                                            | Purpose                                                      |
+| :-------------------------------------------- | :--------------------------------------------------------------- | :----------------------------------------------------------- |
+| `$font-mono`                                  | `'IBM Plex Mono', var(--ds-typography-code-default-font-family)` | The HUD voice; identifiers and figures                       |
+| `$hud-tracking`                               | `0.15em`                                                         | The HUD voice's tracking; no token                           |
+| `$icon-glyph`, `$icon-text`, `$icon-nav`      | `0.75rem`, `1rem`, `1.25rem`                                     | Icon sizes; no token                                         |
+| `$layout-rail`, `$layout-bar`, `$layout-page` | `16.5rem`, `3rem`, `80rem`                                       | The frame's local geometry; the bar is the brand book's 48px |
+| `$text`, `$muted`                             | `neutral.text.default`, `neutral.text.subtle`                    | Text and muted text                                          |
+| `$line`                                       | `$text` at 16%, mixed in OKLab                                   | Every divider: one line, shared by the cells on either side  |
+| `$signal`                                     | `primary.surface.solid`                                          | Blue means here: the current place, a check; never a fill    |
+| `$hover`, `$current`                          | `$text` at 6% and 7%, mixed in OKLab                             | A navigation item under the pointer, and the current one     |
+| `hud($size, $tracking)`                       | IBM Plex Mono 500, 11px by default, tracked, upper case          | Bars, eyebrows, facts, navigation labels, readouts           |
+| `page-title`                                  | Inter 500, `clamp(2rem, 4.2vw, 3.25rem)`, line 1.04, −0.035em    | A page's heading, the brand book's section heading; no token |
+| `lede`                                        | 1.0625rem, line 1.6, `$muted`, at most 44rem wide                | The paragraph under a page's heading, the brand book's lede  |
 
 ## Fonts
 

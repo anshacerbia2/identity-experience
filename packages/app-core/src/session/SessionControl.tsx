@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react';
 
-import { Button, Icon, StatusPill } from '@identity-experience/ui';
+import { Button, ButtonBase, Icon, StatusPill } from '@identity-experience/ui';
 
 import { signInHref, useHere, useSession, useSignOut } from './session';
+import styles from './SessionControl.module.scss';
 import { CoreMessage } from '../i18n/CoreMessage';
 
 // The account security experience's root, served by the same BFF.
@@ -18,51 +19,55 @@ export function SessionControl(): ReactElement {
 
   if (session.isPending) {
     return (
-      <StatusPill tone="neutral">
-        <CoreMessage id="shell.session.checking" />
-      </StatusPill>
+      <span className={styles['cell']}>
+        <StatusPill tone="neutral">
+          <CoreMessage id="shell.session.checking" />
+        </StatusPill>
+      </span>
     );
   }
   if (session.isError) {
     return (
-      <StatusPill tone="danger">
-        <CoreMessage id="shell.session.unavailable" />
-      </StatusPill>
+      <span className={styles['cell']}>
+        <StatusPill tone="danger">
+          <CoreMessage id="shell.session.unavailable" />
+        </StatusPill>
+      </span>
     );
   }
   if (!session.data.authenticated) {
     return (
-      <Button href={signInHref(here)} size="small">
-        <Icon name="key" />
-        <CoreMessage id="shell.session.signIn" />
-      </Button>
+      <span className={styles['cell']}>
+        <Button href={signInHref(here)} size="small">
+          <Icon name="key" />
+          <CoreMessage id="shell.session.signIn" />
+        </Button>
+      </span>
     );
   }
 
   const { displayName, principalId, csrfToken } = session.data;
   return (
     <>
-      <StatusPill tone="success">
+      <span className={`${styles['cell']} ${styles['who']}`}>
         {displayName ?? principalId ?? <CoreMessage id="shell.session.signedIn" />}
-      </StatusPill>
+      </span>
       {/* Every person's own account security, a separate application (TDD-identity-experience-002
           §Delivery). Not offered from inside it. */}
       {here.startsWith(accountRoot) ? null : (
-        <Button variant="ghost" size="small" href={accountRoot}>
-          <Icon name="shield" />
+        <ButtonBase href={accountRoot} className={styles['action'] ?? ''}>
           <CoreMessage id="shell.session.account" />
-        </Button>
+        </ButtonBase>
       )}
-      <Button
-        variant="ghost"
-        size="small"
+      <ButtonBase
+        className={styles['action'] ?? ''}
         disabled={signOut.isPending}
         onClick={() => {
           signOut.mutate(csrfToken);
         }}
       >
         <CoreMessage id="shell.session.signOut" />
-      </Button>
+      </ButtonBase>
     </>
   );
 }

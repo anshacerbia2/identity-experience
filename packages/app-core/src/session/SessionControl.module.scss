@@ -1,0 +1,49 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use '../shell/bar';
+
+// The session's cells in the frame's bar (AppFrame), in the HUD voice: who is signed in, read out, and
+// each action a cell of the strip, its target as tall as the bar.
+@layer components {
+  .cell {
+    @include bar.cell;
+
+    display: flex;
+    align-items: center;
+    padding-inline: var(--ds-dimension-spacing-inset-default);
+  }
+
+  .who {
+    max-inline-size: 16rem;
+    overflow-wrap: anywhere;
+    color: $text;
+
+    @include hud(0.6875rem, 0.12em);
+  }
+
+  .action {
+    @include bar.cell;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: $layout-bar;
+    padding-inline: var(--ds-dimension-spacing-inset-default);
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    @include hud(0.6875rem, 0.12em);
+
+    &:hover {
+      color: $text;
+      background: $hover;
+    }
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+}

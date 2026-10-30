@@ -4,6 +4,10 @@
 // screen, and the page pads its scroll position by it, so focus never lands under it.
 $scope-line: 2rem;
 
+// The frame is drawn as the brand book draws a page (scnehaux-design scnx-platform/Brand-Book.html, 03
+// Lines): one line between any two areas, never a box in a box. The rail and the column share the
+// line between them; the brand's cell is as tall as the scope line and the bar together, so the line
+// under it runs on as the bar's.
 @layer components {
   // A component scrolled into view by focus lands below what stays in view, never under it
   // (WCAG 2.2 SC 2.4.11, technique C43; STD-GLB-FE-005 2.2.0 §3.10). scroll-padding defines "offsets
@@ -35,10 +39,11 @@ $scope-line: 2rem;
     inset-inline-start: var(--ds-dimension-spacing-inline-default);
     z-index: var(--ds-dimension-z-index-overlay);
     padding: var(--ds-dimension-spacing-inset-compact) var(--ds-dimension-spacing-control-default);
-    border-radius: var(--ds-dimension-radius-control);
-    color: var(--ds-color-primary-text-contrast-default);
-    background: var(--ds-color-primary-surface-solid-default);
+    color: var(--ds-color-neutral-text-contrast-default);
+    background: var(--ds-color-neutral-surface-solid-default);
     transform: translateY(-200%);
+
+    @include hud;
 
     &:focus-visible {
       transform: none;
@@ -48,54 +53,59 @@ $scope-line: 2rem;
   .rail {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-dimension-spacing-page);
-    padding: var(--ds-dimension-spacing-inset-default);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    background: var(--ds-color-neutral-surface-sunken-default);
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
 
     @media (width >= 60rem) {
       position: sticky;
       inset-block-start: 0;
       block-size: 100dvh;
-      padding: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-default);
       border-block-end: 0;
-      border-inline-end: var(--ds-dimension-border-width-default) solid
-        var(--ds-color-neutral-border-subtle-default);
+      border-inline-end: var(--ds-dimension-border-width-default) solid $line;
     }
   }
 
   .brand {
     display: flex;
+    flex: none;
     align-items: center;
-    gap: var(--ds-dimension-spacing-control-default);
-    padding-inline: var(--ds-dimension-spacing-inset-compact);
-    border-radius: var(--ds-dimension-radius-control);
+    gap: 0.625rem;
+    min-block-size: $layout-bar;
+    padding-inline: var(--ds-dimension-spacing-inset-comfortable);
+    font-size: var(--ds-typography-body-small-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
+    letter-spacing: -0.01em;
+    color: var(--ds-color-neutral-text-strong-default);
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+
+    @media (width >= 60rem) {
+      block-size: calc($scope-line + $layout-bar);
+      border-block-end: var(--ds-dimension-border-width-default) solid $line;
+    }
   }
 
+  // The mark is wider than tall, 21:9, and drawn in the ink role.
   .brandMark {
-    display: grid;
-    place-items: center;
-    inline-size: var(--ds-dimension-size-control-compact);
-    block-size: var(--ds-dimension-size-control-compact);
-    border: var(--ds-dimension-border-width-default) solid var(--ds-color-primary-border-default-default);
-    border-radius: var(--ds-dimension-radius-control);
-    font-size: $icon-nav;
-    color: var(--ds-color-primary-icon-default-default);
-    background: var(--ds-color-primary-surface-subtle-default);
+    flex: none;
+    inline-size: 2.25rem;
+    aspect-ratio: 21 / 9;
+    fill: var(--ds-color-neutral-surface-solid-default);
   }
 
   .brandName {
-    font-size: var(--ds-typography-body-small-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: var(--ds-typography-heading-large-letter-spacing);
-    color: var(--ds-color-neutral-text-strong-default);
+    min-inline-size: 0;
   }
 
+  // The navigation scrolls on its own when the rail is taller than the screen.
   .nav {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-comfortable);
+    gap: var(--ds-dimension-spacing-inset-comfortable);
+    min-block-size: 0;
+    padding: var(--ds-dimension-spacing-inset-comfortable) 0.75rem;
+    overflow-y: auto;
   }
 
   // One labelled group of the navigation: its label, then its links (TDD-identity-experience-003
@@ -103,22 +113,20 @@ $scope-line: 2rem;
   .navGroup {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-default);
+    gap: 0.375rem;
   }
 
   .navSection {
-    padding-inline: var(--ds-dimension-spacing-control-default);
-    font-size: var(--ds-typography-label-small-font-size);
-    font-weight: var(--ds-typography-weight-medium);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-neutral-text-subtle-default);
+    padding-inline: 0.625rem;
+    color: $muted;
+
+    @include hud(0.625rem);
   }
 
+  // 2px between items, so two backgrounds, under the pointer or current, never touch.
   .navList {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-compact);
+    display: grid;
+    gap: 2px;
   }
 
   .navItem {
@@ -126,31 +134,38 @@ $scope-line: 2rem;
     display: flex;
     align-items: center;
     gap: var(--ds-dimension-spacing-control-default);
-    min-block-size: var(--ds-dimension-size-control-default);
-    padding-inline: var(--ds-dimension-spacing-control-default);
-    border-radius: var(--ds-dimension-radius-control);
+    min-block-size: 2rem;
+    padding-inline: 0.625rem;
     font-size: var(--ds-typography-body-small-font-size);
-    color: var(--ds-color-neutral-text-default-default);
-    transition: background-color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+    color: $muted;
+    transition:
+      background-color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing),
+      color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
 
     &:hover {
-      background: var(--ds-color-neutral-surface-default-hover);
+      color: $text;
+      background: $hover;
     }
 
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+
+    // The current page: a faint ink fill, the full text colour and weight, and a 2px marker in the
+    // signal, so position is shown by more than a colour.
     &[aria-current='page'] {
+      font-weight: var(--ds-typography-weight-medium);
       color: var(--ds-color-neutral-text-strong-default);
-      background: var(--ds-color-neutral-surface-default-selected);
+      background: $current;
     }
 
-    // The current item's edge is marked: position is shown by a marker and a weight as well as a colour.
     &[aria-current='page']::before {
       position: absolute;
-      inset-block: var(--ds-dimension-spacing-stack-default);
+      inset-block: 0.5rem;
       inset-inline-start: 0;
-      inline-size: 3px;
-      border-radius: var(--ds-dimension-radius-pill);
+      inline-size: 2px;
       content: '';
-      background: var(--ds-color-primary-surface-solid-default);
+      background: $signal;
     }
   }
 
@@ -161,26 +176,31 @@ $scope-line: 2rem;
   }
 
   // The scope line: what the person acts on, in one line that stays in view at every width (SAD-002
-  // 2.2.0 §8.7). Opaque, so what scrolls beneath never shows through its words. Its text is short by
-  // design and never wraps; were it ever longer than the line, it would end in an ellipsis rather than
-  // grow a second line.
+  // 2.2.0 §8.7), in the HUD voice. Opaque, so what scrolls beneath never shows through its words. Its
+  // text is short by design and never wraps; were it ever longer than the line, it would end in an
+  // ellipsis rather than grow a second line.
   .scope {
     position: sticky;
     inset-block-start: 0;
     z-index: var(--ds-dimension-z-index-sticky);
     display: flex;
     align-items: center;
-    gap: var(--ds-dimension-spacing-stack-default);
+    gap: 0.5rem;
     block-size: $scope-line;
     padding-inline: var(--ds-dimension-spacing-inset-comfortable);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    font-size: var(--ds-typography-label-small-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: $hud-tracking;
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
     white-space: nowrap;
-    color: var(--ds-color-neutral-text-strong-default);
+    color: $text;
     background: var(--ds-color-neutral-surface-canvas-default);
+
+    @include hud(0.6875rem, 0.12em);
+  }
+
+  .here {
+    flex: none;
+    inline-size: 6px;
+    block-size: 6px;
+    background: $signal;
   }
 
   .scopeText {
@@ -190,29 +210,30 @@ $scope-line: 2rem;
   }
 
   // On a wide screen the bar stays in view below the scope line. Under the wide layout, or on a short
-  // viewport, it is static and scrolls away (below).
+  // viewport, it is static and scrolls away (below). A strip of cells, one line between any two: the
+  // environment at the start, then the session, the language and the theme, each a cell.
   .bar {
-    flex-wrap: wrap;
-    padding-block: var(--ds-dimension-spacing-inset-compact);
     position: sticky;
     inset-block-start: $scope-line;
     z-index: var(--ds-dimension-z-index-sticky);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ds-dimension-spacing-stack-comfortable);
+    align-items: stretch;
     min-block-size: $layout-bar;
-    padding-inline: var(--ds-dimension-spacing-inset-comfortable);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    background: var(--ds-color-neutral-surface-sunken-default);
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
+    background: var(--ds-color-neutral-surface-canvas-default);
   }
 
+  .barStart {
+    display: flex;
+    align-items: center;
+    padding-inline: var(--ds-dimension-spacing-inset-comfortable);
+  }
+
+  // Each cell draws the line before it (bar.scss).
   .barEnd {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ds-dimension-spacing-stack-default);
+    align-items: stretch;
+    margin-inline-start: auto;
   }
 
   .main {
@@ -231,18 +252,25 @@ $scope-line: 2rem;
   // or a tablet reaches the page without scrolling past a column of links, and nothing is hidden
   // behind a control: every link stays in the tab order and the accessibility tree. The group labels
   // are hidden only visually; they still name their lists. The page's inline padding narrows to
-  // leave the content more of a 320 CSS px screen (TDD-identity-experience-003 §Layout). The same
-  // bar organization-experience's copy of this frame shows under 60rem.
+  // leave the content more of a 320 CSS px screen (TDD-identity-experience-003 §Layout). The bar's
+  // cells wrap too, in rows of their own (bar.scss drops their lines). The same bar
+  // organization-experience's copy of this frame shows under 60rem.
   @media (width < 60rem) {
     .rail {
       flex-flow: row wrap;
       align-items: center;
-      gap: var(--ds-dimension-spacing-control-default) var(--ds-dimension-spacing-page);
+      column-gap: var(--ds-dimension-spacing-page);
+    }
+
+    .brand {
+      padding-inline: var(--ds-dimension-spacing-inset-default);
     }
 
     .nav {
       flex-flow: row wrap;
-      gap: var(--ds-dimension-spacing-stack-compact) var(--ds-dimension-spacing-control-default);
+      gap: 2px var(--ds-dimension-spacing-control-default);
+      padding: var(--ds-dimension-spacing-stack-default) var(--ds-dimension-spacing-inset-compact);
+      overflow-y: visible;
     }
 
     .navGroup {
@@ -251,6 +279,7 @@ $scope-line: 2rem;
     }
 
     .navList {
+      display: flex;
       flex-flow: row wrap;
     }
 
@@ -263,8 +292,20 @@ $scope-line: 2rem;
       white-space: nowrap;
     }
 
+    // The environment takes a row of its own, then the cells follow in rows, each cell's own inline
+    // padding lining its words up with the page's.
     .bar {
-      padding-inline: var(--ds-dimension-spacing-inset-default);
+      flex-wrap: wrap;
+    }
+
+    .barStart {
+      inline-size: 100%;
+      padding: var(--ds-dimension-spacing-stack-comfortable) var(--ds-dimension-spacing-inset-default) 0;
+    }
+
+    .barEnd {
+      flex-wrap: wrap;
+      margin-inline-start: 0;
     }
 
     .scope {

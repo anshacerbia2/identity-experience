@@ -16,26 +16,19 @@
     padding-block: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-compact);
   }
 
+  // The page's head, in the brand book's voices: the group in the HUD, the heading, the lede.
   .eyebrow {
-    font-family: $font-mono;
-    font-size: var(--ds-typography-label-small-font-size);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-primary-text-default-default);
+    color: $muted;
+
+    @include hud;
   }
 
   .title {
-    font-size: var(--ds-typography-heading-medium-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: -0.03em;
-    overflow-wrap: anywhere;
-    color: var(--ds-color-neutral-text-strong-default);
+    @include page-title;
   }
 
   .lead {
-    max-inline-size: 40rem;
-    line-height: var(--ds-typography-article-readable-line-height);
-    color: var(--ds-color-neutral-text-subtle-default);
+    @include lede;
   }
 
   .quiet {
@@ -95,10 +88,9 @@
     margin: 0;
 
     & > dt {
-      font-size: var(--ds-typography-label-small-font-size);
-      letter-spacing: $hud-tracking;
-      text-transform: uppercase;
-      color: var(--ds-color-neutral-text-subtle-default);
+      color: $muted;
+
+      @include hud(0.625rem);
     }
 
     & > dd {

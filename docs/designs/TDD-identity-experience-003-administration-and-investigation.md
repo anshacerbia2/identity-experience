@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.36.0
+  version: 1.37.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-30
+  last_reviewed: 2026-10-31
   parent_sad: SAD-002
 ---
 
@@ -120,7 +120,7 @@ Grouping by object costs one decision per new page, which this table records.
 | R3 | Microsoft, *Microsoft Entra admin center*, <https://learn.microsoft.com/en-us/entra/fundamentals/entra-admin-center>, accessed 2026-10-03: Entra ID covers "users, groups, devices, applications, roles, and authentication methods" |
 | R4 | Microsoft, *My Account portal for work or school accounts*, <https://support.microsoft.com/en-us/account-billing/my-account-portal-for-work-or-school-accounts-eab41bfe-3b9e-441e-82be-1f6e568d65fd>, accessed 2026-10-03: "The My Account portal helps you to manage your work or school account by setting up and managing your security info, managing your devices" |
 
-### Visual Language (1.36.0)
+### Visual Language (1.36.0, the drawing since 1.37.0)
 
 **The three applications draw with the UI Platform, in the `scnx-platform` theme.** That is the
 Scnehaux platform's own look, which IAM, the AI runtime, Organization and the documentation site
@@ -152,10 +152,31 @@ token.
   (wrapping at 320 CSS px, a pressed edge, a 2px focus offset, a compound, a status glyph, a keyboard
   region); `SelectField`, `TextAreaField` and `Icon` stay local because the platform publishes none.
   `packages/ui/README.md` lists each, the token map, and the findings reported to ui-platform.
-- **The frame and the screens.** The rail, the bar, the scope line and every page keep their
-  structure and their tests in 1.36.0. Their redraw in the brand book's drawing (cells that share
-  their lines, mono navigation, the ink primary action, the two-bar mark) is the next change to this
-  section.
+- **The frame and the screens, in the brand book's drawing (1.37.0).** The three applications now
+  read as the documentation site does, on the same rules: one line between any two areas, never a
+  box in a box; blue only for here; Inter for the content and the mono HUD voice for the instrument.
+  The rail, the bar, the scope line and every page keep their structure, their landmarks and their
+  tests; only the drawing changes.
+  - _The frame._ The rail and the column share one line. The brand's cell carries the two-bar mark in
+    the ink role and is as tall as the scope line and the bar together, so the line under it runs on
+    as the bar's. The navigation has no icons: group labels in the HUD voice, items in Inter, muted,
+    and the current page a faint ink fill with a 2px marker in the signal, as the site's sidebar draws
+    it. The scope line is in the HUD voice, after a 6px signal square: the scope is where the person
+    is.
+  - _The bar._ A 48px strip of cells, one line between any two, as the site's nav strip: the
+    environment at the start, then who is signed in (a readout, no longer a success badge, since a
+    name is not a status), account security and sign out, the language (the current code in ground on
+    an ink bar) and the theme in a square cell. Under 60rem the cells wrap into rows and drop their
+    lines, and the environment takes a row of its own.
+  - _The pages._ Each page's head is the eyebrow in the HUD voice, the heading as the brand book's
+    section heading (Inter 500, tight) and its lede. Fact labels are in the HUD voice. The Overview's
+    three surfaces are cells that share their lines, numbered in the HUD voice by a counter, so no
+    figure enters the page's text; the icon chips and the lift on hover are gone. A filter is square,
+    as the platform's segmented control is in `scnx-platform`.
+  - _What stays._ Components render as the platform ships them: Button, Badge, Table, TextField and
+    the Surface under Panel keep their own drawing. The roles are Sass values and mixins in
+    `packages/ui` (`_roles.scss`, README §Roles), each a token or a mix of one; the brand book lists
+    the literals (the HUD's size and tracking, the heading's size).
 
 ## Data Model
 
