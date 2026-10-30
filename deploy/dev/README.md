@@ -8,7 +8,8 @@ from which keys, and how the laptop runs against it.
 
 It follows the skeleton of STD-GLB-009 §Development Server Deployment for a laptop-run application.
 The procedure across the server's stacks is the architecture repository's development server runbook
-(`docs/runbooks/dev-server.md`); this client is its step 4, and its adoption is in step 6.
+(`scnehaux-architecture` `deploy/dev/README.md`); this client is its step 4. A server deployed from zero
+registers it (First start step 2 below); adoption applies only to a client that already exists.
 
 ## What runs
 
