@@ -1,12 +1,12 @@
 @use '@identity-experience/ui/roles.scss' as *;
-@use '../shell/bar';
+@use '../shell/frame';
 
 // The preferences' cells in the frame's bar (AppFrame), in the HUD voice, each target as tall as the
 // bar: the language, its current code in ground on an ink bar as the brand book marks a current
 // area, and the theme, an icon in a square cell.
 @layer components {
   .locale {
-    @include bar.cell;
+    @include frame.cell;
 
     display: flex;
     align-items: stretch;
@@ -45,7 +45,7 @@
   }
 
   .theme {
-    @include bar.cell;
+    @include frame.cell;
 
     display: grid;
     place-items: center;

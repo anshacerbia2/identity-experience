@@ -6,7 +6,8 @@ import {
   unmanagedFindings,
   type Finding,
 } from '@identity-experience/app-core/domain/registration';
-import { Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Sheet } from '@identity-experience/app-core/shell';
+import { StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 
@@ -36,69 +37,63 @@ export function UnmanagedClients(): ReactElement | null {
     return null;
   }
   return (
-    <Panel.Root aria-labelledby="unmanaged-title">
-      <Panel.Header>
-        <Panel.Title id="unmanaged-title">
-          <Message id="unmanaged.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="unmanaged.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body className={styles['section']}>
-        <Table.Root caption={<Message id="unmanaged.caption" />} captionHidden>
-          <Table.Head>
-            <Table.Row>
-              <Table.HeaderCell>
-                <Message id="registrations.column.client" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="unmanaged.column.enabled" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="findings.column.actor" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="unmanaged.column.changed" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="findings.column.detected" />
-              </Table.HeaderCell>
+    <Sheet
+      id="unmanaged"
+      title={<Message id="unmanaged.title" />}
+      description={<Message id="unmanaged.description" />}
+    >
+      <Table.Root caption={<Message id="unmanaged.caption" />} captionHidden>
+        <Table.Head>
+          <Table.Row>
+            <Table.HeaderCell>
+              <Message id="registrations.column.client" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="unmanaged.column.enabled" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="findings.column.actor" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="unmanaged.column.changed" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="findings.column.detected" />
+            </Table.HeaderCell>
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          {unmanaged.map((finding) => (
+            <Table.Row key={finding.finding_id}>
+              <Table.Cell mono>{finding.client_key}</Table.Cell>
+              <Table.Cell>
+                <Enabled finding={finding} />
+              </Table.Cell>
+              <Table.Cell mono>{finding.actor ?? <Message id="findings.unknownActor" />}</Table.Cell>
+              <Table.Cell>
+                {finding.changed_at === null ? (
+                  <span className={styles['quiet']}>
+                    <Message id="unmanaged.changed.unknown" />
+                  </span>
+                ) : (
+                  <FormattedDate value={finding.changed_at} dateStyle="medium" timeStyle="medium" />
+                )}
+              </Table.Cell>
+              <Table.Cell>
+                <FormattedDate value={finding.detected_at} dateStyle="medium" timeStyle="medium" />
+              </Table.Cell>
             </Table.Row>
-          </Table.Head>
-          <Table.Body>
-            {unmanaged.map((finding) => (
-              <Table.Row key={finding.finding_id}>
-                <Table.Cell mono>{finding.client_key}</Table.Cell>
-                <Table.Cell>
-                  <Enabled finding={finding} />
-                </Table.Cell>
-                <Table.Cell mono>{finding.actor ?? <Message id="findings.unknownActor" />}</Table.Cell>
-                <Table.Cell>
-                  {finding.changed_at === null ? (
-                    <span className={styles['quiet']}>
-                      <Message id="unmanaged.changed.unknown" />
-                    </span>
-                  ) : (
-                    <FormattedDate value={finding.changed_at} dateStyle="medium" timeStyle="medium" />
-                  )}
-                </Table.Cell>
-                <Table.Cell>
-                  <FormattedDate value={finding.detected_at} dateStyle="medium" timeStyle="medium" />
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-        <ul className={styles['quiet']}>
-          <li>
-            <Message id="unmanaged.adopt" values={{ route: 'POST /v1/registrations:adopt' }} />
-          </li>
-          <li>
-            <Message id="unmanaged.delete" />
-          </li>
-        </ul>
-      </Panel.Body>
-    </Panel.Root>
+          ))}
+        </Table.Body>
+      </Table.Root>
+      <ul className={styles['quiet']}>
+        <li>
+          <Message id="unmanaged.adopt" values={{ route: 'POST /v1/registrations:adopt' }} />
+        </li>
+        <li>
+          <Message id="unmanaged.delete" />
+        </li>
+      </ul>
+    </Sheet>
   );
 }

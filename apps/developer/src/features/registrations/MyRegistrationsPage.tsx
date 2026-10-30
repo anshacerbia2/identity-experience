@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
-import { mayRegister, mayRequest } from '@identity-experience/app-core/domain/registration';
+import { mayRegister, mayRequest, type Standing } from '@identity-experience/app-core/domain/registration';
 import {
   profileLabel,
   stateLabel,
@@ -11,6 +11,7 @@ import {
   useStanding,
 } from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -19,37 +20,65 @@ import styles from './MyRegistrationsPage.module.scss';
 import { MyRequests } from './MyRequests';
 import { useMyRegistrations } from './registrations-api';
 
-// RegisterOffer offers registration only where the API accepts one, to an application developer:
-// registered outside production, requested in production (TDD-identity-experience-004 §Registering a
-// Client). The person's requests are listed below it.
-function RegisterOffer(): ReactElement | null {
-  const standing = useStanding();
+type Offer = 'register' | 'request';
+
+// offerFor is the registration the API accepts from the person, if any, offered only to an
+// application developer: registered outside production, requested in production
+// (TDD-identity-experience-004 §Registering a Client).
+function offerFor(standing: Standing | undefined): Offer | undefined {
+  if (standing === undefined || !standing.application_developer) {
+    return undefined;
+  }
+  if (mayRequest(standing)) {
+    return 'request';
+  }
+  return mayRegister(standing) ? 'register' : undefined;
+}
+
+function Head({ offer }: { readonly offer?: Offer | undefined }): ReactElement {
   const navigate = useNavigate();
-  if (standing.data === undefined || !standing.data.application_developer) {
-    return null;
-  }
-  const requesting = mayRequest(standing.data);
-  if (!requesting && !mayRegister(standing.data)) {
-    return null;
-  }
   return (
-    <>
-      <div className={styles['formActions']}>
+    <PageHead
+      eyebrow={<Message id="mine.eyebrow" />}
+      title={<Message id="mine.title" />}
+      lead={<Message id="mine.lead" />}
+    >
+      {offer === undefined ? undefined : (
         <Button
           onClick={() => {
             void navigate({ to: '/registrations/new' });
           }}
         >
           <Icon name="shield" />
-          <Message id={requesting ? 'request.open' : 'register.open'} />
+          <Message id={offer === 'request' ? 'request.open' : 'register.open'} />
         </Button>
-      </div>
-      {requesting ? <MyRequests /> : null}
+      )}
+    </PageHead>
+  );
+}
+
+// OwnerView is the page for a signed-in person: the head offering what the person may register, the
+// person's requests when a registration is requested, and the registrations the person owns.
+function OwnerView(): ReactElement {
+  const offer = offerFor(useStanding().data);
+  return (
+    <>
+      <Head offer={offer} />
+      {offer === 'request' ? <MyRequests /> : null}
+      <MyRegistrations />
     </>
   );
 }
 
 function MyRegistrations(): ReactElement {
+  return (
+    <Sheet id="mine" title={<Message id="mine.list.title" />}>
+      <Registrations />
+    </Sheet>
+  );
+}
+
+function Registrations(): ReactElement {
   const mine = useMyRegistrations();
 
   if (mine.isPending) {
@@ -138,24 +167,17 @@ export function MyRegistrationsPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="mine.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="mine.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="mine.lead" />
-        </p>
-      </header>
       {session.data?.authenticated === true ? (
+        <OwnerView />
+      ) : (
         <>
-          <RegisterOffer />
-          <MyRegistrations />
+          <Head />
+          {session.isPending ? null : (
+            <Block>
+              <SignInRequired />
+            </Block>
+          )}
         </>
-      ) : session.isPending ? null : (
-        <SignInRequired />
       )}
     </div>
   );

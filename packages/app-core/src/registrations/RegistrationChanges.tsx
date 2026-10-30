@@ -43,6 +43,7 @@ import { ReasonField, reasonRules } from '../forms/ReasonField';
 import type { CoreMessageKey } from '../i18n/core-messages';
 import { CoreMessage, useCoreMessage } from '../i18n/CoreMessage';
 import { useSession } from '../session/session';
+import { Sheet } from '../shell/Sheet';
 
 const versionConflict = 'https://problems.scnehaux.com/version-conflict';
 
@@ -743,8 +744,9 @@ export function RegistrationChanges({
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="changes-title">
-      <h2 id="changes-title" className={styles['sectionTitle']}>
+    <Sheet
+      id="changes"
+      title={
         <CoreMessage
           id={
             lifetime
@@ -756,7 +758,8 @@ export function RegistrationChanges({
                   : 'changes.title.audience'
           }
         />
-      </h2>
+      }
+    >
       <p className={styles['quiet']}>
         <CoreMessage
           id={
@@ -802,6 +805,6 @@ export function RegistrationChanges({
         </p>
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }

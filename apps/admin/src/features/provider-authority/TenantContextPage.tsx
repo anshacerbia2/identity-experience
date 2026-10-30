@@ -2,15 +2,17 @@ import { useState, type ReactElement } from 'react';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
-import { Button, Icon, Panel } from '@identity-experience/ui';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
+import { Button, Icon } from '@identity-experience/ui';
 
-import { Message } from '@/core/i18n/Message';
+import { Message, useMessage } from '@/core/i18n/Message';
 
 import { useTenantContextReport } from './provider-authority-api';
 import styles from './ProviderAuthority.module.scss';
 import { TenantConvergence } from './TenantConvergence';
 
 function Report(): ReactElement {
+  const t = useMessage();
   const [asked, setAsked] = useState(false);
   const [copied, setCopied] = useState(false);
   const report = useTenantContextReport(asked);
@@ -36,6 +38,7 @@ function Report(): ReactElement {
     // The report exactly as the API answered it: the mark must be its own, or Organization Control
     // compares it against the wrong position.
     const json = JSON.stringify(report.data, null, 2);
+    const label = t('projections.report.json');
     body = (
       <>
         <dl className={styles['details']}>
@@ -83,9 +86,10 @@ function Report(): ReactElement {
         </div>
         {
           // The report scrolls when it is long. A region that scrolls must be reachable by keyboard
-          // (WCAG 2.1.1), so it takes focus and is named by the panel's title, as a table's is.
+          // (WCAG 2.1.1), so it takes focus and a name of its own: the sheet is already the region its
+          // title names, and two regions of one name are not told apart.
           // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region must be keyboard-focusable
-          <pre className={styles['report']} role="region" aria-labelledby="tenant-report-title" tabIndex={0}>
+          <pre className={styles['report']} role="region" aria-label={label} tabIndex={0}>
             {json}
           </pre>
         }
@@ -93,19 +97,13 @@ function Report(): ReactElement {
     );
   }
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <span id="tenant-report-title">
-            <Message id="projections.report.title" />
-          </span>
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="projections.report.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>{body}</Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="tenant-report"
+      title={<Message id="projections.report.title" />}
+      description={<Message id="projections.report.description" />}
+    >
+      {body}
+    </Sheet>
   );
 }
 
@@ -118,24 +116,20 @@ export function TenantContextPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="projections.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="projections.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="projections.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="projections.eyebrow" />}
+        title={<Message id="projections.title" />}
+        lead={<Message id="projections.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <TenantConvergence />
           <Report />
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

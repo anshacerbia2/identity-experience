@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -130,13 +131,11 @@ export function DanglingSection(): ReactElement {
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="dangling-title">
-      <h2 id="dangling-title" className={styles['sectionTitle']}>
-        <Message id="principals.dangling.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="principals.dangling.description" />
-      </p>
+    <Sheet
+      id="dangling"
+      title={<Message id="principals.dangling.title" />}
+      description={<Message id="principals.dangling.description" />}
+    >
       <div className={styles['actions']}>
         <Button
           variant="secondary"
@@ -187,6 +186,6 @@ export function DanglingSection(): ReactElement {
           }}
         />
       )}
-    </section>
+    </Sheet>
   );
 }

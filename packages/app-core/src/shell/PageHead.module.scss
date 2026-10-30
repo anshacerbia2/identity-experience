@@ -1,0 +1,71 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use 'frame' as *;
+
+@layer components {
+  .head {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ds-dimension-spacing-inset-default);
+    padding: 3.5rem $pad 2.5rem;
+
+    &[data-display] {
+      padding-block: 5rem 3.5rem;
+    }
+
+    @include narrow {
+      padding: 2rem $pad-narrow 1.75rem;
+    }
+  }
+
+  .back {
+    margin-block-end: var(--ds-dimension-spacing-stack-default);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: $muted;
+
+    @include hud;
+  }
+
+  // Blue means here: the page is where the person is.
+  .here {
+    flex: none;
+    inline-size: 6px;
+    block-size: 6px;
+    background: $signal;
+  }
+
+  // The documentation site's page heading: Inter 500, tight, from 2.5rem to 4rem.
+  .title {
+    max-inline-size: 100%;
+    font-size: clamp(2.5rem, 4.6vw, 4rem);
+    font-weight: var(--ds-typography-weight-medium);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    overflow-wrap: anywhere;
+    color: var(--ds-color-neutral-text-strong-default);
+
+    // The brand book's display: Inter 500, −0.04em, line 0.98, a step under the docs' own landing.
+    .head[data-display] & {
+      max-inline-size: 14ch;
+      font-size: clamp(2.75rem, 6.4vw, 5.75rem);
+      line-height: 0.98;
+    }
+  }
+
+  .lead {
+    @include lede;
+  }
+
+  .aside {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ds-dimension-spacing-control-default);
+    margin-block-start: var(--ds-dimension-spacing-stack-default);
+  }
+}

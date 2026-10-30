@@ -10,6 +10,7 @@ import { lifecycleActions, type LifecycleAction, type Registration } from '../do
 import { ReasonField, reasonRules } from '../forms/ReasonField';
 import type { CoreMessageKey as MessageKey } from '../i18n/core-messages';
 import { CoreMessage as Message, useCoreMessage } from '../i18n/CoreMessage';
+import { Sheet } from '../shell/Sheet';
 
 interface Values {
   readonly reason: string;
@@ -133,10 +134,7 @@ export function LifecycleActions({
   }
   const selected = open !== null && actions.includes(open) ? open : null;
   return (
-    <section className={styles['section']} aria-labelledby="lifecycle-title">
-      <h2 id="lifecycle-title" className={styles['sectionTitle']}>
-        <Message id="lifecycle.title" />
-      </h2>
+    <Sheet id="lifecycle" title={<Message id="lifecycle.title" />}>
       <p className={styles['quiet']}>
         <Message id={owner ? 'lifecycle.description.owner' : 'lifecycle.description'} />
       </p>
@@ -177,6 +175,6 @@ export function LifecycleActions({
           }}
         />
       )}
-    </section>
+    </Sheet>
   );
 }

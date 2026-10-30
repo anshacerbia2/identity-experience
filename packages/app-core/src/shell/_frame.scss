@@ -1,0 +1,60 @@
+@use '@identity-experience/ui/roles.scss' as *;
+
+// The frame's geometry and its widths, shared by the frame and the parts drawn on it (Sheet, PageHead,
+// the bar's cells), so one change moves them together.
+
+// The scope line's height: one line of small text and its padding.
+$scope-line: 2rem;
+
+// What stays in view on a large screen: the scope line and the bar. A held sheet bar sits below it.
+$held: calc(#{$scope-line} + #{$layout-bar});
+
+// A held sheet bar's height: its line of HUD text and its padding.
+$sheet-bar: 2.75rem;
+
+// The inline padding of a sheet's bar and body, and of a page's head: the brand book's 40px, and the
+// frame's narrow inset under the wide layout, which leaves a 320 CSS px screen its room.
+$pad: 2.5rem;
+$pad-narrow: var(--ds-dimension-spacing-inset-default);
+
+// The column's margins once it is framed by its two lines: from 16px to 160px, 4% of the screen.
+$margin: clamp(1rem, 4vw, 10rem);
+
+// The wide layout: the rail beside the page.
+@mixin wide {
+  @media (width >= 60rem) {
+    @content;
+  }
+}
+
+@mixin narrow {
+  @media (width < 60rem) {
+    @content;
+  }
+}
+
+// Wide and tall enough for more than the scope line to stay in view (STD-GLB-FE-005 2.2.0 §3.10):
+// the bar and a sheet's bar hold only here.
+@mixin holding {
+  @media (width >= 60rem) and (height >= 30rem) {
+    @content;
+  }
+}
+
+// The column takes its two lines and its margins: the brand book's centre column.
+@mixin framed {
+  @media (width >= 75rem) {
+    @content;
+  }
+}
+
+// A cell of the frame's bar: one line before it, as the brand book's nav strip draws one line between
+// any two cells. Under the wide layout the bar's cells wrap into rows, where a line would start a row,
+// so it is dropped there.
+@mixin cell {
+  border-inline-start: var(--ds-dimension-border-width-default) solid $line;
+
+  @include narrow {
+    border-inline-start: 0;
+  }
+}

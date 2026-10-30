@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -184,13 +185,11 @@ export function WorkloadConditions({
 }): ReactElement {
   const sweep = useWorkloadSweep();
   return (
-    <section className={styles['section']} aria-labelledby="conditions-title">
-      <h2 id="conditions-title" className={styles['sectionTitle']}>
-        <Message id="workloads.conditions.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="workloads.conditions.description" />
-      </p>
+    <Sheet
+      id="conditions"
+      title={<Message id="workloads.conditions.title" />}
+      description={<Message id="workloads.conditions.description" />}
+    >
       <div className={styles['actions']}>
         <Button
           variant="secondary"
@@ -213,6 +212,6 @@ export function WorkloadConditions({
       {workloadConditions.map((condition) => (
         <ConditionList key={condition} condition={condition} onOpen={onOpen} />
       ))}
-    </section>
+    </Sheet>
   );
 }

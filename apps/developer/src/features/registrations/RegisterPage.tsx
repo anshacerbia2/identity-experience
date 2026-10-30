@@ -28,6 +28,7 @@ import {
   useStanding,
 } from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, SelectField, TextAreaField, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -147,18 +148,18 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
   });
 
   if (requested !== null) {
-    return <Requested request={requested} />;
+    return (
+      <Block>
+        <Requested request={requested} />
+      </Block>
+    );
   }
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id={mode === 'request' ? 'request.form.title' : 'register.form.title'} />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id={mode === 'request' ? 'request.form.body' : 'register.form.body'} />
-        </Panel.Description>
-      </Panel.Header>
+    <Sheet
+      id="register-form"
+      title={<Message id={mode === 'request' ? 'request.form.title' : 'register.form.title'} />}
+      description={<Message id={mode === 'request' ? 'request.form.body' : 'register.form.body'} />}
+    >
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
         <TextField
           {...form.register('clientKey', {
@@ -291,7 +292,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
           </Button>
         </div>
       </form>
-    </Panel.Root>
+    </Sheet>
   );
 }
 
@@ -300,16 +301,22 @@ function Gate(): ReactElement {
   const session = useSession();
   const me = session.data?.authenticated === true ? session.data.principalId : null;
   if (standing.isPending) {
-    return <Panel.Root aria-busy="true" />;
+    return (
+      <Block>
+        <Panel.Root aria-busy="true" />
+      </Block>
+    );
   }
   if (standing.isError) {
     return (
-      <ApiErrorPanel
-        error={standing.error}
-        onRetry={() => {
-          void standing.refetch();
-        }}
-      />
+      <Block>
+        <ApiErrorPanel
+          error={standing.error}
+          onRetry={() => {
+            void standing.refetch();
+          }}
+        />
+      </Block>
     );
   }
   if (mayRequest(standing.data)) {
@@ -317,16 +324,18 @@ function Gate(): ReactElement {
   }
   if (!mayRegister(standing.data)) {
     return (
-      <Panel.Root>
-        <Panel.Header>
-          <Panel.Title>
-            <Message id="register.unavailable.title" />
-          </Panel.Title>
-          <Panel.Description>
-            <Message id="register.unavailable.standing" />
-          </Panel.Description>
-        </Panel.Header>
-      </Panel.Root>
+      <Block>
+        <Panel.Root>
+          <Panel.Header>
+            <Panel.Title>
+              <Message id="register.unavailable.title" />
+            </Panel.Title>
+            <Panel.Description>
+              <Message id="register.unavailable.standing" />
+            </Panel.Description>
+          </Panel.Header>
+        </Panel.Root>
+      </Block>
     );
   }
   return <RegisterForm mode="register" me={me} />;
@@ -340,19 +349,24 @@ export function RegisterPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <Link to="/" className={styles['back']}>
-        <Icon name="arrow" />
-        <Message id="registration.back" />
-      </Link>
-      <header className={styles['hero']}>
-        <h1 className={styles['title']}>
-          <Message id="register.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="register.lead" />
-        </p>
-      </header>
-      {session.data?.authenticated === true ? <Gate /> : session.isPending ? null : <SignInRequired />}
+      <PageHead
+        back={
+          <Link to="/" className={styles['back']}>
+            <Icon name="arrow" />
+            <Message id="registration.back" />
+          </Link>
+        }
+        eyebrow={<Message id="mine.eyebrow" />}
+        title={<Message id="register.title" />}
+        lead={<Message id="register.lead" />}
+      />
+      {session.data?.authenticated === true ? (
+        <Gate />
+      ) : session.isPending ? null : (
+        <Block>
+          <SignInRequired />
+        </Block>
+      )}
     </div>
   );
 }

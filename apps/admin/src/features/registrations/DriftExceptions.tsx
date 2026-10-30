@@ -3,6 +3,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import { exceptionInForce } from '@identity-experience/app-core/domain/registration';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -40,13 +41,11 @@ export function DriftExceptions({
   // In force as of when the list was read, so every row is judged against the same moment.
   const readAt = exceptions.dataUpdatedAt;
   return (
-    <section className={styles['section']} aria-labelledby="exceptions-title">
-      <h2 id="exceptions-title" className={styles['sectionTitle']}>
-        <Message id="exceptions.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="exceptions.description" />
-      </p>
+    <Sheet
+      id="exceptions"
+      title={<Message id="exceptions.title" />}
+      description={<Message id="exceptions.description" />}
+    >
       {exceptions.data.length === 0 ? (
         <p className={styles['quiet']} role="status">
           <Message id="exceptions.empty" />
@@ -109,6 +108,6 @@ export function DriftExceptions({
         </Table.Root>
       )}
       {grantable ? <ExceptionForm registrationId={registrationId} /> : null}
-    </section>
+    </Sheet>
   );
 }

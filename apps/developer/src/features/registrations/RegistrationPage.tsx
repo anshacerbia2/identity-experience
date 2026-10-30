@@ -13,38 +13,52 @@ import {
   useRegistration,
 } from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead } from '@identity-experience/app-core/shell';
 import { Icon, Panel, StatusPill } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 
 import styles from './MyRegistrationsPage.module.scss';
 
-function RegistrationView({ registrationId }: { readonly registrationId: string }): ReactElement {
+function RegistrationView({
+  registrationId,
+  back,
+}: {
+  readonly registrationId: string;
+  readonly back: ReactElement;
+}): ReactElement {
   const registration = useRegistration(registrationId);
   if (registration.isPending) {
-    return <Panel.Root aria-busy="true" />;
+    return (
+      <Block>
+        {back}
+        <Panel.Root aria-busy="true" />
+      </Block>
+    );
   }
   if (registration.isError) {
     // A registration the person does not own is a 404 from the API, the same as one that does not
     // exist: an owner does not learn which registrations exist.
     return (
-      <ApiErrorPanel
-        error={registration.error}
-        onRetry={() => {
-          void registration.refetch();
-        }}
-      />
+      <Block>
+        {back}
+        <ApiErrorPanel
+          error={registration.error}
+          onRetry={() => {
+            void registration.refetch();
+          }}
+        />
+      </Block>
     );
   }
   const found = registration.data;
   return (
     <>
-      <header className={styles['hero']}>
-        <h1 className={styles['title']}>{found.client_key}</h1>
+      <PageHead back={back} eyebrow={<Message id="mine.eyebrow" />} title={found.client_key}>
         <StatusPill tone={stateTone[found.state]}>
           <Message id={stateLabel(found.state)} />
         </StatusPill>
-      </header>
+      </PageHead>
       <RegistrationDetails registration={found} />
       <RegistrationChanges registration={found} />
       <ClientKeys registration={found} />
@@ -60,16 +74,21 @@ function RegistrationView({ registrationId }: { readonly registrationId: string 
 // provider may do is offered: a change is proposed here and approved in the Admin Portal.
 export function RegistrationPage({ registrationId }: { readonly registrationId: string }): ReactElement {
   const session = useSession();
+  const back = (
+    <Link to="/" className={styles['back']}>
+      <Icon name="arrow" />
+      <Message id="registration.back" />
+    </Link>
+  );
   return (
     <div className={styles['root']}>
-      <Link to="/" className={styles['back']}>
-        <Icon name="arrow" />
-        <Message id="registration.back" />
-      </Link>
       {session.data?.authenticated === true ? (
-        <RegistrationView registrationId={registrationId} />
+        <RegistrationView registrationId={registrationId} back={back} />
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          {back}
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

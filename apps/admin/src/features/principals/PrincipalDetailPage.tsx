@@ -6,6 +6,7 @@ import { FormattedDate } from 'react-intl';
 import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet, type Fact } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, type StatusTone } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -176,36 +177,34 @@ function CommandForm({
 }
 
 // Section is one privileged read, made only when the operator opens it (TDD-identity-experience-003
-// §Reads Are Privileged Too).
+// §Reads Are Privileged Too). Its table is captioned with its title and is the region of that name, so
+// the sheet itself is not named.
 function Section({
+  id,
   title,
   open,
   onOpen,
   children,
 }: {
+  readonly id: string;
   readonly title: MessageKey;
   readonly open: boolean;
   readonly onOpen: () => void;
   readonly children: ReactNode;
 }): ReactElement {
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id={title} />
-        </Panel.Title>
-      </Panel.Header>
-      <Panel.Body>
-        {open ? (
-          children
-        ) : (
+    <Sheet id={id} title={<Message id={title} />} named={false}>
+      {open ? (
+        children
+      ) : (
+        <div className={styles['actions']}>
           <Button variant="secondary" size="small" onClick={onOpen}>
             <Icon name="arrow" />
             <Message id="principals.section.open" />
           </Button>
-        )}
-      </Panel.Body>
-    </Panel.Root>
+        </div>
+      )}
+    </Sheet>
   );
 }
 
@@ -214,6 +213,7 @@ function SessionsSection({ principalId }: { readonly principalId: string }): Rea
   const sessions = useSecuritySection(principalId, 'sessions', open);
   return (
     <Section
+      id="sessions"
       title="principals.sessions.title"
       open={open}
       onOpen={() => {
@@ -276,6 +276,7 @@ function AuthenticatorsSection({
   const offer = canRevoke(principal, operator);
   return (
     <Section
+      id="authenticators"
       title="principals.authenticators.title"
       open={open}
       onOpen={() => {
@@ -383,6 +384,7 @@ function NotificationAddressesSection({ principalId }: { readonly principalId: s
   const addresses = useSecuritySection(principalId, 'notification-addresses', open);
   return (
     <Section
+      id="notification-addresses"
       title="principals.addresses.title"
       open={open}
       onOpen={() => {
@@ -477,6 +479,7 @@ function SecurityNotificationsSection({ principalId }: { readonly principalId: s
   const notifications = useSecuritySection(principalId, 'security-notifications', open);
   return (
     <Section
+      id="security-notifications"
       title="principals.notifications.title"
       open={open}
       onOpen={() => {
@@ -559,6 +562,7 @@ function FederationSection({ principalId }: { readonly principalId: string }): R
   const links = useSecuritySection(principalId, 'federation-links', open);
   return (
     <Section
+      id="federation"
       title="principals.federation.title"
       open={open}
       onOpen={() => {
@@ -594,6 +598,7 @@ function FindingsSection({ principalId }: { readonly principalId: string }): Rea
   const findings = useSecuritySection(principalId, 'findings', open);
   return (
     <Section
+      id="findings"
       title="principals.findings.title"
       open={open}
       onOpen={() => {
@@ -637,6 +642,7 @@ function EventsSection({ principalId }: { readonly principalId: string }): React
   const sweep = useKernelEventSweep(principalId);
   return (
     <Section
+      id="events"
       title="principals.events.title"
       open={open}
       onOpen={() => {
@@ -752,74 +758,68 @@ function Containment({
     why = 'principals.contain.none.state';
   }
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="principals.contain.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="principals.contain.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {released ? (
-          <p className={styles['success']} role="status">
-            <Icon name="check" />
-            <Message id="principals.release.done" />
-          </p>
-        ) : null}
-        {release ? (
-          <ReleaseQuarantine
-            principal={principal}
-            onDone={() => {
-              setReleased(true);
-            }}
-          />
-        ) : why === null ? (
-          <div className={styles['actions']}>
-            {actions.map((action) => (
-              <Button
-                key={action}
-                variant={action === 'restore' ? 'primary' : 'secondary'}
-                aria-expanded={open === action}
-                onClick={() => {
-                  setOpen(action);
-                  setOutcome(null);
-                }}
-              >
-                <Message id={actionLabel[action]} />
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <p className={styles['quiet']}>
-            <Message id={why} values={{ state: principal.state }} />
-            {principal.subject_type === 'workload' ? (
-              <>
-                {' '}
-                <Link to="/workloads">
-                  <Message id="principals.contain.none.workload.link" />
-                </Link>
-              </>
-            ) : null}
-          </p>
-        )}
-        {open === null || !actions.includes(open) ? null : (
-          <CommandForm
-            principal={principal}
-            command={open}
-            onDone={(operation) => {
-              setOutcome({ command: open, operation });
-              setOpen(null);
-            }}
-            onCancel={() => {
-              setOpen(null);
-            }}
-          />
-        )}
-        {outcome === null ? null : <Outcome command={outcome.command} operation={outcome.operation} />}
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="containment"
+      title={<Message id="principals.contain.title" />}
+      description={<Message id="principals.contain.description" />}
+    >
+      {released ? (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id="principals.release.done" />
+        </p>
+      ) : null}
+      {release ? (
+        <ReleaseQuarantine
+          principal={principal}
+          onDone={() => {
+            setReleased(true);
+          }}
+        />
+      ) : why === null ? (
+        <div className={styles['actions']}>
+          {actions.map((action) => (
+            <Button
+              key={action}
+              variant={action === 'restore' ? 'primary' : 'secondary'}
+              aria-expanded={open === action}
+              onClick={() => {
+                setOpen(action);
+                setOutcome(null);
+              }}
+            >
+              <Message id={actionLabel[action]} />
+            </Button>
+          ))}
+        </div>
+      ) : (
+        <p className={styles['quiet']}>
+          <Message id={why} values={{ state: principal.state }} />
+          {principal.subject_type === 'workload' ? (
+            <>
+              {' '}
+              <Link to="/workloads">
+                <Message id="principals.contain.none.workload.link" />
+              </Link>
+            </>
+          ) : null}
+        </p>
+      )}
+      {open === null || !actions.includes(open) ? null : (
+        <CommandForm
+          principal={principal}
+          command={open}
+          onDone={(operation) => {
+            setOutcome({ command: open, operation });
+            setOpen(null);
+          }}
+          onCancel={() => {
+            setOpen(null);
+          }}
+        />
+      )}
+      {outcome === null ? null : <Outcome command={outcome.command} operation={outcome.operation} />}
+    </Sheet>
   );
 }
 
@@ -828,74 +828,69 @@ function Containment({
 // offer stands for every active person but the operator, and a refusal says why.
 function FirstCredential({ principalId }: { readonly principalId: string }): ReactElement {
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="principals.password.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="principals.password.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        <TemporaryPassword principalId={principalId} />
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="first-credential"
+      title={<Message id="principals.password.title" />}
+      description={<Message id="principals.password.description" />}
+    >
+      <TemporaryPassword principalId={principalId} />
+    </Sheet>
   );
 }
 
-function Summary({ principal }: { readonly principal: PrincipalDetail }): ReactElement {
-  return (
-    <Panel.Root>
-      <Panel.Body>
-        <dl className={styles['details']}>
-          <dt>
-            <Message id="principals.detail.state" />
-          </dt>
-          <dd>
-            <StatusPill tone={stateTones[principal.state]}>
-              <Message id={`principals.state.${principal.state}`} />
-            </StatusPill>
-          </dd>
-          <dt>
-            <Message id="principals.detail.principal" />
-          </dt>
-          <dd className={styles['subject']}>{principal.principal_id}</dd>
-          <dt>
-            <Message id="principals.search.column.type" />
-          </dt>
-          <dd>
-            <Message id={`principals.subjectType.${principal.subject_type}`} />
-          </dd>
-          {principal.email === undefined ? null : (
-            <>
-              <dt>
-                <Message id="principals.search.column.email" />
-              </dt>
-              <dd>{principal.email}</dd>
-            </>
-          )}
-          <dt>
-            <Message id="principals.detail.created" />
-          </dt>
-          <dd>
-            <FormattedDate value={principal.created_at} dateStyle="medium" timeStyle="short" />
-          </dd>
-          {principal.quarantined_at === null ? null : (
-            <>
-              <dt>
-                <Message id="principals.detail.quarantined" />
-              </dt>
-              <dd>
+// The summary, read on arrival, is the page's title block: a row of cells under its head.
+function summary(principal: PrincipalDetail): Fact[] {
+  return [
+    {
+      id: 'state',
+      term: <Message id="principals.detail.state" />,
+      value: (
+        <StatusPill tone={stateTones[principal.state]}>
+          <Message id={`principals.state.${principal.state}`} />
+        </StatusPill>
+      ),
+    },
+    {
+      id: 'principal',
+      term: <Message id="principals.detail.principal" />,
+      value: principal.principal_id,
+      mono: true,
+      wide: true,
+    },
+    {
+      id: 'type',
+      term: <Message id="principals.search.column.type" />,
+      value: <Message id={`principals.subjectType.${principal.subject_type}`} />,
+    },
+    ...(principal.email === undefined
+      ? []
+      : [
+          {
+            id: 'email',
+            term: <Message id="principals.search.column.email" />,
+            value: principal.email,
+          },
+        ]),
+    {
+      id: 'created',
+      term: <Message id="principals.detail.created" />,
+      value: <FormattedDate value={principal.created_at} dateStyle="medium" timeStyle="short" />,
+    },
+    ...(principal.quarantined_at === null
+      ? []
+      : [
+          {
+            id: 'quarantined',
+            term: <Message id="principals.detail.quarantined" />,
+            value: (
+              <>
                 <FormattedDate value={principal.quarantined_at} dateStyle="medium" timeStyle="short" />
                 {principal.quarantine_reason === undefined ? null : ` — ${principal.quarantine_reason}`}
-              </dd>
-            </>
-          )}
-        </dl>
-      </Panel.Body>
-    </Panel.Root>
-  );
+              </>
+            ),
+          },
+        ]),
+  ];
 }
 
 // PrincipalDetailPage is one Principal and its security state (TDD-identity-experience-003
@@ -904,27 +899,45 @@ function Summary({ principal }: { readonly principal: PrincipalDetail }): ReactE
 export function PrincipalDetailPage({ principalId }: { readonly principalId: string }): ReactElement {
   const session = useSession();
   const principal = usePrincipalDetail(principalId);
+  const back = (
+    <Link to="/principals" className={styles['back']}>
+      <Icon name="arrow" />
+      <Message id="principals.title" />
+    </Link>
+  );
   if (session.data?.authenticated !== true) {
-    return session.isPending ? <div aria-busy="true" /> : <SignInRequired />;
+    return (
+      <div className={styles['root']}>
+        {session.isPending ? (
+          <Block aria-busy="true" />
+        ) : (
+          <Block>
+            {back}
+            <SignInRequired />
+          </Block>
+        )}
+      </div>
+    );
   }
   const operator = session.data.principalId;
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Link to="/principals">
-            <Message id="principals.title" />
-          </Link>
-        </p>
-        <h1 className={styles['title']}>{principal.data?.username ?? principalId}</h1>
-      </header>
+      <PageHead
+        back={back}
+        eyebrow={<Message id="principals.eyebrow" />}
+        title={principal.data?.username ?? principalId}
+        facts={principal.isSuccess ? summary(principal.data) : []}
+      />
       {principal.isPending ? (
-        <Panel.Root aria-busy="true" />
+        <Block>
+          <Panel.Root aria-busy="true" />
+        </Block>
       ) : principal.isError ? (
-        <ApiErrorPanel error={principal.error} onRetry={() => void principal.refetch()} />
+        <Block>
+          <ApiErrorPanel error={principal.error} onRetry={() => void principal.refetch()} />
+        </Block>
       ) : (
         <>
-          <Summary principal={principal.data} />
           <Containment principal={principal.data} operator={operator} />
           {canIssueTemporaryPassword(principal.data, operator) ? (
             <FirstCredential key={principalId} principalId={principalId} />

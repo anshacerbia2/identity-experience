@@ -152,31 +152,58 @@ token.
   (wrapping at 320 CSS px, a pressed edge, a 2px focus offset, a compound, a status glyph, a keyboard
   region); `SelectField`, `TextAreaField` and `Icon` stay local because the platform publishes none.
   `packages/ui/README.md` lists each, the token map, and the findings reported to ui-platform.
-- **The frame and the screens, in the brand book's drawing (1.37.0).** The three applications now
-  read as the documentation site does, on the same rules: one line between any two areas, never a
-  box in a box; blue only for here; Inter for the content and the mono HUD voice for the instrument.
-  The rail, the bar, the scope line and every page keep their structure, their landmarks and their
-  tests; only the drawing changes.
-  - _The frame._ The rail and the column share one line. The brand's cell carries the two-bar mark in
-    the ink role and is as tall as the scope line and the bar together, so the line under it runs on
-    as the bar's. The navigation has no icons: group labels in the HUD voice, items in Inter, muted,
-    and the current page a faint ink fill with a 2px marker in the signal, as the site's sidebar draws
-    it. The scope line is in the HUD voice, after a 6px signal square: the scope is where the person
-    is.
-  - _The bar._ A 48px strip of cells, one line between any two, as the site's nav strip: the
-    environment at the start, then who is signed in (a readout, no longer a success badge, since a
-    name is not a status), account security and sign out, the language (the current code in ground on
-    an ink bar) and the theme in a square cell. Under 60rem the cells wrap into rows and drop their
-    lines, and the environment takes a row of its own.
-  - _The pages._ Each page's head is the eyebrow in the HUD voice, the heading as the brand book's
-    section heading (Inter 500, tight) and its lede. Fact labels are in the HUD voice. The Overview's
-    three surfaces are cells that share their lines, numbered in the HUD voice by a counter, so no
-    figure enters the page's text; the icon chips and the lift on hover are gone. A filter is square,
-    as the platform's segmented control is in `scnx-platform`.
-  - _What stays._ Components render as the platform ships them: Button, Badge, Table, TextField and
-    the Surface under Panel keep their own drawing. The roles are Sass values and mixins in
-    `packages/ui` (`_roles.scss`, README §Roles), each a token or a mix of one; the brand book lists
-    the literals (the HUD's size and tracking, the heading's size).
+- **The frame and the screens, drawn as the documentation site is (1.37.0).** The three applications
+  are drawn as `ui-platform-docs` draws its pages, on the brand book's rules: one line between any
+  two areas, never a box in a box; blue only for here; Inter for the content and the mono HUD voice
+  (upper case, tracked) for the instrument. The structure of a page changes with the drawing; the
+  landmarks, the headings' text, the roles, the behaviour and the accessibility and layout rules
+  below do not. The parts are `packages/app-core/src/shell`: `AppFrame`, `PageHead`, `Sheet`,
+  `Block`, `Facts`, and `_frame.scss`, the frame's geometry and widths, which a page's stylesheet
+  takes as `@identity-experience/app-core/frame.scss`.
+  - _The frame._ The scope line runs across the top of the screen and stays in view at every width
+    (§Layout), after a 6px signal square: the scope is where the person is. Under it, the bar: a 48px
+    strip of cells across the screen, one line between any two, as the site's nav strip. The cells
+    hold the two-bar mark and the application's name, the environment, who is signed in (a readout,
+    not a success badge, since a name is not a status), account security, sign out, the language
+    (the current code in ground on an ink bar) and the theme in a square cell. Below it, the column:
+    from 75rem it is bounded by two lines, between margins of 1rem to 10rem (4% of the screen), at
+    most 96rem wide, and the lines run to the foot of the page; below 75rem it takes the screen's
+    width. Inside it the rail and the page share one line. The rail is the site's sidebar: no icons,
+    group labels in the HUD voice, items in Inter, muted, and the current page a faint ink fill with
+    a 2px marker in the signal. The page ends on a title block: the application, the authority that
+    decides every action, where the session is held, and the drawing.
+  - _A page._ A head (`PageHead`): a way back when there is one, the eyebrow after a signal square,
+    the heading (Inter 500, −0.04em, 2.5rem to 4rem; the landing's display, to 5.75rem), the lede,
+    and what the page states at once. Then sheets (`Sheet`), one per section: a rule across the page
+    at its top, a cross where the rule meets each of the column's lines (from 75rem, where the lines
+    exist), a bar `NN / TITLE ··· facts` in the HUD voice, and a padded body whose lede is the
+    section's description. The page counts its sheets. The sheet being read is here, as on the site:
+    the last whose rule has reached the foot of what stays in view, or the last at the end of the
+    page; its number turns blue. Content that is not a section (a sign-in prompt, a page-level read
+    still loading or failed) is a `Block`, padded as a sheet's body. A panel nested in a section, a
+    confirmation or a form opened in it, stays a panel; a sheet is never inside a sheet.
+  - _What holds._ On a screen at least 60rem wide and 30rem tall, the bar holds under the scope
+    line, the rail under the bar, and the bar of the sheet being read under them, and
+    `scroll-padding` covers all three, so focus never lands under them (SC 2.4.11). Elsewhere each
+    is static and only the scope line stays in view (STD-GLB-FE-005 2.2.0 §3.10).
+  - _Facts._ A title block is cells that share their lines (`Facts`): as many columns as the room
+    holds, a term in the HUD voice over its value, an identifier in the HUD face. A registration's
+    record is drawn so.
+  - _Components through their hooks._ The platform's Table drops its frame and its header's fill,
+    sets its heads in the HUD voice and draws the drawing's line, all through its own
+    `--scnx-table-*` hooks: a table is rows of lines. The platform's Button takes the HUD face through
+    `--scnx-button-font-*`, in the case its label is written in, not upper case: some labels name what
+    they act on ("Revoke prn_01…"), and an identifier is case-sensitive. Everything else renders as
+    shipped, and nothing selects a platform class.
+  - _The Overview._ The landing's head, then two sheets. _How a request travels_ draws the four hops,
+    browser, Experience BFF, Identity Control API and Keycloak, as cells that share their lines, what
+    each holds and what carries the request on (a cookie, an access token, the admin API) written on
+    the line between two; a line in the signal draws across them once, as the site draws a rule in,
+    never looped, and still under reduced motion. _What this console holds_ is the three surfaces as
+    cells, each numbered by a counter, so no figure enters the page's text.
+  - _Roles._ The drawing's roles are Sass values and mixins in `packages/ui` (`_roles.scss`, README
+    §Roles), each a token or a mix of one; the brand book lists the literals (the HUD's size and
+    tracking, the headings' sizes).
 
 ## Data Model
 

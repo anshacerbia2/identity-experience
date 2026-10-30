@@ -3,6 +3,7 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -96,13 +97,11 @@ export function PrincipalSearch(): ReactElement {
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="principal-search-title">
-      <h2 id="principal-search-title" className={styles['sectionTitle']}>
-        <Message id="principals.search.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="principals.search.description" />
-      </p>
+    <Sheet
+      id="principal-search"
+      title={<Message id="principals.search.title" />}
+      description={<Message id="principals.search.description" />}
+    >
       <form
         className={styles['searchForm']}
         onSubmit={(event) => void submit(event)}
@@ -126,6 +125,6 @@ export function PrincipalSearch(): ReactElement {
         </div>
       </form>
       {body}
-    </section>
+    </Sheet>
   );
 }

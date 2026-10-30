@@ -1,0 +1,14 @@
+@use 'frame' as *;
+
+@layer components {
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-dimension-spacing-control-default);
+    padding: var(--ds-dimension-spacing-inset-comfortable) $pad;
+
+    @include narrow {
+      padding: var(--ds-dimension-spacing-inset-default) $pad-narrow;
+    }
+  }
+}

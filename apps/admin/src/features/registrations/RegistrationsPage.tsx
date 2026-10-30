@@ -10,6 +10,7 @@ import {
   type RegistrationState,
 } from '@identity-experience/app-core/domain/registration';
 import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -196,27 +197,25 @@ export function RegistrationsPage({
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="registrations.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="registrations.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="registrations.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="registrations.eyebrow" />}
+        title={<Message id="registrations.title" />}
+        lead={<Message id="registrations.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <DriftSummary />
           <UnmanagedClients />
           <ExpiringKeys />
-          <StateFilter current={state} />
-          <RegistrationTable state={state} />
+          <Sheet id="registrations-list" title={<Message id="registrations.list.title" />}>
+            <StateFilter current={state} />
+            <RegistrationTable state={state} />
+          </Sheet>
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -202,13 +203,11 @@ export function ApplicationDevelopers(): ReactElement {
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="developers-title">
-      <h2 id="developers-title" className={styles['sectionTitle']}>
-        <Message id="developers.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="developers.description" />
-      </p>
+    <Sheet
+      id="developers"
+      title={<Message id="developers.title" />}
+      description={<Message id="developers.description" />}
+    >
       {done === null ? null : (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -255,6 +254,6 @@ export function ApplicationDevelopers(): ReactElement {
         />
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }

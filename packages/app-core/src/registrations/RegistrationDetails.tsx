@@ -1,30 +1,12 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { FormattedDate } from 'react-intl';
-
-import { Panel } from '@identity-experience/ui';
 
 import { profileLabel } from './labels';
 import styles from './Registration.module.scss';
 import type { Registration } from '../domain/registration';
-import type { CoreMessageKey } from '../i18n/core-messages';
 import { CoreMessage } from '../i18n/CoreMessage';
-
-function Field({
-  label,
-  children,
-}: {
-  readonly label: CoreMessageKey;
-  readonly children: ReactNode;
-}): ReactElement {
-  return (
-    <div className={styles['field']}>
-      <dt>
-        <CoreMessage id={label} />
-      </dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
+import { Facts, type Fact } from '../shell/Facts';
+import { Sheet } from '../shell/Sheet';
 
 function List({ values }: { readonly values: readonly string[] }): ReactElement {
   if (values.length === 0) {
@@ -47,88 +29,131 @@ function List({ values }: { readonly values: readonly string[] }): ReactElement 
 const applicationReference = (registration: Registration): string =>
   [registration.application_authority, registration.application_ref].join(':');
 
+const none = (
+  <span className={styles['quiet']}>
+    <CoreMessage id="registration.none" />
+  </span>
+);
+
 // RegistrationDetails is a registration as desired state records it: the same fields wherever a
-// registration is shown, so a provider and an owner read the same record.
+// registration is shown, so a provider and an owner read the same record. It is drawn as the record's
+// title block, a sheet of cells that share their lines, its version read out on the sheet's bar.
 export function RegistrationDetails({ registration }: { readonly registration: Registration }): ReactElement {
-  return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <CoreMessage id="registration.details" />
-        </Panel.Title>
-      </Panel.Header>
-      <dl className={styles['fields']}>
-        <Field label="registration.field.id">
-          <code>{registration.registration_id}</code>
-        </Field>
-        <Field label="registration.field.realm">
-          <code>{registration.realm}</code>
-        </Field>
-        <Field label="registration.field.profile">
-          <CoreMessage id={profileLabel(registration.profile)} />
-        </Field>
-        <Field label="registration.field.audienceClass">
-          <code>{registration.audience_class}</code>
-        </Field>
-        {registration.consent_required === undefined ? null : (
-          <Field label="registration.field.consent">
-            <CoreMessage
-              id={registration.consent_required ? 'registration.consent.asks' : 'registration.consent.none'}
-            />
-          </Field>
-        )}
-        <Field label="registration.field.application">
-          <code>{applicationReference(registration)}</code>
-        </Field>
-        <Field label="registration.field.algorithm">
-          <code>{registration.signing_algorithm}</code>
-        </Field>
-        <Field label="registration.field.lifetimeClass">
-          {registration.lifetime_class === undefined ? (
-            <span className={styles['quiet']}>
-              <CoreMessage id="registration.none" />
-            </span>
-          ) : (
-            <code>{registration.lifetime_class}</code>
-          )}
-        </Field>
-        <Field label="registration.field.lifespan">
-          {registration.access_token_lifespan === undefined ? (
-            <CoreMessage id="registrations.lifespan.none" />
-          ) : (
-            <CoreMessage
-              id="registrations.lifespan"
-              values={{ seconds: registration.access_token_lifespan }}
-            />
-          )}
-        </Field>
-        <Field label="registration.field.audience">
-          <List values={registration.audience} />
-        </Field>
-        <Field label="registration.field.redirects">
-          <List values={registration.redirect_uris} />
-        </Field>
-        {registration.profile === 'confidential' ? (
-          <Field label="registration.field.backChannelLogout">
-            {registration.backchannel_logout_uri === undefined ? (
+  const facts: Fact[] = [
+    {
+      id: 'id',
+      term: <CoreMessage id="registration.field.id" />,
+      value: registration.registration_id,
+      mono: true,
+      wide: true,
+    },
+    {
+      id: 'realm',
+      term: <CoreMessage id="registration.field.realm" />,
+      value: registration.realm,
+      mono: true,
+    },
+    {
+      id: 'profile',
+      term: <CoreMessage id="registration.field.profile" />,
+      value: <CoreMessage id={profileLabel(registration.profile)} />,
+    },
+    {
+      id: 'audienceClass',
+      term: <CoreMessage id="registration.field.audienceClass" />,
+      value: registration.audience_class,
+      mono: true,
+    },
+    ...(registration.consent_required === undefined
+      ? []
+      : [
+          {
+            id: 'consent',
+            term: <CoreMessage id="registration.field.consent" />,
+            value: (
+              <CoreMessage
+                id={registration.consent_required ? 'registration.consent.asks' : 'registration.consent.none'}
+              />
+            ),
+            wide: true,
+          },
+        ]),
+    {
+      id: 'application',
+      term: <CoreMessage id="registration.field.application" />,
+      value: applicationReference(registration),
+      mono: true,
+    },
+    {
+      id: 'algorithm',
+      term: <CoreMessage id="registration.field.algorithm" />,
+      value: registration.signing_algorithm,
+      mono: true,
+    },
+    {
+      id: 'lifetimeClass',
+      term: <CoreMessage id="registration.field.lifetimeClass" />,
+      value: registration.lifetime_class ?? none,
+      mono: registration.lifetime_class !== undefined,
+    },
+    {
+      id: 'lifespan',
+      term: <CoreMessage id="registration.field.lifespan" />,
+      value:
+        registration.access_token_lifespan === undefined ? (
+          <CoreMessage id="registrations.lifespan.none" />
+        ) : (
+          <CoreMessage id="registrations.lifespan" values={{ seconds: registration.access_token_lifespan }} />
+        ),
+    },
+    {
+      id: 'audience',
+      term: <CoreMessage id="registration.field.audience" />,
+      value: <List values={registration.audience} />,
+    },
+    {
+      id: 'redirects',
+      term: <CoreMessage id="registration.field.redirects" />,
+      value: <List values={registration.redirect_uris} />,
+      wide: true,
+    },
+    ...(registration.profile === 'confidential'
+      ? [
+          {
+            id: 'backChannelLogout',
+            term: <CoreMessage id="registration.field.backChannelLogout" />,
+            value: registration.backchannel_logout_uri ?? (
               <span className={styles['quiet']}>
                 <CoreMessage id="registration.backChannelLogout.none" />
               </span>
-            ) : (
-              <code>{registration.backchannel_logout_uri}</code>
-            )}
-          </Field>
-        ) : null}
-        <Field label="registration.field.registeredBy">
-          <code>{registration.registered_by}</code>
-        </Field>
-        <Field label="registration.field.created">
-          <FormattedDate value={registration.created_at} dateStyle="medium" timeStyle="short" />
-        </Field>
-        <Field label="registration.field.version">
-          <code>{registration.version}</code>
-        </Field>
-      </dl>
-    </Panel.Root>
+            ),
+            mono: registration.backchannel_logout_uri !== undefined,
+            wide: true,
+          },
+        ]
+      : []),
+    {
+      id: 'registeredBy',
+      term: <CoreMessage id="registration.field.registeredBy" />,
+      value: registration.registered_by,
+      mono: true,
+    },
+    {
+      id: 'created',
+      term: <CoreMessage id="registration.field.created" />,
+      value: <FormattedDate value={registration.created_at} dateStyle="medium" timeStyle="short" />,
+    },
+  ];
+  return (
+    <Sheet
+      id="registration-record"
+      title={<CoreMessage id="registration.details" />}
+      facts={[
+        { id: 'version', term: <CoreMessage id="registration.field.version" />, value: registration.version },
+      ]}
+      flush
+    >
+      <Facts items={facts} />
+    </Sheet>
   );
 }

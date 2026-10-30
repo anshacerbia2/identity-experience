@@ -8,7 +8,8 @@ import {
   type ExpiringKey,
   type KeyExpirySeverity,
 } from '@identity-experience/app-core/domain/registration';
-import { Panel, StatusPill, Table } from '@identity-experience/ui';
+import { Sheet } from '@identity-experience/app-core/shell';
+import { StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
 import type { MessageKey } from '@/core/i18n/messages';
@@ -54,68 +55,64 @@ export function ExpiringKeys(): ReactElement | null {
     return null;
   }
   return (
-    <Panel.Root aria-labelledby="expiring-title">
-      <Panel.Header>
-        <Panel.Title id="expiring-title">
-          <Message id="expiring.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message
-            id="expiring.description"
-            values={{
-              warning: expiring.data?.warning_days ?? 14,
-              critical: expiring.data?.critical_days ?? 3,
-            }}
-          />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body className={styles['section']}>
-        <Table.Root caption={<Message id="expiring.caption" />} captionHidden>
-          <Table.Head>
-            <Table.Row>
-              <Table.HeaderCell>
-                <Message id="registrations.column.client" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="expiring.column.severity" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="expiring.column.kid" />
-              </Table.HeaderCell>
-              <Table.HeaderCell>
-                <Message id="expiring.column.ends" />
-              </Table.HeaderCell>
+    <Sheet
+      id="expiring"
+      title={<Message id="expiring.title" />}
+      description={
+        <Message
+          id="expiring.description"
+          values={{
+            warning: expiring.data?.warning_days ?? 14,
+            critical: expiring.data?.critical_days ?? 3,
+          }}
+        />
+      }
+    >
+      <Table.Root caption={<Message id="expiring.caption" />} captionHidden>
+        <Table.Head>
+          <Table.Row>
+            <Table.HeaderCell>
+              <Message id="registrations.column.client" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="expiring.column.severity" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="expiring.column.kid" />
+            </Table.HeaderCell>
+            <Table.HeaderCell>
+              <Message id="expiring.column.ends" />
+            </Table.HeaderCell>
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          {entries.map((entry) => (
+            <Table.Row key={entry.registration_id}>
+              <Table.Cell mono>
+                <Link
+                  to="/registrations/$registrationId"
+                  params={{ registrationId: entry.registration_id }}
+                  className={styles['clientLink']}
+                >
+                  {entry.client_key}
+                </Link>
+              </Table.Cell>
+              <Table.Cell>
+                <StatusPill tone={attentionTone[keyExpiryAttention[entry.severity]]}>
+                  <Message id={severityLabel[entry.severity]} />
+                </StatusPill>
+              </Table.Cell>
+              <Table.Cell mono>{entry.kid ?? '—'}</Table.Cell>
+              <Table.Cell>
+                <Ends entry={entry} readAt={expiring.dataUpdatedAt} />
+              </Table.Cell>
             </Table.Row>
-          </Table.Head>
-          <Table.Body>
-            {entries.map((entry) => (
-              <Table.Row key={entry.registration_id}>
-                <Table.Cell mono>
-                  <Link
-                    to="/registrations/$registrationId"
-                    params={{ registrationId: entry.registration_id }}
-                    className={styles['clientLink']}
-                  >
-                    {entry.client_key}
-                  </Link>
-                </Table.Cell>
-                <Table.Cell>
-                  <StatusPill tone={attentionTone[keyExpiryAttention[entry.severity]]}>
-                    <Message id={severityLabel[entry.severity]} />
-                  </StatusPill>
-                </Table.Cell>
-                <Table.Cell mono>{entry.kid ?? '—'}</Table.Cell>
-                <Table.Cell>
-                  <Ends entry={entry} readAt={expiring.dataUpdatedAt} />
-                </Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
-        <p className={styles['quiet']}>
-          <Message id="expiring.remedy" />
-        </p>
-      </Panel.Body>
-    </Panel.Root>
+          ))}
+        </Table.Body>
+      </Table.Root>
+      <p className={styles['quiet']}>
+        <Message id="expiring.remedy" />
+      </p>
+    </Sheet>
   );
 }

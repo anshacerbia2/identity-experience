@@ -3,6 +3,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiError, ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { SignInRequired, useSession, useSignOut } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -214,23 +215,19 @@ function Sessions(): ReactElement {
       </Table.Root>
     );
   }
+  // The table is captioned with the sheet's title and names the region itself.
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="security.sessions.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="security.sessions.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {body}
-        {mutation.isError ? <MutationError error={mutation.error} /> : null}
-        {outcome === null ? null : <Outcome done="terminate" operation={outcome} />}
-        <EndEverywhere />
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="sessions"
+      title={<Message id="security.sessions.title" />}
+      description={<Message id="security.sessions.description" />}
+      named={false}
+    >
+      {body}
+      {mutation.isError ? <MutationError error={mutation.error} /> : null}
+      {outcome === null ? null : <Outcome done="terminate" operation={outcome} />}
+      <EndEverywhere />
+    </Sheet>
   );
 }
 
@@ -406,39 +403,35 @@ function Authenticators(): ReactElement {
       </Table.Root>
     );
   }
+  // The table is captioned with the sheet's title and names the region itself.
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="security.authenticators.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="security.authenticators.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {authenticators.data?.some(usedRecoveryCodes) === true ? (
-          <p className={styles['quiet']} role="status">
-            <Message id="security.authenticators.codesUsed" />
-          </p>
-        ) : null}
-        {body}
-        {removing === null ? null : (
-          <RemoveForm
-            authenticator={removing}
-            onDone={(operation) => {
-              setRemoving(null);
-              setOutcome(operation);
-            }}
-            onCancel={() => {
-              setRemoving(null);
-            }}
-          />
-        )}
-        {outcome === null ? null : <Outcome done="remove" operation={outcome} />}
-        <AddAuthenticator />
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="authenticators"
+      title={<Message id="security.authenticators.title" />}
+      description={<Message id="security.authenticators.description" />}
+      named={false}
+    >
+      {authenticators.data?.some(usedRecoveryCodes) === true ? (
+        <p className={styles['quiet']} role="status">
+          <Message id="security.authenticators.codesUsed" />
+        </p>
+      ) : null}
+      {body}
+      {removing === null ? null : (
+        <RemoveForm
+          authenticator={removing}
+          onDone={(operation) => {
+            setRemoving(null);
+            setOutcome(operation);
+          }}
+          onCancel={() => {
+            setRemoving(null);
+          }}
+        />
+      )}
+      {outcome === null ? null : <Outcome done="remove" operation={outcome} />}
+      <AddAuthenticator />
+    </Sheet>
   );
 }
 
@@ -586,67 +579,62 @@ function NotificationAddresses(): ReactElement {
       </Table.Root>
     );
   }
+  // The table is captioned with the sheet's title and names the region itself.
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="security.addresses.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="security.addresses.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {body}
-        {addresses.data?.some(unproven) === true ? (
-          <p className={styles['quiet']}>
-            <Message id="security.addresses.unprovenNote" />
-          </p>
-        ) : null}
-        {addresses.data !== undefined &&
-        addresses.data.filter((held) => held.state === 'active').length < 2 ? (
-          <p className={styles['quiet']} role="status">
-            <Message id="security.addresses.addSecond" />
-          </p>
-        ) : null}
-        <form
-          className={styles['inline']}
-          onSubmit={(event) => {
-            event.preventDefault();
-            const request = { action: 'add' as const, address: address.trim() };
-            run({ ...request, idempotencyKey: idempotencyKey(request) }, 'security.addresses.sent', () => {
-              setAddress('');
-            });
+    <Sheet
+      id="addresses"
+      title={<Message id="security.addresses.title" />}
+      description={<Message id="security.addresses.description" />}
+      named={false}
+    >
+      {body}
+      {addresses.data?.some(unproven) === true ? (
+        <p className={styles['quiet']}>
+          <Message id="security.addresses.unprovenNote" />
+        </p>
+      ) : null}
+      {addresses.data !== undefined && addresses.data.filter((held) => held.state === 'active').length < 2 ? (
+        <p className={styles['quiet']} role="status">
+          <Message id="security.addresses.addSecond" />
+        </p>
+      ) : null}
+      <form
+        className={styles['inline']}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const request = { action: 'add' as const, address: address.trim() };
+          run({ ...request, idempotencyKey: idempotencyKey(request) }, 'security.addresses.sent', () => {
+            setAddress('');
+          });
+        }}
+      >
+        <TextField
+          label={<Message id="security.addresses.new" />}
+          type="email"
+          autoComplete="email"
+          value={address}
+          onChange={(event) => {
+            setAddress(event.target.value);
           }}
-        >
-          <TextField
-            label={<Message id="security.addresses.new" />}
-            type="email"
-            autoComplete="email"
-            value={address}
-            onChange={(event) => {
-              setAddress(event.target.value);
-            }}
-          />
-          <Button type="submit" disabled={command.isPending || address.trim() === ''}>
-            <Message id="security.addresses.add" />
-          </Button>
-        </form>
-        {stillValid ? (
-          <p className={styles['quiet']} role="alert">
-            <Message id="security.addresses.stillValid" />
-          </p>
-        ) : command.isError ? (
-          <MutationError error={command.error} />
-        ) : null}
-        {done === null ? null : (
-          <p className={styles['success']} role="status">
-            <Icon name="check" />
-            <Message id={done} />
-          </p>
-        )}
-      </Panel.Body>
-    </Panel.Root>
+        />
+        <Button type="submit" disabled={command.isPending || address.trim() === ''}>
+          <Message id="security.addresses.add" />
+        </Button>
+      </form>
+      {stillValid ? (
+        <p className={styles['quiet']} role="alert">
+          <Message id="security.addresses.stillValid" />
+        </p>
+      ) : command.isError ? (
+        <MutationError error={command.error} />
+      ) : null}
+      {done === null ? null : (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id={done} />
+        </p>
+      )}
+    </Sheet>
   );
 }
 
@@ -658,17 +646,11 @@ export function SecurityPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="security.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="security.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="security.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="security.eyebrow" />}
+        title={<Message id="security.title" />}
+        lead={<Message id="security.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <Sessions />
@@ -676,7 +658,9 @@ export function SecurityPage(): ReactElement {
           <NotificationAddresses />
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

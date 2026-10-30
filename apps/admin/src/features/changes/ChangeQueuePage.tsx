@@ -5,6 +5,7 @@ import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import type { ChangeDecision, RegistrationChange } from '@identity-experience/app-core/domain/registration';
 import { ChangeActions, ChangeCard, useChangeQueue } from '@identity-experience/app-core/registrations';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Icon, Panel } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -115,29 +116,22 @@ export function ChangeQueuePage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="changeQueue.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="changeQueue.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="changeQueue.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="changeQueue.eyebrow" />}
+        title={<Message id="changeQueue.title" />}
+        lead={<Message id="changeQueue.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <RequestQueue />
-          <section className={styles['list']} aria-labelledby="change-queue-title">
-            <h2 id="change-queue-title" className={styles['sectionTitle']}>
-              <Message id="changeQueue.changes.title" />
-            </h2>
+          <Sheet id="change-queue" title={<Message id="changeQueue.changes.title" />}>
             <Queue />
-          </section>
+          </Sheet>
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

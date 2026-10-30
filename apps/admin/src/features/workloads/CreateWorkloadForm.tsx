@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, SelectField, TextAreaField, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -71,11 +72,7 @@ function Created({ created, onAnother }: { readonly created: Workload; readonly 
   );
 }
 
-// CreateWorkloadForm creates a workload. identity-control issues the principal_id, creates the
-// workload's client holding the public key pasted here, and writes the workload's identity on the
-// client's service-account user (TDD-identity-control-004). The workload's team generated the key
-// pair and keeps the private key: a private key pasted here is refused before anything is sent.
-export function CreateWorkloadForm(): ReactElement {
+function CreateWorkload(): ReactElement {
   const t = useMessage();
   const [open, setOpen] = useState(false);
   const create = useCreateWorkload();
@@ -126,9 +123,6 @@ export function CreateWorkloadForm(): ReactElement {
         <Panel.Title>
           <Message id="workloads.create.title" />
         </Panel.Title>
-        <Panel.Description>
-          <Message id="workloads.create.body" />
-        </Panel.Description>
       </Panel.Header>
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
         <div className={styles['formRow']}>
@@ -236,5 +230,21 @@ export function CreateWorkloadForm(): ReactElement {
         </div>
       </form>
     </Panel.Root>
+  );
+}
+
+// CreateWorkloadForm creates a workload. identity-control issues the principal_id, creates the
+// workload's client holding the public key pasted here, and writes the workload's identity on the
+// client's service-account user (TDD-identity-control-004). The workload's team generated the key
+// pair and keeps the private key: a private key pasted here is refused before anything is sent.
+export function CreateWorkloadForm(): ReactElement {
+  return (
+    <Sheet
+      id="create-workload"
+      title={<Message id="workloads.create.open" />}
+      description={<Message id="workloads.create.body" />}
+    >
+      <CreateWorkload />
+    </Sheet>
   );
 }

@@ -4,31 +4,19 @@
   .root {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-dimension-spacing-page);
   }
 
-  .hero {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ds-dimension-spacing-control-default);
-    max-inline-size: 48rem;
-    padding-block: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-compact);
-  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-dimension-spacing-stack-default);
+    font-size: var(--ds-typography-body-small-font-size);
+    color: var(--ds-color-neutral-text-subtle-default);
 
-  // The page's head, in the brand book's voices: the group in the HUD, the heading, the lede.
-  .eyebrow {
-    color: $muted;
-
-    @include hud;
-  }
-
-  .title {
-    @include page-title;
-  }
-
-  .lead {
-    @include lede;
+    // The arrow points back: the shared glyph points forward.
+    & > svg {
+      transform: scaleX(-1);
+    }
   }
 
   .section {
@@ -90,13 +78,6 @@
     align-items: flex-end;
     gap: var(--ds-dimension-spacing-control-default);
     max-inline-size: 40rem;
-  }
-
-  .details {
-    display: grid;
-    grid-template-columns: minmax(8rem, max-content) 1fr;
-    gap: var(--ds-dimension-spacing-stack-compact) var(--ds-dimension-spacing-stack-comfortable);
-    margin: 0;
   }
 
   .subject {

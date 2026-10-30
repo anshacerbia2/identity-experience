@@ -7,12 +7,31 @@ import { renderWithIntl } from '@/test/render';
 import { OverviewPage } from './OverviewPage';
 
 describe('OverviewPage', () => {
-  it('has one level-one heading and a card per surface', () => {
+  it('has one level-one heading, a sheet for the path and the surfaces, and a cell per surface', () => {
     renderWithIntl(<OverviewPage />);
     expect(
       screen.getByRole('heading', { level: 1, name: 'Every identity, accounted for.' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(3);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)).toEqual([
+      'How a request travels',
+      'What this console holds',
+    ]);
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3);
+  });
+
+  it('names the four hops in the order a request takes them', () => {
+    renderWithIntl(<OverviewPage />);
+    expect(
+      screen
+        .getAllByRole('listitem')
+        .slice(0, 4)
+        .map((hop) => hop.textContent),
+    ).toEqual([
+      'BrowserAn opaque session cookieCookie',
+      'Experience BFFEvery token, on the serverAccess token',
+      'Identity Control APIEvery decision, reauthorizedAdmin API',
+      'KeycloakCredentials and sessions',
+    ]);
   });
 
   it('shows no figure it did not measure', () => {
