@@ -74,9 +74,23 @@ From the server's operator: the client, registered or adopted with this laptop's
 
 2. **On the server, the operator registers the client, or adopts it.** Which one depends on whether the
    client exists in the kernel:
-   - **It does not exist (a new server).** Register it through identity-control, with a provider-scope
-     token (identity-control's `scripts/dev-token.ps1`), an `Idempotency-Key` and an ASCII
-     `X-Administrative-Reason`:
+   - **It does not exist (a new server).** Register it through identity-control with
+     `scripts/dev-register-bff.ps1`, run on the server from this repository's checkout, with the same
+     secrets identity-control's `dev-smoke.ps1` reads (`IDENTITY_CALLER_KEY_FILE`,
+     `IDENTITY_CALLER_PASSWORD`, and `IDENTITY_OPERATOR_TOTP_FILE` where the operator has one):
+
+     ```powershell
+     pwsh ./scripts/dev-register-bff.ps1 -IdentityRepo /srv/identity-control -Device <device> `
+         -JwkFile ./identity-experience-bff.jwk.json
+     ```
+
+     It signs in as the bootstrap operator at `aal2` (identity-control's `scripts/dev-token.ps1`). On a
+     server built from zero that needs the server's own TOTP, which identity-control's first
+     `dev-adopt-caller.ps1` run binds (its `deploy/dev/README.md` §First start, step 8). It sends the
+     public JWK's `kty`, `n` and `e` only, and refuses a file holding a private member before anything
+     leaves. It prints the client to set as `IDENTITY_EXPERIENCE_CLIENT_ID` in that laptop's `.env`. A
+     client registered before is refused by identity-control, and the script stops there. It sends, with
+     a provider-scope token, an `Idempotency-Key` and an ASCII `X-Administrative-Reason`:
 
      ```text
      POST /v1/registrations
@@ -90,8 +104,8 @@ From the server's operator: the client, registered or adopted with this laptop's
      The fields are those identity-control's `POST /v1/registrations` reads
      (`internal/httpapi/registrations.go`, `TDD-identity-control-003`). The body names no
      `backchannel_logout_uri`, because the kernel cannot reach the laptop. A BFF deployed where the
-     kernel reaches it adds `"backchannel_logout_uri":"https://<its host>/auth/back-channel-logout"`,
-     and identity-control writes it on the client with front-channel logout off
+     kernel reaches it adds `"backchannel_logout_uri":"https://<its host>/auth/back-channel-logout"`
+     (the script's `-BackChannelLogoutUri`), and identity-control writes it on the client with front-channel logout off
      (`TDD-identity-control-003` 1.37.0); identity-control's `deploy-dev` proves that path from zero.
 
    - **It exists, made by `create-bff-client.sh`.** Adopt it with identity-control's
