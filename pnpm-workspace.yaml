@@ -3,3 +3,8 @@ packages:
   - apps/*
   - packages/*
   - e2e
+
+# TanStack Router 1.170.40 resolves seroval 1.6.7, which GHSA-97r2-qh9m-474h, GHSA-wp97-x4hv-qvhp
+# and GHSA-7rv5-mrxv-xcr9 (high) fix in 1.6.8. Remove this once the router's own lock moves past it.
+overrides:
+  'seroval@<1.6.8': 1.6.8
