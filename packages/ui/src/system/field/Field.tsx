@@ -2,58 +2,62 @@ import { useId, type ComponentPropsWithRef, type ReactElement, type ReactNode } 
 
 import styles from './Field.module.scss';
 
-// Form fields: a label bound to its control, an optional hint, and an error that is announced and
-// tied to the control (aria-describedby, aria-invalid), so a screen reader hears why a value was
-// refused where it is typed (STD-GLB-FE-009). The platform publishes no form components yet; these
-// are local.
+// Form fields the platform does not publish yet: a select and a multi-line field. They take the
+// platform TextField's props and structure (`@scnx/core-ui/components/text-field-base`): a label bound
+// to the control, then an optional description, the control, and an optional error, tied to the
+// control by aria-describedby and aria-invalid, so a screen reader hears why a value was refused where
+// it is typed (STD-GLB-FE-009). Their stylesheet draws them as the platform draws its text field, from
+// the same tokens. They are local until the platform ships them (README.md, "Local").
 
 interface FieldChrome {
   readonly label: ReactNode;
-  readonly hint?: ReactNode;
+  readonly description?: ReactNode;
   readonly error?: ReactNode;
 }
 
 const join = (...names: readonly (string | undefined)[]): string => names.filter(Boolean).join(' ');
 
-function useFieldIds(error: ReactNode, hint: ReactNode) {
+function useFieldIds(error: ReactNode, description: ReactNode) {
   const id = useId();
-  const hintId = hint === undefined ? undefined : `${id}-hint`;
+  const descriptionId = description === undefined || description === null ? undefined : `${id}-description`;
   const errorId = error === undefined || error === null || error === false ? undefined : `${id}-error`;
   return {
     id,
-    hintId,
+    descriptionId,
     errorId,
-    describedBy: [hintId, errorId].filter(Boolean).join(' ') || undefined,
+    describedBy: [descriptionId, errorId].filter(Boolean).join(' ') || undefined,
   };
 }
 
 function Chrome({
   id,
   label,
-  hint,
-  hintId,
+  description,
+  descriptionId,
   error,
   errorId,
+  className,
   children,
 }: FieldChrome & {
   readonly id: string;
-  readonly hintId: string | undefined;
+  readonly descriptionId: string | undefined;
   readonly errorId: string | undefined;
+  readonly className: string | undefined;
   readonly children: ReactNode;
 }): ReactElement {
   return (
-    <div className={styles['field']} data-invalid={errorId === undefined ? undefined : true}>
+    <div className={join(styles['field'], className)} data-invalid={errorId === undefined ? undefined : ''}>
       <label className={styles['label']} htmlFor={id}>
         {label}
       </label>
-      {children}
-      {hintId === undefined ? null : (
-        <p id={hintId} className={styles['hint']}>
-          {hint}
+      {descriptionId === undefined ? null : (
+        <p id={descriptionId} className={styles['description']}>
+          {description}
         </p>
       )}
+      {children}
       {errorId === undefined ? null : (
-        <p id={errorId} className={styles['error']} role="alert">
+        <p id={errorId} className={styles['error']}>
           {error}
         </p>
       )}
@@ -61,41 +65,20 @@ function Chrome({
   );
 }
 
-export function TextField({
-  label,
-  hint,
-  error,
-  className,
-  ...rest
-}: FieldChrome & ComponentPropsWithRef<'input'>): ReactElement {
-  const ids = useFieldIds(error, hint);
-  return (
-    <Chrome {...ids} label={label} hint={hint} error={error}>
-      <input
-        {...rest}
-        id={ids.id}
-        className={join(styles['control'], className)}
-        aria-describedby={ids.describedBy}
-        aria-invalid={ids.errorId === undefined ? undefined : true}
-      />
-    </Chrome>
-  );
-}
-
 export function TextAreaField({
   label,
-  hint,
+  description,
   error,
   className,
   ...rest
 }: FieldChrome & ComponentPropsWithRef<'textarea'>): ReactElement {
-  const ids = useFieldIds(error, hint);
+  const ids = useFieldIds(error, description);
   return (
-    <Chrome {...ids} label={label} hint={hint} error={error}>
+    <Chrome {...ids} label={label} description={description} error={error} className={className}>
       <textarea
         {...rest}
         id={ids.id}
-        className={join(styles['control'], styles['area'], className)}
+        className={join(styles['control'], styles['area'])}
         aria-describedby={ids.describedBy}
         aria-invalid={ids.errorId === undefined ? undefined : true}
       />
@@ -110,20 +93,20 @@ export interface SelectOption {
 
 export function SelectField({
   label,
-  hint,
+  description,
   error,
   options,
   className,
   ...rest
 }: FieldChrome &
   ComponentPropsWithRef<'select'> & { readonly options: readonly SelectOption[] }): ReactElement {
-  const ids = useFieldIds(error, hint);
+  const ids = useFieldIds(error, description);
   return (
-    <Chrome {...ids} label={label} hint={hint} error={error}>
+    <Chrome {...ids} label={label} description={description} error={error} className={className}>
       <select
         {...rest}
         id={ids.id}
-        className={join(styles['control'], styles['select'], className)}
+        className={join(styles['control'], styles['select'])}
         aria-describedby={ids.describedBy}
         aria-invalid={ids.errorId === undefined ? undefined : true}
       >

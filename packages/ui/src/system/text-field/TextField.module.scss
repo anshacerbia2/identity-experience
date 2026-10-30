@@ -1,0 +1,18 @@
+// In `overrides` (STD-GLB-FE-005 §3.4). The input is the part the platform names `input` in its
+// specification (@scnx/system/specs/text-field.json), not a class of the platform's.
+@layer overrides {
+  .root {
+    min-inline-size: 0;
+
+    // The invalid input's edge, through the platform's own hook. Its default,
+    // danger.border.strong.default, is 2.38:1 against the field in light: an invalid field would lose
+    // the boundary that identifies it (WCAG 2.2 SC 1.4.11; src/styles/contrast.test.ts). The danger
+    // edge in its selected state is 4.55:1 in light and 3.85:1 in dark. Reported to ui-platform
+    // (packages/ui/README.md, "Findings for ui-platform").
+    --scnx-text-field-input-border-color-invalid: var(--ds-color-danger-border-strong-selected);
+  }
+
+  .root > [data-part='input']:focus-visible {
+    outline-offset: var(--ds-dimension-border-width-strong);
+  }
+}

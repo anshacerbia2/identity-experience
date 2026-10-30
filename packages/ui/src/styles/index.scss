@@ -1,7 +1,8 @@
-// Global foundations. Component styles are CSS Modules beside their components and declare
-// themselves in the `components` layer; nothing here styles a component.
+// Global foundations. The platform's stylesheets (styles.ts) carry its tokens, its scoped reset and
+// base, and every component's rules; component compositions are CSS Modules beside their components.
+// Nothing here styles a component.
 @use 'layers';
+@use 'foundations/fonts';
 @use 'foundations/reset';
-@use 'tokens/ds-temporary';
 @use 'foundations/base';
 @use 'foundations/utilities';

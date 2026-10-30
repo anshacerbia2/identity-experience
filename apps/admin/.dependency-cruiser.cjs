@@ -10,9 +10,10 @@
 // domain the applications share come from @identity-experience/app-core. Its domain modules are
 // domain here too.
 //
-// Components come from @identity-experience/ui and nowhere else. That package is the stand-in for
-// @scnx/system, and its exports field exposes only its entry point, so no file here can reach
-// into its internals; replacing it is changing the package, not these files.
+// Components come from @identity-experience/ui and nowhere else. That package re-exports the UI
+// Platform's @scnx/system and @scnx/core-ui, and its exports field exposes only its entry point, so no
+// file here imports the platform directly or reaches into the package's internals; an upgrade of the
+// platform changes that package, not these files.
 /** @type {import('dependency-cruiser').IConfiguration} */
 module.exports = {
   forbidden: [
@@ -36,6 +37,14 @@ module.exports = {
       severity: 'error',
       from: { path: '^src/core/' },
       to: { path: '^src/(features|routes|app)/' },
+    },
+    {
+      name: 'platform-through-ui-only',
+      comment:
+        'The UI Platform (@scnx/system, @scnx/core-ui) is reached only through @identity-experience/ui, which re-exports it (packages/ui/README.md).',
+      severity: 'error',
+      from: { path: '^src/' },
+      to: { path: '(^|/)@scnx/' },
     },
     {
       name: 'no-circular',

@@ -87,8 +87,8 @@ function DecideForm({
             type="submit"
             variant={decision === 'approve' ? 'primary' : 'danger'}
             disabled={decide.isPending}
-            icon={<Icon name={decision === 'approve' ? 'check' : 'shield'} />}
           >
+            <Icon name={decision === 'approve' ? 'check' : 'shield'} />
             <Message id={`requestQueue.${decision}`} />
           </Button>
           <Button variant="ghost" disabled={decide.isPending} onClick={onCancel}>
@@ -167,7 +167,7 @@ function RequestCard({
                 <Button
                   key={decision}
                   variant={decision === 'approve' ? 'primary' : 'secondary'}
-                  size="sm"
+                  size="small"
                   aria-expanded={open === decision}
                   onClick={() => {
                     setOpen(decision);

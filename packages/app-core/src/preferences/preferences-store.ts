@@ -68,15 +68,11 @@ export const usePreferences = create<PreferencesState>()(
 export const selectTheme = (state: PreferencesState): Theme => state.theme;
 export const selectLocale = (state: PreferencesState): Locale => state.locale;
 
-// The document follows the preferences: the theme is an attribute on <html>, which is where the
-// token layer scopes its themes (STD-GLB-FE-005 §3.5), and lang follows the locale so assistive
-// technology pronounces the page in the language it is written in.
+// The document follows the language preference: lang follows the locale so assistive technology
+// pronounces the page in the language it is written in. The theme is ThemeRoot's: the platform's
+// ThemeProvider writes it on <html>, where the theme stylesheet selects it.
 export function useDocumentPreferences(): void {
-  const theme = usePreferences(selectTheme);
   const locale = usePreferences(selectLocale);
-  useEffect(() => {
-    document.documentElement.dataset['theme'] = theme;
-  }, [theme]);
   useEffect(() => {
     document.documentElement.lang = locale;
   }, [locale]);

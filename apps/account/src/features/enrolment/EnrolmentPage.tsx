@@ -90,7 +90,6 @@ function Start({
         )}
         <div className={styles['actions']}>
           <Button
-            icon={<Icon name="arrow" />}
             disabled={pending}
             onClick={() => {
               setPending(true);
@@ -104,6 +103,7 @@ function Start({
               });
             }}
           >
+            <Icon name="arrow" />
             <Message id="enrolment.start.send" />
           </Button>
         </div>
@@ -156,7 +156,7 @@ function Code({
               validate: (value) => isCode(value) || t('enrolment.code.invalid', { length: codeLength }),
             })}
             label={<Message id="enrolment.code.label" />}
-            hint={<Message id="enrolment.code.hint" values={{ length: codeLength }} />}
+            description={<Message id="enrolment.code.hint" values={{ length: codeLength }} />}
             error={form.formState.errors.code?.message}
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -170,7 +170,8 @@ function Code({
             />
           )}
           <div className={styles['actions']}>
-            <Button type="submit" disabled={pending} icon={<Icon name="key" />}>
+            <Button type="submit" disabled={pending}>
+              <Icon name="key" />
               <Message id="enrolment.code.submit" />
             </Button>
             {notice?.kind === 'wrong' ? (
@@ -227,8 +228,7 @@ function Created({ account }: { readonly account: EnrolledAccount }): ReactEleme
         <div className={styles['actions']}>
           <Button
             variant="secondary"
-            size="sm"
-            icon={<Icon name="key" />}
+            size="small"
             onClick={() => {
               setCopy('none');
               navigator.clipboard.writeText(account.temporaryPassword).then(
@@ -241,6 +241,7 @@ function Created({ account }: { readonly account: EnrolledAccount }): ReactEleme
               );
             }}
           >
+            <Icon name="key" />
             <Message id="enrolment.created.copy" />
           </Button>
           {copy === 'none' ? null : (
@@ -254,7 +255,8 @@ function Created({ account }: { readonly account: EnrolledAccount }): ReactEleme
         </p>
         <div className={styles['actions']}>
           {/* The hosted login: the kernel asks for the temporary password, then for the person's own. */}
-          <Button href={signInHref('/account/')} icon={<Icon name="arrow" />}>
+          <Button href={signInHref('/account/')}>
+            <Icon name="arrow" />
             <Message id="enrolment.created.continue" />
           </Button>
         </div>

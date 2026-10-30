@@ -63,7 +63,8 @@ export function ApiErrorPanel({
           </p>
         ) : null}
         {onRetry === undefined ? null : (
-          <Button variant="secondary" size="sm" icon={<Icon name="pulse" />} onClick={onRetry}>
+          <Button variant="secondary" size="small" onClick={onRetry}>
+            <Icon name="pulse" />
             <CoreMessage id="api.retry" />
           </Button>
         )}

@@ -82,7 +82,7 @@ export function ReleaseQuarantine({
             validate: (value) => value.trim() !== '' || t('principals.release.username.required'),
           })}
           label={<Message id="principals.release.username" />}
-          hint={<Message id="principals.release.username.hint" />}
+          description={<Message id="principals.release.username.hint" />}
           error={form.formState.errors.username?.message}
           autoComplete="off"
           spellCheck={false}
@@ -94,7 +94,8 @@ export function ReleaseQuarantine({
         />
         {release.isError ? <MutationError error={release.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={release.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" disabled={release.isPending}>
+            <Icon name="shield" />
             <Message id="principals.release" />
           </Button>
           <Button

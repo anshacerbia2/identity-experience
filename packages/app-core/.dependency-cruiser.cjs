@@ -25,6 +25,14 @@ module.exports = {
       to: { path: 'apps/' },
     },
     {
+      name: 'platform-through-ui-only',
+      comment:
+        'The UI Platform (@scnx/system, @scnx/core-ui) is reached only through @identity-experience/ui, which re-exports it (packages/ui/README.md).',
+      severity: 'error',
+      from: { path: '^src/' },
+      to: { path: '(^|/)@scnx/' },
+    },
+    {
       name: 'no-circular',
       severity: 'error',
       from: {},

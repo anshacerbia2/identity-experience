@@ -32,7 +32,8 @@ export function SessionControl(): ReactElement {
   }
   if (!session.data.authenticated) {
     return (
-      <Button href={signInHref(here)} size="sm" icon={<Icon name="key" />}>
+      <Button href={signInHref(here)} size="small">
+        <Icon name="key" />
         <CoreMessage id="shell.session.signIn" />
       </Button>
     );
@@ -47,13 +48,14 @@ export function SessionControl(): ReactElement {
       {/* Every person's own account security, a separate application (TDD-identity-experience-002
           §Delivery). Not offered from inside it. */}
       {here.startsWith(accountRoot) ? null : (
-        <Button variant="ghost" size="sm" href={accountRoot} icon={<Icon name="shield" />}>
+        <Button variant="ghost" size="small" href={accountRoot}>
+          <Icon name="shield" />
           <CoreMessage id="shell.session.account" />
         </Button>
       )}
       <Button
         variant="ghost"
-        size="sm"
+        size="small"
         disabled={signOut.isPending}
         onClick={() => {
           signOut.mutate(csrfToken);

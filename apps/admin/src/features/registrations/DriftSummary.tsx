@@ -107,13 +107,13 @@ export function DriftSummary(): ReactElement {
       <div className={styles['formActions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="pulse" />}
+          size="small"
           disabled={sweep.isPending}
           onClick={() => {
             sweep.mutate();
           }}
         >
+          <Icon name="pulse" />
           <Message id="drift.runNow" />
         </Button>
         {sweep.data?.deferred === true ? (

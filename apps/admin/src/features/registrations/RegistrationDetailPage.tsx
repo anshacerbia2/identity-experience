@@ -149,7 +149,7 @@ function Findings({
                       {applicable(finding) ? (
                         <Button
                           variant="secondary"
-                          size="sm"
+                          size="small"
                           aria-expanded={applying === finding.finding_id}
                           onClick={() => {
                             setApplying(finding.finding_id);

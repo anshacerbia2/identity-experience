@@ -1,24 +1,28 @@
 // @vitest-environment node
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
-import { compile } from 'sass-embedded';
 import { describe, expect, it } from 'vitest';
 
-import { colour, hex, oklch, over, ratio, schemes, type Colour, type Scheme } from '../test/contrast';
+import { PLATFORM_THEME } from '../index';
+import { colour, hex, oklch, over, ratio, schemes, type Scheme } from '../test/contrast';
 
-// Every colour pair the components draw, held to WCAG 2.2 AA in both themes after alpha composition
-// (TDD-identity-experience-003 §Contrast and Focus, STD-GLB-FE-009 §3.3). The tokens are read from
-// the stylesheet the applications import, compiled, so what is measured is what ships.
+// Every colour pair the components and the frame draw, held to WCAG 2.2 AA in both modes after alpha
+// composition (TDD-identity-experience-003 §Contrast and Focus, STD-GLB-FE-009 §3.3). The tokens are
+// read from the platform's theme stylesheet the applications import, as the pinned package ships it,
+// so what is measured is what renders. A pair names the tokens the platform's component binds
+// (@scnx/system/specs/<component>.json) or the tokens this repository's stylesheets read.
 
 // SC 1.4.3 for text at the sizes these components use (none is large-scale), SC 1.4.11 for the edge
 // that identifies a field, a state, and the focus indicator.
 const text = 4.5;
 const ui = 3;
 
-// A surface is the stack of translucent layers between the canvas and the foreground, bottom first.
+// A surface is the stack of layers between the canvas and the foreground, bottom first. In
+// scnx-platform every surface is opaque, and the stack still says what each sits on.
 const panel = ['--ds-color-neutral-surface-raised-default'];
 const rail = ['--ds-color-neutral-surface-sunken-default'];
-const field = [...panel, '--ds-color-neutral-surface-sunken-default'];
+const field = [...panel, '--ds-color-neutral-surface-raised-default'];
 
 interface Pair {
   readonly what: string;
@@ -37,9 +41,15 @@ const pairs: readonly Pair[] = [
   },
   { what: 'body text', foreground: '--ds-color-neutral-text-default-default', surface: panel, minimum: text },
   {
-    what: 'hint, description, column header',
+    what: 'description, caption, muted cell',
     foreground: '--ds-color-neutral-text-subtle-default',
     surface: panel,
+    minimum: text,
+  },
+  {
+    what: 'column header',
+    foreground: '--ds-color-neutral-text-subtle-default',
+    surface: [...panel, '--ds-color-neutral-surface-subtle-default'],
     minimum: text,
   },
   { what: 'link', foreground: '--ds-color-primary-text-default-default', surface: panel, minimum: text },
@@ -64,40 +74,45 @@ const pairs: readonly Pair[] = [
   {
     what: 'table row, hover',
     foreground: '--ds-color-neutral-text-default-default',
-    surface: [...panel, '--ds-color-neutral-surface-default-hover'],
+    surface: [...panel, '--ds-color-neutral-surface-subtle-hover'],
     minimum: text,
   },
   // Fields.
-  { what: 'typed text', foreground: '--ds-color-neutral-text-strong-default', surface: field, minimum: text },
   {
-    what: 'placeholder in a field',
+    what: 'typed text',
+    foreground: '--ds-color-neutral-text-default-default',
+    surface: field,
+    minimum: text,
+  },
+  {
+    what: 'placeholder, description in a field',
     foreground: '--ds-color-neutral-text-subtle-default',
     surface: field,
     minimum: text,
   },
-  // Buttons. The primary solid is opaque; the panel beneath it is stated for completeness.
+  // Buttons. Primary is ink: the neutral solid under its contrast label.
   ...(['default', 'hover', 'pressed'] as const).map((state) => ({
     what: `primary button label, ${state}`,
-    foreground: '--ds-color-primary-text-contrast-default',
-    surface: [...panel, `--ds-color-primary-solid-default-${state}`],
+    foreground: '--ds-color-neutral-text-contrast-default',
+    surface: [...panel, `--ds-color-neutral-surface-solid-${state}`],
     minimum: text,
   })),
   {
     what: 'skip link',
     foreground: '--ds-color-primary-text-contrast-default',
-    surface: ['--ds-color-primary-solid-default-default'],
+    surface: ['--ds-color-primary-surface-solid-default'],
     minimum: text,
   },
   {
     what: 'secondary button label',
-    foreground: '--ds-color-neutral-text-strong-default',
-    surface: [...panel, '--ds-color-neutral-surface-subtle-default'],
+    foreground: '--ds-color-neutral-text-default-default',
+    surface: [...panel, '--ds-color-neutral-surface-raised-default'],
     minimum: text,
   },
   {
     what: 'secondary button label, hover',
-    foreground: '--ds-color-neutral-text-strong-default',
-    surface: [...panel, '--ds-color-neutral-surface-default-hover'],
+    foreground: '--ds-color-neutral-text-default-default',
+    surface: [...panel, '--ds-color-neutral-surface-subtle-hover'],
     minimum: text,
   },
   {
@@ -109,7 +124,7 @@ const pairs: readonly Pair[] = [
   {
     what: 'ghost button label in the bar, hover',
     foreground: '--ds-color-neutral-text-default-default',
-    surface: [...rail, '--ds-color-neutral-surface-default-hover'],
+    surface: [...rail, '--ds-color-neutral-surface-subtle-hover'],
     minimum: text,
   },
   {
@@ -118,35 +133,29 @@ const pairs: readonly Pair[] = [
     surface: [...rail, '--ds-color-neutral-surface-default-selected'],
     minimum: text,
   },
-  {
-    what: 'danger button label',
-    foreground: '--ds-color-danger-text-default-default',
-    surface: [...panel, '--ds-color-danger-surface-default-default'],
+  ...(['default', 'hover', 'pressed'] as const).map((state) => ({
+    what: `danger button label, ${state}`,
+    foreground: '--ds-color-danger-text-contrast-default',
+    surface: [...panel, `--ds-color-danger-surface-solid-${state}`],
     minimum: text,
-  },
-  {
-    what: 'danger button label, hover',
-    foreground: '--ds-color-danger-text-default-default',
-    surface: [...panel, '--ds-color-danger-surface-default-hover'],
+  })),
+  // Status pills (Badge, subtle) and messages (Alert).
+  ...(['neutral', 'info', 'success', 'warning', 'danger'] as const).map((tone) => ({
+    what: `${tone} pill`,
+    foreground: `--ds-color-${tone}-text-subtle-default`,
+    surface: [...panel, `--ds-color-${tone}-surface-default-default`],
     minimum: text,
-  },
-  // Status pills and messages.
-  {
-    what: 'neutral pill',
-    foreground: '--ds-color-neutral-text-default-default',
-    surface: [...panel, '--ds-color-neutral-surface-subtle-default'],
-    minimum: text,
-  },
-  ...(['info', 'success', 'warning', 'danger'] as const).map((tone) => ({
-    what: `${tone} pill and message`,
-    foreground: `--ds-color-${tone}-text-default-default`,
+  })),
+  ...(['neutral', 'info', 'success', 'warning', 'danger'] as const).map((tone) => ({
+    what: `${tone} message`,
+    foreground: `--ds-color-${tone}-text-subtle-default`,
     surface: [...panel, `--ds-color-${tone}-surface-subtle-default`],
     minimum: text,
   })),
   {
     what: 'environment pill in the bar',
-    foreground: '--ds-color-warning-text-default-default',
-    surface: [...rail, '--ds-color-warning-surface-subtle-default'],
+    foreground: '--ds-color-warning-text-subtle-default',
+    surface: [...rail, '--ds-color-warning-surface-default-default'],
     minimum: text,
   },
   {
@@ -161,8 +170,7 @@ const pairs: readonly Pair[] = [
     surface: ['--ds-color-danger-surface-subtle-default'],
     minimum: text,
   },
-  // The scope line, on the opaque canvas colour (TDD-identity-experience-003 1.32.0 §Layout). Measured
-  // over the auroras too, which is no lighter than the line's own background.
+  // The scope line, on the opaque canvas colour (TDD-identity-experience-003 1.32.0 §Layout).
   {
     what: 'scope line',
     foreground: '--ds-color-neutral-text-strong-default',
@@ -209,14 +217,9 @@ const pairs: readonly Pair[] = [
     minimum: ui,
   },
   {
-    what: 'field edge, hover',
-    foreground: '--ds-color-neutral-border-strong-hover',
-    surface: panel,
-    minimum: ui,
-  },
-  {
+    // The platform's own invalid edge, danger.border.strong.default, is 2.38:1 here in light: a finding\n    // reported to ui-platform. TextField's composition draws the selected danger edge instead.
     what: 'invalid field edge',
-    foreground: '--ds-color-danger-solid-default-default',
+    foreground: '--ds-color-danger-border-strong-selected',
     surface: panel,
     minimum: ui,
   },
@@ -228,83 +231,61 @@ const pairs: readonly Pair[] = [
   },
   {
     what: 'focus indicator on a panel',
-    foreground: '--ds-color-neutral-border-default-focus',
+    foreground: '--ds-color-primary-border-default-focus',
     surface: panel,
     minimum: ui,
   },
   {
     what: 'focus indicator on the canvas',
-    foreground: '--ds-color-neutral-border-default-focus',
+    foreground: '--ds-color-primary-border-default-focus',
     surface: [],
     minimum: ui,
   },
   {
     what: 'focus indicator in the rail',
-    foreground: '--ds-color-neutral-border-default-focus',
+    foreground: '--ds-color-primary-border-default-focus',
     surface: rail,
     minimum: ui,
   },
 ];
 
-// The canvas a surface can sit over: the plain canvas, and the canvas under each aurora at full
-// strength, where it differs most from the plain one. The 5%-opaque grid lines are left out.
-const backdrops: readonly { readonly name: string; readonly layers: readonly string[] }[] = [
-  { name: 'canvas', layers: [] },
-  { name: 'canvas under the first aurora', layers: ['--ds-color-neutral-canvas-glow-a'] },
-  {
-    name: 'canvas under both auroras',
-    layers: ['--ds-color-neutral-canvas-glow-a', '--ds-color-neutral-canvas-glow-b'],
-  },
-];
-
-const stylesheet = fileURLToPath(new URL('./index.scss', import.meta.url));
+const stylesheet = createRequire(import.meta.url).resolve('@scnx/system/tokens/css/scnx-platform.css');
 
 interface Measure {
-  readonly worst: number;
+  readonly ratio: number;
   readonly where: string;
 }
 
 function measure(tokens: Scheme, pair: Pair): Measure {
-  let worst = Infinity;
-  let where = '';
-  for (const backdrop of backdrops) {
-    const layered = (base: Colour, layers: readonly string[]): Colour =>
-      layers.reduce((under, layer) => over(colour(tokens, layer), under), base);
-    const canvas = layered(colour(tokens, '--ds-color-neutral-canvas-default'), backdrop.layers);
-    const background = layered(canvas, pair.surface);
-    const foreground = over(colour(tokens, pair.foreground), background);
-    const r = ratio(foreground, background);
-    if (r < worst) {
-      worst = r;
-      where = `${hex(foreground)} on ${hex(background)} over the ${backdrop.name}`;
-    }
-  }
-  return { worst, where };
+  const canvas = colour(tokens, '--ds-color-neutral-surface-canvas-default');
+  const background = pair.surface.reduce((under, layer) => over(colour(tokens, layer), under), canvas);
+  const foreground = over(colour(tokens, pair.foreground), background);
+  return { ratio: ratio(foreground, background), where: `${hex(foreground)} on ${hex(background)}` };
 }
 
 describe('the colour pairs', () => {
-  const { light, dark } = schemes(compile(stylesheet).css);
+  const { light, dark } = schemes(readFileSync(stylesheet, 'utf8'), PLATFORM_THEME);
 
   for (const [name, tokens] of [
     ['light', light],
     ['dark', dark],
   ] as const) {
-    it(`meet WCAG 2.2 AA in the ${name} theme, at their worst over the canvas`, () => {
+    it(`meet WCAG 2.2 AA in the ${name} mode`, () => {
       const report = pairs.map((pair) => ({ pair, ...measure(tokens, pair) }));
-      // The worst case of each pair, printed (vitest --silent=false) as the record TDD-003 quotes.
+      // Each pair's ratio, printed (vitest --silent=false) as the record TDD-003 quotes.
       // eslint-disable-next-line no-console -- the report is the test's output, not a leftover
       console.info(
         report
           .map(
-            ({ pair, worst, where }) =>
-              `${name.padEnd(6)}${pair.what.padEnd(40)}${worst.toFixed(2)}:1 (${where})`,
+            ({ pair, ratio: r, where }) =>
+              `${name.padEnd(6)}${pair.what.padEnd(40)}${r.toFixed(2)}:1 (${where})`,
           )
           .join('\n'),
       );
       const failing = report
-        .filter(({ pair, worst }) => worst < pair.minimum)
+        .filter(({ pair, ratio: r }) => r < pair.minimum)
         .map(
-          ({ pair, worst, where }) => `${pair.what}: ${worst.toFixed(2)}:1 under ${pair.minimum}:1, ${where}`,
+          ({ pair, ratio: r, where }) => `${pair.what}: ${r.toFixed(2)}:1 under ${pair.minimum}:1, ${where}`,
         );
       expect(failing).toEqual([]);
     });
@@ -312,16 +293,25 @@ describe('the colour pairs', () => {
 });
 
 describe('the measurement', () => {
-  it('reads each theme as the cascade resolves it, and nothing inside @media', () => {
-    const { light, dark } = schemes(`
+  it('reads each mode of the one theme, through layers, and nothing inside @media', () => {
+    const { light, dark } = schemes(
+      `
 @layer tokens {
-  :root { --b: var(--a); }
-  :root[data-theme='dark'] { --a: oklch(0.9 0 0); }
-  :root[data-theme='light'] { --a: oklch(0.5 0 0); }
-  @media (prefers-contrast: more) { :root[data-theme='dark'] { --a: oklch(1 0 0); } }
-}`);
-    expect(hex(colour(light, '--b'))).not.toBe(hex(colour(dark, '--b')));
-    expect(hex(colour(dark, '--b'))).not.toBe(hex(oklch(1, 0, 0)));
+  [data-scnx-theme="t"][data-scnx-resolved-mode="dark"] { --b: var(--a); --a: oklch(0.9 0 0); }
+  [data-scnx-theme="t"][data-scnx-resolved-mode="light"] { --b: var(--a); --a: oklch(0.5 0 0); }
+  [data-scnx-theme="other"][data-scnx-resolved-mode="light"] { --a: oklch(0.1 0 0); }
+  @media (prefers-contrast: more) { [data-scnx-theme="t"][data-scnx-resolved-mode="dark"] { --a: oklch(1 0 0); } }
+}`,
+      't',
+    );
+    expect(hex(colour(light, '--b'))).toBe(hex(oklch(0.5, 0, 0)));
+    expect(hex(colour(dark, '--b'))).toBe(hex(oklch(0.9, 0, 0)));
+  });
+
+  it('finds the platform theme in the pinned stylesheet', () => {
+    const { light, dark } = schemes(readFileSync(stylesheet, 'utf8'), PLATFORM_THEME);
+    expect(light.size).toBeGreaterThan(100);
+    expect(dark.size).toBe(light.size);
   });
 
   it("matches WCAG's worked values", () => {

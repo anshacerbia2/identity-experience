@@ -1,24 +1,24 @@
 import type { ReactElement } from 'react';
 
-import { Button, Icon } from '@identity-experience/ui';
+import { Button, Icon, useTheme } from '@identity-experience/ui';
 
-import { selectTheme, usePreferences } from './preferences-store';
 import { useCoreMessage } from '../i18n/CoreMessage';
 
+// Switches the document between the dark and the light mode. The theme root (ThemeRoot) keeps the
+// choice in the preferences store.
 export function ThemeToggle(): ReactElement {
-  const theme = usePreferences(selectTheme);
-  const setTheme = usePreferences((state) => state.setTheme);
+  const theme = useTheme();
   const t = useCoreMessage();
-  const next = theme === 'dark' ? 'light' : 'dark';
+  const next = theme.resolvedMode === 'dark' ? 'light' : 'dark';
   const label = t(next === 'dark' ? 'shell.theme.toDark' : 'shell.theme.toLight');
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="small"
       aria-label={label}
       title={label}
       onClick={() => {
-        setTheme(next);
+        theme.setMode(next);
       }}
     >
       <Icon name={next === 'dark' ? 'moon' : 'sun'} />

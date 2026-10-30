@@ -62,7 +62,8 @@ function GrantForm({
         />
         {grant.isError ? <MutationError error={grant.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={grant.isPending} icon={<Icon name="users" />}>
+          <Button type="submit" disabled={grant.isPending}>
+            <Icon name="users" />
             <Message id="owners.grant" />
           </Button>
           <Button variant="ghost" disabled={grant.isPending} onClick={onCancel}>
@@ -110,7 +111,8 @@ function RevokeForm({
         />
         {revoke.isError ? <MutationError error={revoke.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" variant="danger" disabled={revoke.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" variant="danger" disabled={revoke.isPending}>
+            <Icon name="shield" />
             <Message id="owners.revoke" />
           </Button>
           <Button variant="ghost" disabled={revoke.isPending} onClick={onCancel}>
@@ -201,7 +203,7 @@ export function OwnerManagement({ registration }: { readonly registration: Regis
                     {ownerRevocable(owner, owners.data, environment) ? (
                       <Button
                         variant="secondary"
-                        size="sm"
+                        size="small"
                         aria-expanded={revoking === owner.principal_id}
                         onClick={() => {
                           setRevoking(owner.principal_id);
@@ -244,14 +246,14 @@ export function OwnerManagement({ registration }: { readonly registration: Regis
         <div className={styles['formActions']}>
           <Button
             variant="secondary"
-            size="sm"
-            icon={<Icon name="users" />}
+            size="small"
             onClick={() => {
               setGranting(true);
               setRevoking(null);
               setDone(null);
             }}
           >
+            <Icon name="users" />
             <Message id="owners.grant.open" />
           </Button>
         </div>

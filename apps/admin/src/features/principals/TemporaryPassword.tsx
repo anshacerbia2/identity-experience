@@ -71,8 +71,7 @@ function Shown({
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="key" />}
+          size="small"
           onClick={() => {
             setCopy('none');
             navigator.clipboard.writeText(value).then(
@@ -85,9 +84,11 @@ function Shown({
             );
           }}
         >
+          <Icon name="key" />
           <Message id="principals.password.copy" />
         </Button>
-        <Button variant="primary" size="sm" icon={<Icon name="check" />} onClick={onDone}>
+        <Button variant="primary" size="small" onClick={onDone}>
+          <Icon name="check" />
           <Message id="principals.password.done" />
         </Button>
       </div>
@@ -176,7 +177,8 @@ export function TemporaryPassword({
             </p>
           ) : null}
           <div className={styles['actions']}>
-            <Button variant="secondary" icon={<Icon name="key" />} onClick={open}>
+            <Button variant="secondary" onClick={open}>
+              <Icon name="key" />
               <Message id={phase.kind === 'closed' ? issueLabel : 'principals.password.issueNew'} />
             </Button>
           </div>
@@ -201,7 +203,8 @@ export function TemporaryPassword({
         <MutationError error={error} />
       )}
       <div className={styles['actions']}>
-        <Button type="submit" disabled={pending} icon={<Icon name="key" />}>
+        <Button type="submit" disabled={pending}>
+          <Icon name="key" />
           <Message id="principals.password.submit" />
         </Button>
         <Button

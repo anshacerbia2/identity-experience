@@ -1,9 +1,7 @@
 // First, before the router reads the location: the enrolment page's invitation token leaves the
 // address bar (core/invitation-fragment.ts, TDD-identity-experience-001 1.24.0).
 import './core/invitation-fragment';
-import '@fontsource-variable/inter';
-import '@fontsource-variable/jetbrains-mono';
-import '@identity-experience/ui/styles.scss';
+import '@identity-experience/ui/styles';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

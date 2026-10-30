@@ -153,8 +153,8 @@ function CommandForm({
             type="submit"
             variant={command === 'restore' ? 'primary' : 'danger'}
             disabled={mutation.isPending}
-            icon={<Icon name={command === 'restore' ? 'check' : 'shield'} />}
           >
+            <Icon name={command === 'restore' ? 'check' : 'shield'} />
             {command === 'revoke' ? (
               <Message id="principals.contain.revoke" />
             ) : (
@@ -199,7 +199,8 @@ function Section({
         {open ? (
           children
         ) : (
-          <Button variant="secondary" size="sm" onClick={onOpen} icon={<Icon name="arrow" />}>
+          <Button variant="secondary" size="small" onClick={onOpen}>
+            <Icon name="arrow" />
             <Message id="principals.section.open" />
           </Button>
         )}
@@ -325,7 +326,7 @@ function AuthenticatorsSection({
                       {revocable(authenticators.data, authenticator) ? (
                         <Button
                           variant="secondary"
-                          size="sm"
+                          size="small"
                           aria-expanded={revoking === authenticator}
                           onClick={() => {
                             setRevoking(authenticator);
@@ -645,13 +646,13 @@ function EventsSection({ principalId }: { readonly principalId: string }): React
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="pulse" />}
+          size="small"
           disabled={sweep.isPending}
           onClick={() => {
             sweep.mutate();
           }}
         >
+          <Icon name="pulse" />
           <Message id="principals.events.sweep" />
         </Button>
       </div>

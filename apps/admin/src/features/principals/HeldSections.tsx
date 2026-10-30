@@ -44,7 +44,8 @@ function HeldList({
         children
       ) : (
         <div className={styles['actions']}>
-          <Button variant="secondary" size="sm" icon={<Icon name="arrow" />} onClick={onOpen}>
+          <Button variant="secondary" size="small" onClick={onOpen}>
+            <Icon name="arrow" />
             <Message id={show} />
           </Button>
         </div>

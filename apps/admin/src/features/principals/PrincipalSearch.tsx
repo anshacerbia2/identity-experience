@@ -119,7 +119,8 @@ export function PrincipalSearch(): ReactElement {
           spellCheck={false}
         />
         <div className={styles['actions']}>
-          <Button type="submit" icon={<Icon name="users" />}>
+          <Button type="submit">
+            <Icon name="users" />
             <Message id="principals.search.submit" />
           </Button>
         </div>

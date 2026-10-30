@@ -71,7 +71,7 @@ function RegisterForm({
             },
           })}
           label={<Message id="enrolmentCallers.register.purpose" />}
-          hint={<Message id="enrolmentCallers.register.purpose.hint" />}
+          description={<Message id="enrolmentCallers.register.purpose.hint" />}
           error={form.formState.errors.purpose?.message}
           rows={2}
           required
@@ -82,7 +82,8 @@ function RegisterForm({
         />
         {register.isError ? <MutationError error={register.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={register.isPending} icon={<Icon name="key" />}>
+          <Button type="submit" disabled={register.isPending}>
+            <Icon name="key" />
             <Message id="enrolmentCallers.register" />
           </Button>
           <Button variant="ghost" disabled={register.isPending} onClick={onCancel}>
@@ -128,7 +129,8 @@ function RetireForm({
         />
         {retire.isError ? <MutationError error={retire.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" variant="danger" disabled={retire.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" variant="danger" disabled={retire.isPending}>
+            <Icon name="shield" />
             <Message id="enrolmentCallers.retire" />
           </Button>
           <Button variant="ghost" disabled={retire.isPending} onClick={onCancel}>
@@ -157,12 +159,12 @@ export function EnrolmentCallers(): ReactElement {
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="arrow" />}
+          size="small"
           onClick={() => {
             setOpen(true);
           }}
         >
+          <Icon name="arrow" />
           <Message id="enrolmentCallers.show" />
         </Button>
       </div>
@@ -231,7 +233,7 @@ export function EnrolmentCallers(): ReactElement {
                   {active ? (
                     <Button
                       variant="secondary"
-                      size="sm"
+                      size="small"
                       aria-expanded={retiring === caller.principal_id}
                       onClick={() => {
                         setRetiring(caller.principal_id);
@@ -274,13 +276,13 @@ export function EnrolmentCallers(): ReactElement {
         <div className={styles['actions']}>
           <Button
             variant="secondary"
-            icon={<Icon name="key" />}
             onClick={() => {
               setRegistering(true);
               setRetiring(null);
               setDone(null);
             }}
           >
+            <Icon name="key" />
             <Message id="enrolmentCallers.register.open" />
           </Button>
         </div>

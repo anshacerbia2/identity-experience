@@ -145,7 +145,7 @@ export function MyRequests(): ReactElement | null {
                 {request.state === 'proposed' ? (
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="small"
                     aria-expanded={withdrawing === request.request_id}
                     onClick={() => {
                       setWithdrawing(request.request_id);

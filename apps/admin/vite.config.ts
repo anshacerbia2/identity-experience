@@ -26,7 +26,7 @@ export default defineConfig({
         additionalData: (source: string): string =>
           source.includes('@use')
             ? source
-            : `@layer reset, tokens, base, components, utilities, overrides;\n${source}`,
+            : `@layer reset, tokens, base, components, recipes, utilities, overrides;\n${source}`,
       },
     },
   },

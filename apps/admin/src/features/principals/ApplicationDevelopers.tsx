@@ -56,7 +56,8 @@ function GrantForm({
         />
         {grant.isError ? <MutationError error={grant.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={grant.isPending} icon={<Icon name="key" />}>
+          <Button type="submit" disabled={grant.isPending}>
+            <Icon name="key" />
             <Message id="developers.grant" />
           </Button>
           <Button variant="ghost" disabled={grant.isPending} onClick={onCancel}>
@@ -102,7 +103,8 @@ function RevokeForm({
         />
         {revoke.isError ? <MutationError error={revoke.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" variant="danger" disabled={revoke.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" variant="danger" disabled={revoke.isPending}>
+            <Icon name="shield" />
             <Message id="developers.revoke" />
           </Button>
           <Button variant="ghost" disabled={revoke.isPending} onClick={onCancel}>
@@ -180,7 +182,7 @@ export function ApplicationDevelopers(): ReactElement {
                 {grant.revoked_at === null ? (
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="small"
                     aria-expanded={revoking === grant.principal_id}
                     onClick={() => {
                       setRevoking(grant.principal_id);
@@ -217,13 +219,13 @@ export function ApplicationDevelopers(): ReactElement {
         <div className={styles['actions']}>
           <Button
             variant="secondary"
-            icon={<Icon name="key" />}
             onClick={() => {
               setGranting(true);
               setRevoking(null);
               setDone(null);
             }}
           >
+            <Icon name="key" />
             <Message id="developers.grant.open" />
           </Button>
         </div>

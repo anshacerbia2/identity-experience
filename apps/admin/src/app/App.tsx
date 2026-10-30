@@ -5,6 +5,7 @@ import { IntlProvider } from 'react-intl';
 
 import {
   selectLocale,
+  ThemeRoot,
   useDocumentPreferences,
   usePreferences,
 } from '@identity-experience/app-core/preferences';
@@ -26,10 +27,12 @@ export function App(): ReactElement {
   const locale = usePreferences(selectLocale);
   useDocumentPreferences();
   return (
-    <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </IntlProvider>
+    <ThemeRoot>
+      <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </IntlProvider>
+    </ThemeRoot>
   );
 }

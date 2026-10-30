@@ -45,7 +45,8 @@ function Created({
       </dl>
       <Panel.Body>
         <TemporaryPassword principalId={created.principal_id} fresh />
-        <Button variant="ghost" icon={<Icon name="users" />} onClick={onAnother}>
+        <Button variant="ghost" onClick={onAnother}>
+          <Icon name="users" />
           <Message id="principals.create.another" />
         </Button>
       </Panel.Body>
@@ -81,11 +82,11 @@ export function CreatePrincipalForm(): ReactElement {
     return (
       <div className={styles['actions']}>
         <Button
-          icon={<Icon name="users" />}
           onClick={() => {
             setOpen(true);
           }}
         >
+          <Icon name="users" />
           <Message id="principals.create.open" />
         </Button>
       </div>
@@ -123,13 +124,14 @@ export function CreatePrincipalForm(): ReactElement {
             {...form.register('email')}
             type="email"
             label={<Message id="principals.create.email" />}
-            hint={<Message id="principals.create.email.hint" />}
+            description={<Message id="principals.create.email.hint" />}
             autoComplete="off"
           />
         </div>
         {create.isError ? <MutationError error={create.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={create.isPending} icon={<Icon name="check" />}>
+          <Button type="submit" disabled={create.isPending}>
+            <Icon name="check" />
             <Message id="principals.create.submit" />
           </Button>
           <Button

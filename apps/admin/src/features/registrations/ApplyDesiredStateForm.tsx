@@ -51,7 +51,8 @@ export function ApplyDesiredStateForm({
         />
         {apply.isError ? <MutationError error={apply.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={apply.isPending} icon={<Icon name="check" />}>
+          <Button type="submit" disabled={apply.isPending}>
+            <Icon name="check" />
             <Message id="findings.apply" />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={apply.isPending}>

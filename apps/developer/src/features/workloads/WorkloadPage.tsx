@@ -124,7 +124,8 @@ function ReviewForm({
         />
         {review.isError ? <MutationError error={review.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={review.isPending} icon={<Icon name="check" />}>
+          <Button type="submit" disabled={review.isPending}>
+            <Icon name="check" />
             <Message id="workload.review.submit" />
           </Button>
           <Button variant="ghost" disabled={review.isPending} onClick={onCancel}>
@@ -180,7 +181,7 @@ function Review({ workload }: { readonly workload: Workload }): ReactElement {
         <div className={styles['formActions']}>
           <Button
             variant="secondary"
-            size="sm"
+            size="small"
             onClick={() => {
               setOpen(true);
               setDone(false);

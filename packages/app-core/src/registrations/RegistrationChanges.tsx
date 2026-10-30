@@ -268,8 +268,8 @@ function DecideForm({
             type="submit"
             variant={decision === 'approve' ? 'primary' : 'danger'}
             disabled={decide.isPending}
-            icon={<Icon name={decision === 'approve' ? 'check' : 'shield'} />}
           >
+            <Icon name={decision === 'approve' ? 'check' : 'shield'} />
             <CoreMessage id={`changes.${decision}`} />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={decide.isPending}>
@@ -316,7 +316,7 @@ export function ChangeActions({
             <Button
               key={decision}
               variant={decision === 'approve' ? 'primary' : 'secondary'}
-              size="sm"
+              size="small"
               aria-expanded={open === decision}
               onClick={() => {
                 setOpen(decision);
@@ -459,7 +459,7 @@ function ProposeForm({
           <TextField
             {...form.register('values')}
             label={<CoreMessage id={copy.field} />}
-            hint={<CoreMessage id="changes.propose.hint.logout" />}
+            description={<CoreMessage id="changes.propose.hint.logout" />}
             type="url"
             spellCheck={false}
             autoComplete="off"
@@ -500,7 +500,8 @@ function ProposeForm({
           <MutationError error={propose.error} />
         ) : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={propose.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" disabled={propose.isPending}>
+            <Icon name="shield" />
             <CoreMessage id="changes.propose.submit" />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={propose.isPending}>
@@ -704,13 +705,13 @@ export function RegistrationChanges({
               <Button
                 key={kind}
                 variant="secondary"
-                icon={<Icon name="shield" />}
                 aria-expanded={false}
                 onClick={() => {
                   setProposing(kind);
                   setNotice(null);
                 }}
               >
+                <Icon name="shield" />
                 <CoreMessage id={openCopy[kind]} />
               </Button>
             ))}

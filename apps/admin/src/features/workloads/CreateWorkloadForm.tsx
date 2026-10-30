@@ -62,7 +62,8 @@ function Created({ created, onAnother }: { readonly created: Workload; readonly 
         </dd>
       </dl>
       <Panel.Body>
-        <Button variant="secondary" icon={<Icon name="grid" />} onClick={onAnother}>
+        <Button variant="secondary" onClick={onAnother}>
+          <Icon name="grid" />
           <Message id="workloads.create.another" />
         </Button>
       </Panel.Body>
@@ -97,11 +98,11 @@ export function CreateWorkloadForm(): ReactElement {
     return (
       <div className={styles['actions']}>
         <Button
-          icon={<Icon name="grid" />}
           onClick={() => {
             setOpen(true);
           }}
         >
+          <Icon name="grid" />
           <Message id="workloads.create.open" />
         </Button>
       </div>
@@ -147,7 +148,7 @@ export function CreateWorkloadForm(): ReactElement {
         <TextAreaField
           {...form.register('purpose', { validate: required('workloads.create.purpose.required') })}
           label={<Message id="workloads.create.purpose" />}
-          hint={<Message id="workloads.create.purpose.hint" />}
+          description={<Message id="workloads.create.purpose.hint" />}
           error={form.formState.errors.purpose?.message}
           rows={2}
           required
@@ -158,7 +159,7 @@ export function CreateWorkloadForm(): ReactElement {
               validate: (value) => isPrincipalId(value) || t('workloads.create.owner.invalid'),
             })}
             label={<Message id="workloads.create.owner" />}
-            hint={<Message id="workloads.create.owner.hint" />}
+            description={<Message id="workloads.create.owner.hint" />}
             error={form.formState.errors.owner?.message}
             autoComplete="off"
             spellCheck={false}
@@ -167,7 +168,7 @@ export function CreateWorkloadForm(): ReactElement {
           <TextField
             {...form.register('teamReference')}
             label={<Message id="workloads.create.team" />}
-            hint={<Message id="workloads.create.team.hint" />}
+            description={<Message id="workloads.create.team.hint" />}
             autoComplete="off"
           />
         </div>
@@ -177,7 +178,7 @@ export function CreateWorkloadForm(): ReactElement {
               validate: (value) => isClientKey(value) || t('workloads.create.clientKey.invalid'),
             })}
             label={<Message id="workloads.create.clientKey" />}
-            hint={<Message id="workloads.create.clientKey.hint" />}
+            description={<Message id="workloads.create.clientKey.hint" />}
             error={form.formState.errors.clientKey?.message}
             autoComplete="off"
             spellCheck={false}
@@ -188,7 +189,7 @@ export function CreateWorkloadForm(): ReactElement {
               validate: required('workloads.create.application.required'),
             })}
             label={<Message id="workloads.create.application" />}
-            hint={<Message id="workloads.create.application.hint" />}
+            description={<Message id="workloads.create.application.hint" />}
             error={form.formState.errors.applicationRef?.message}
             autoComplete="off"
             spellCheck={false}
@@ -198,7 +199,7 @@ export function CreateWorkloadForm(): ReactElement {
         <TextField
           {...form.register('audience')}
           label={<Message id="workloads.create.audience" />}
-          hint={<Message id="workloads.create.audience.hint" />}
+          description={<Message id="workloads.create.audience.hint" />}
           autoComplete="off"
           spellCheck={false}
         />
@@ -210,7 +211,7 @@ export function CreateWorkloadForm(): ReactElement {
             },
           })}
           label={<Message id="workloads.create.publicKey" />}
-          hint={<Message id="workloads.create.publicKey.hint" />}
+          description={<Message id="workloads.create.publicKey.hint" />}
           error={form.formState.errors.publicKey?.message}
           rows={5}
           spellCheck={false}
@@ -218,7 +219,8 @@ export function CreateWorkloadForm(): ReactElement {
         />
         {create.isError ? <MutationError error={create.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={create.isPending} icon={<Icon name="check" />}>
+          <Button type="submit" disabled={create.isPending}>
+            <Icon name="check" />
             <Message id="workloads.create.submit" />
           </Button>
           <Button

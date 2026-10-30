@@ -96,11 +96,11 @@ function EndEverywhere(): ReactElement {
       <div className={styles['actions']}>
         <Button
           variant="danger"
-          icon={<Icon name="shield" />}
           onClick={() => {
             setConfirming(true);
           }}
         >
+          <Icon name="shield" />
           <Message id="security.sessions.endAll" />
         </Button>
       </div>
@@ -197,7 +197,7 @@ function Sessions(): ReactElement {
                 ) : (
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="small"
                     disabled={mutation.isPending}
                     onClick={() => {
                       setOutcome(null);
@@ -298,32 +298,32 @@ function AddAuthenticator(): ReactElement {
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          icon={<Icon name="key" />}
           disabled={enroll.isPending}
           onClick={() => {
             enroll.mutate('totp');
           }}
         >
+          <Icon name="key" />
           <Message id="security.authenticators.add" />
         </Button>
         <Button
           variant="secondary"
-          icon={<Icon name="shield" />}
           disabled={enroll.isPending}
           onClick={() => {
             enroll.mutate('webauthn');
           }}
         >
+          <Icon name="shield" />
           <Message id="security.authenticators.addKey" />
         </Button>
         <Button
           variant="secondary"
-          icon={<Icon name="grid" />}
           disabled={enroll.isPending}
           onClick={() => {
             enroll.mutate('recovery-codes');
           }}
         >
+          <Icon name="grid" />
           <Message id="security.authenticators.addCodes" />
         </Button>
       </div>
@@ -390,7 +390,7 @@ function Authenticators(): ReactElement {
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   aria-expanded={removing === authenticator}
                   onClick={() => {
                     setRemoving(authenticator);
@@ -524,7 +524,7 @@ function NotificationAddresses(): ReactElement {
                   {unproven(held) ? (
                     <Button
                       variant="secondary"
-                      size="sm"
+                      size="small"
                       disabled={command.isPending}
                       onClick={() => {
                         run(
@@ -563,14 +563,14 @@ function NotificationAddresses(): ReactElement {
                           setCodes({ ...codes, [held.address_id]: event.target.value });
                         }}
                       />
-                      <Button type="submit" size="sm" disabled={command.isPending}>
+                      <Button type="submit" size="small" disabled={command.isPending}>
                         <Message id="security.addresses.verify" />
                       </Button>
                     </form>
                   ) : null}
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="small"
                     disabled={command.isPending}
                     onClick={() => {
                       run({ action: 'remove', addressId: held.address_id }, 'security.addresses.removed');
