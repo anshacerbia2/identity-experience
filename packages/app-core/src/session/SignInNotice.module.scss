@@ -3,12 +3,12 @@
   .notice {
     display: flex;
     align-items: center;
-    gap: var(--ds-spacing-sm);
-    margin: var(--ds-spacing-md) var(--ds-spacing-lg) 0;
-    padding: var(--ds-spacing-sm) var(--ds-spacing-md);
-    border: var(--ds-stroke-thin) solid var(--ds-color-danger-border-default-default);
-    border-radius: var(--ds-radius-md);
-    font-size: var(--ds-font-size-sm);
+    gap: var(--ds-dimension-spacing-control-default);
+    margin: var(--ds-dimension-spacing-stack-comfortable) var(--ds-dimension-spacing-page) 0;
+    padding: var(--ds-dimension-spacing-control-default) var(--ds-dimension-spacing-inset-default);
+    border: var(--ds-dimension-border-width-default) solid var(--ds-color-danger-border-default-default);
+    border-radius: var(--ds-dimension-radius-control);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-danger-text-default-default);
     background: var(--ds-color-danger-surface-subtle-default);
   }

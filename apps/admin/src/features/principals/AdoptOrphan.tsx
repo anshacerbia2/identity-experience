@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { useState, type ReactElement } from 'react';
+import { useState, type MouseEvent, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { MutationError } from '@identity-experience/app-core/api';
@@ -154,9 +154,9 @@ export function AdoptOrphan({
               {plan?.adoptable === true ? (
                 <Button
                   disabled={adopt.isPending}
-                  icon={<Icon name="shield" />}
-                  onClick={(event) => void send(false)(event)}
+                  onClick={(event: MouseEvent<HTMLButtonElement>) => void send(false)(event)}
                 >
+                  <Icon name="shield" />
                   <Message id="principals.adopt.apply" />
                 </Button>
               ) : null}

@@ -46,7 +46,8 @@ function RelinkForm({
         />
         {relink.isError ? <MutationError error={relink.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={relink.isPending} icon={<Icon name="key" />}>
+          <Button type="submit" disabled={relink.isPending}>
+            <Icon name="key" />
             <Message id="principals.relink" />
           </Button>
           <Button variant="ghost" disabled={relink.isPending} onClick={onCancel}>
@@ -111,7 +112,7 @@ export function DanglingSection(): ReactElement {
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   aria-expanded={relinking === mapping.principal_id}
                   onClick={() => {
                     setRelinking(mapping.principal_id);
@@ -139,13 +140,13 @@ export function DanglingSection(): ReactElement {
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="pulse" />}
+          size="small"
           disabled={sweep.isPending}
           onClick={() => {
             sweep.mutate();
           }}
         >
+          <Icon name="pulse" />
           <Message id="principals.sweep" />
         </Button>
         {sweep.isSuccess ? (

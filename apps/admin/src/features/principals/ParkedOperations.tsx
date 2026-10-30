@@ -62,7 +62,8 @@ function RedriveForm({
         />
         {redrive.isError ? <MutationError error={redrive.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={redrive.isPending} icon={<Icon name="pulse" />}>
+          <Button type="submit" disabled={redrive.isPending}>
+            <Icon name="pulse" />
             <Message id="operations.redrive" />
           </Button>
           <Button variant="ghost" disabled={redrive.isPending} onClick={onCancel}>
@@ -181,7 +182,7 @@ export function ParkedOperations(): ReactElement {
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   aria-expanded={redriving === operation.operation_id}
                   onClick={() => {
                     setRedriving(operation.operation_id);

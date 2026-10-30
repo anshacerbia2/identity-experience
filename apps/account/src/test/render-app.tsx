@@ -4,6 +4,7 @@ import { render, type RenderResult } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { vi } from 'vitest';
 
+import { ThemeRoot } from '@identity-experience/app-core/preferences';
 import { createQueryClient } from '@identity-experience/app-core/query';
 
 import { basepath } from '@/core/basepath';
@@ -23,11 +24,13 @@ export function renderApp(path: string, locale: Locale = 'en'): RenderResult {
   const queryClient = createQueryClient();
   queryClient.setDefaultOptions({ queries: { ...queryClient.getDefaultOptions().queries, retry: false } });
   return render(
-    <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </IntlProvider>,
+    <ThemeRoot>
+      <IntlProvider locale={locale} messages={messages[locale]} defaultLocale="en">
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </IntlProvider>
+    </ThemeRoot>,
   );
 }
 

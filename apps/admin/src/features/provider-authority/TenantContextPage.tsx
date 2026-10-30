@@ -20,11 +20,11 @@ function Report(): ReactElement {
     body = (
       <Button
         variant="secondary"
-        icon={<Icon name="arrow" />}
         onClick={() => {
           setAsked(true);
         }}
       >
+        <Icon name="arrow" />
         <Message id="projections.read" />
       </Button>
     );
@@ -55,7 +55,7 @@ function Report(): ReactElement {
         <div className={styles['actions']}>
           <Button
             variant="secondary"
-            size="sm"
+            size="small"
             onClick={() => {
               void navigator.clipboard.writeText(json).then(() => {
                 setCopied(true);
@@ -66,7 +66,7 @@ function Report(): ReactElement {
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="small"
             onClick={() => {
               setCopied(false);
               void report.refetch();

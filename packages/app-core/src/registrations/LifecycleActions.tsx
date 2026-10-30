@@ -97,8 +97,8 @@ function LifecycleForm({
             type="submit"
             variant={action === 'retire' ? 'danger' : 'primary'}
             disabled={lifecycle.isPending}
-            icon={<Icon name={action === 'restore' ? 'check' : 'shield'} />}
           >
+            <Icon name={action === 'restore' ? 'check' : 'shield'} />
             <Message id={`lifecycle.${action}`} />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={lifecycle.isPending}>

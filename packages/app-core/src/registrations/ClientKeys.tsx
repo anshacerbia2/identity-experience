@@ -111,14 +111,15 @@ function RotateForm({
             },
           })}
           label={<Message id="keys.rotate.field" />}
-          hint={<Message id="keys.rotate.hint" />}
+          description={<Message id="keys.rotate.hint" />}
           error={form.formState.errors.publicKey?.message}
           spellCheck={false}
           required
         />
         {rotate.isError ? <MutationError error={rotate.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={rotate.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" disabled={rotate.isPending}>
+            <Icon name="shield" />
             <Message id="keys.rotate" />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={rotate.isPending}>
@@ -165,7 +166,8 @@ function RevokeForm({
         />
         {revoke.isError ? <MutationError error={revoke.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" variant="danger" disabled={revoke.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" variant="danger" disabled={revoke.isPending}>
+            <Icon name="shield" />
             <Message id="keys.revoke" />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={revoke.isPending}>
@@ -258,7 +260,7 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
                     {clientKey.state === 'revoked' ? null : (
                       <Button
                         variant="secondary"
-                        size="sm"
+                        size="small"
                         aria-expanded={revoking === clientKey.key_id}
                         onClick={() => {
                           setRevoking(clientKey.key_id);
@@ -279,7 +281,6 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
           <div className={styles['formActions']}>
             <Button
               variant="secondary"
-              icon={<Icon name="shield" />}
               aria-expanded={false}
               onClick={() => {
                 setRotating(true);
@@ -287,6 +288,7 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
                 setNotice(null);
               }}
             >
+              <Icon name="shield" />
               <Message id="keys.rotate.open" />
             </Button>
           </div>

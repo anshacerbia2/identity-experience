@@ -4,16 +4,22 @@
   "version": "0.0.0",
   "type": "module",
   "sideEffects": [
-    "**/*.scss"
+    "**/*.scss",
+    "**/styles.ts"
   ],
   "exports": {
     ".": "./src/index.ts",
-    "./styles.scss": "./src/styles/index.scss"
+    "./styles": "./src/styles/styles.ts",
+    "./roles.scss": "./src/styles/_roles.scss"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "lint:styles": "stylelint \"src/**/*.scss\""
+  },
+  "dependencies": {
+    "@scnx/core-ui": "file:../../vendor/ui-platform/scnx-core-ui-2.0.0-beta.0.tgz",
+    "@scnx/system": "file:../../vendor/ui-platform/scnx-system-2.0.0-beta.0.tgz"
   },
   "peerDependencies": {
     "react": "19.3.0",

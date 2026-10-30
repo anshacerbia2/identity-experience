@@ -35,7 +35,7 @@ export function ReasonField({
     <TextAreaField
       {...registration}
       label={<CoreMessage id="form.reason.label" />}
-      hint={<CoreMessage id="form.reason.hint" values={values} />}
+      description={<CoreMessage id="form.reason.hint" values={values} />}
       error={message}
       required
     />

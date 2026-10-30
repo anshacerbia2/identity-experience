@@ -146,7 +146,7 @@ function Consents(): ReactElement {
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   disabled={mutation.isPending}
                   aria-label={t('consents.withdraw.label', { client: consent.client })}
                   onClick={() => {

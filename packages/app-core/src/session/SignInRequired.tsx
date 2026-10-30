@@ -20,7 +20,8 @@ export function SignInRequired(): ReactElement {
         </Panel.Description>
       </Panel.Header>
       <Panel.Body>
-        <Button href={signInHref(here)} icon={<Icon name="key" />}>
+        <Button href={signInHref(here)}>
+          <Icon name="key" />
           <CoreMessage id="shell.session.signIn" />
         </Button>
       </Panel.Body>

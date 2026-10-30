@@ -163,7 +163,7 @@ for (const theme of themes) {
     }) => {
       await useTheme(page, theme);
       await page.goto(main.path);
-      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(page.locator('html')).toHaveAttribute('data-scnx-resolved-mode', theme);
       await expect(main.ready(page)).toBeVisible();
       await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
       if (main.open !== undefined) {
@@ -176,10 +176,9 @@ for (const theme of themes) {
         nodes: violation.nodes.map((node) => node.target.join(' ')),
       }));
       expect(violations).toEqual([]);
-      // What axe could not decide is left for the manual audit, and said so in the report. Colour
-      // contrast is among it: the canvas is painted with gradients and the panels are translucent over
-      // it, and axe does not compute a background it cannot resolve to one colour. The pairs are
-      // computed instead, after alpha composition (packages/ui src/styles/contrast.test.ts).
+      // What axe could not decide is left for the manual audit, and said so in the report. The pairs
+      // axe leaves undecided are computed as well, after alpha composition (packages/ui
+      // src/styles/contrast.test.ts).
       for (const undecided of results.incomplete) {
         test.info().annotations.push({
           type: 'needs review',

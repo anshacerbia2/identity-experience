@@ -93,7 +93,7 @@ Source code
 | `apps/account/`      | Account security experience, served under `/account/`: a person's own sessions and authenticators, and the enrolment page `/account/enrol`           |
 | `apps/developer/`    | Developer identity console, served under `/developer/`: the registrations a person owns, their keys and lifecycle                                    |
 | `packages/app-core/` | `@identity-experience/app-core`: API access, session, query client, preferences, the shared frame and the registration domain every application uses |
-| `packages/ui/`       | `@identity-experience/ui`, the stand-in for the UI Platform's packages under `ADR-IAM-012`, until 2027-04-20 (see its README)                        |
+| `packages/ui/`       | `@identity-experience/ui`, the one entry point to the UI Platform's `@scnx/system` and `@scnx/core-ui`, pinned in `vendor/ui-platform/` (its README) |
 | `contracts/`         | identity-control's published `api/openapi.yaml`, copied at a pinned commit; the client is contract-tested against it (ADR-GLB-010 §5.1)              |
 | `bff/`               | Fastify on Node.js: session, refresh, step-up, logout, API proxy, and serving the built applications                                                 |
 | `docs/designs/`      | Technical Design Documents                                                                                                                           |
@@ -208,6 +208,8 @@ foundation with. It has one build-time dependency, `scnehaux-ui-platform`, which
 produces no runtime edge, and no dependency on Notification, Audit, Software Catalog,
 or Subscription & Entitlement.
 
-Until the UI Platform releases `@scnx/system` and `@scnx/core-ui`, `packages/ui` stands in for them.
-That departure from SAD-002 §10 and STD-GLB-FE-005 §3.5 is the approved exception `ADR-IAM-012`, which
-expires on **2027-04-20**; ROADMAP.md records its exit and review.
+The applications draw with the UI Platform's `@scnx/system` and `@scnx/core-ui` in the `scnx-platform`
+theme, through `packages/ui`. They are not on npm yet, so `vendor/ui-platform/` holds the tarballs of one
+ui-platform CI run on `main`, pinned by digest and verified for provenance in CI (`packages/ui/README.md`,
+Intake). That is the exit of the exception `ADR-IAM-012`; ROADMAP.md records its proposed status and the
+components that stay local.

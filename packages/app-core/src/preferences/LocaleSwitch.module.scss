@@ -1,16 +1,18 @@
+@use '@identity-experience/ui/roles.scss' as *;
+
 @layer components {
   .locale {
     display: flex;
     align-items: center;
-    gap: var(--ds-spacing-3xs);
-    padding-inline-start: var(--ds-spacing-xs);
-    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-subtle-default);
-    border-radius: var(--ds-radius-md);
+    gap: var(--ds-dimension-spacing-stack-compact);
+    padding-inline-start: var(--ds-dimension-spacing-inset-compact);
+    border: var(--ds-dimension-border-width-default) solid var(--ds-color-neutral-border-subtle-default);
+    border-radius: var(--ds-dimension-radius-control);
   }
 
   .localeIcon {
     display: inline-flex;
-    font-size: var(--ds-size-icon-sm);
+    font-size: $icon-text;
     color: var(--ds-color-neutral-icon-default-default);
   }
 }

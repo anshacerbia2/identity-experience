@@ -3,12 +3,12 @@ doc_meta:
   id: TDD-identity-experience-003
   title: Identity Administration and Investigation
   owner: Identity Experience Team
-  version: 1.35.0
+  version: 1.36.0
   status: approved
   classification: restricted
   review_cycle_days: 90
   created_date: 2026-08-11
-  last_reviewed: 2026-10-21
+  last_reviewed: 2026-10-30
   parent_sad: SAD-002
 ---
 
@@ -119,6 +119,43 @@ Grouping by object costs one decision per new page, which this table records.
 | R2 | Nielsen Norman Group, *Intranet Information Architecture (IA) Methods*, <https://www.nngroup.com/articles/intranet-ia-methods/>, accessed 2026-10-03 |
 | R3 | Microsoft, *Microsoft Entra admin center*, <https://learn.microsoft.com/en-us/entra/fundamentals/entra-admin-center>, accessed 2026-10-03: Entra ID covers "users, groups, devices, applications, roles, and authentication methods" |
 | R4 | Microsoft, *My Account portal for work or school accounts*, <https://support.microsoft.com/en-us/account-billing/my-account-portal-for-work-or-school-accounts-eab41bfe-3b9e-441e-82be-1f6e568d65fd>, accessed 2026-10-03: "The My Account portal helps you to manage your work or school account by setting up and managing your security info, managing your devices" |
+
+### Visual Language (1.36.0)
+
+**The three applications draw with the UI Platform, in the `scnx-platform` theme.** That is the
+Scnehaux platform's own look, which IAM, the AI runtime, Organization and the documentation site
+share. Its brand book is scnehaux-design `scnx-platform/Brand-Book.html` (reference, `ADR-UIP-VIS-002`);
+the shared identity (the mark, the voice, the icons) is `brand/Brand.html`. Token values and
+components belong to `@scnx/system` and `@scnx/core-ui`; this repository writes no brand rule and no
+token.
+
+- **The packages.** `packages/ui`'s entry point re-exports `@scnx/system` and `@scnx/core-ui`
+  2.0.0-beta.0. They are not on npm yet, so `vendor/ui-platform/` holds the tarballs of one ui-platform
+  CI run on `main`, pinned by sha256 and verified in CI for SLSA provenance from that commit, as
+  `TDD-ui-platform-docs-001` D2 does (`packages/ui/README.md`, Intake). It is the exit of
+  `ADR-IAM-012`; ROADMAP.md records the proposed status.
+- **The theme.** The platform's theme stylesheet selects its tokens only under
+  `[data-scnx-theme="scnx-platform"][data-scnx-resolved-mode="light|dark"]` (`STD-UIP-TKN-002` §3.4).
+  The platform's `ThemeProvider` writes both on `<html>` (`app-core` `ThemeRoot`), and each
+  `index.html` carries them with the dark mode, so the first paint has tokens: the content security
+  policy allows no inline script that could set them sooner (`TDD-identity-experience-001`). Dark is
+  the default, and the viewer's choice of dark or light is kept in the preferences store as before.
+- **Square, lines, no glass.** The theme sets every radius to 0, keeping `pill` only where a round
+  shape carries meaning. A panel is the platform's Surface in the `panel` material, a 1px line. The
+  radial canvas, the grid backdrop, the translucent panels with backdrop blur, the glows and the
+  gradient title are gone, with the tokens that drew them.
+- **Two voices.** Inter, which the package ships, speaks the content. IBM Plex Mono 400, 500 and 600,
+  served from this origin with its OFL licence, is the HUD voice: identifiers and figures in a table
+  today. JetBrains Mono is no longer drawn.
+- **Components as shipped, composed only where a rule here asks for more.** `Button`, `TextField`,
+  `Panel`, `StatusPill` and `Table` render the platform's component with one stated addition each
+  (wrapping at 320 CSS px, a pressed edge, a 2px focus offset, a compound, a status glyph, a keyboard
+  region); `SelectField`, `TextAreaField` and `Icon` stay local because the platform publishes none.
+  `packages/ui/README.md` lists each, the token map, and the findings reported to ui-platform.
+- **The frame and the screens.** The rail, the bar, the scope line and every page keep their
+  structure and their tests in 1.36.0. Their redraw in the brand book's drawing (cells that share
+  their lines, mono navigation, the ink primary action, the two-bar mark) is the next change to this
+  section.
 
 ## Data Model
 
@@ -1383,11 +1420,12 @@ each page is scanned in the dark and in the light theme. Until then only dark wa
 default, and that is how the light theme's failures in §Contrast and Focus went unseen.
 
 - It fails on any violation of the WCAG 2.0, 2.1 and 2.2 A and AA rules axe implements.
-- What axe cannot decide is recorded as "needs review" on the test, not passed. Colour contrast is
-  among it on every page, in both themes: the canvas is painted with gradients and the panels are
-  translucent over it, so axe resolves no single background colour. At 1.26.0 it is the only rule
-  left undecided: 21 to 88 nodes a page, the same count in each theme. §Contrast and Focus computes
-  those pairs instead.
+- What axe cannot decide is recorded as "needs review" on the test, not passed. Until 1.36.0 colour
+  contrast was undecided on every page, 21 to 88 nodes a page, because the canvas was painted with
+  gradients and the panels were translucent over it. Since 1.36.0 every surface is opaque and axe
+  decides contrast itself: in both themes it leaves one to four nodes undecided on five pages
+  (`/principals`, `/workloads`, `/registrations`, `/projections`, `/account/`) and none on the rest,
+  and it finds no violation. §Contrast and Focus computes the pairs as well.
 - In each theme, with and without forced colours, a field and the button after it, reached by Tab,
   show focus as a 2px solid outline 2px off the element. A link is underlined at rest. The pressed
   language toggle has an edge the other has not.
@@ -1401,61 +1439,57 @@ default, and that is how the light theme's failures in §Contrast and Focus went
   [R6]. Keyboard order, focus, zoom, colour contrast and a screen reader stay with the manual WCAG 2.2
   AA audit.
 
-### Contrast and Focus (1.26.0)
+### Contrast and Focus (1.26.0, the platform's tokens since 1.36.0)
 
-`packages/ui` holds the tokens and components every application here draws with, and identity-kernel
-copies them into the hosted login theme so the two read as one product (`TDD-identity-kernel-004`
-§Visual Language). The kernel measured them while copying and found three WCAG 2.2 AA failures in the
-light theme, and one departure from STD-GLB-FE-005 in both. They are fixed here, with the kernel's
-values, so the two stylesheets stay the same token for token.
+The colours, the focus indicator and the field's edge are the `scnx-platform` theme's (§Visual
+Language). identity-kernel's login theme takes the same values, so the two read as one product
+(`TDD-identity-kernel-004` §Visual Language). Each rule below is the requirement; the tokens that meet
+it are the platform's, and where the platform's own value does not meet it, the composition in
+`packages/ui` says so and draws one that does.
 
-| Was | Now | Requirement |
+| Rule | How it is met | Requirement |
 | :-- | :-- | :-- |
-| The light primary solid at L 0.55. Its near-white label was 4.15:1, and 3.42:1 on hover, which lightened it | L 0.5 (5.06:1). In light, hover darkens to L 0.46 (5.96:1) and pressed to L 0.44 (6.47:1). Every light solid's hover now darkens. Dark is unchanged | SC 1.4.3: "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1" [R7]. The label is 14px semibold, not large-scale text |
-| A field's edge was `border-default`, 16% alpha: 1.35:1 against the panel (1.39:1 in dark) | `border-strong`, now opaque: `oklch(0.62 0.02 262)` light, `oklch(0.55 0.02 262)` dark, at least 3.18:1 against the panel and the field's own fill. Hover takes `border-strong-hover`, a new name; an invalid field takes the danger solid (4.88:1, 5.88:1), not its 45% border (2.05:1) | SC 1.4.11: "Visual information required to identify user interface components and states" at "at least 3:1 against adjacent color(s)" [R7]. Its Understanding document: a visual boundary "is only required when there is no other visual way to identify the presence of the control", and of a text input, "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion" [R8]. An empty field has no other way |
-| Button and Field removed the outline on focus and drew a box-shadow ring | Every focusable element keeps the 2px outline in the focus colour, 2px off it (`foundations/_base.scss`). `--ds-shadow-focus` is now only the dark theme's glow, added to the outline; in light it is `none` | STD-GLB-FE-005 §3.9: "Every focusable element shows a `:focus-visible` indicator drawn with `outline`" and "A shadow may add emphasis but never replaces the outline, because forced-colors mode computes `box-shadow` as `none`." SC 2.4.7: "Any keyboard operable user interface has a mode of operation where the keyboard focus indicator is visible" [R7] |
-| A link the page did not style was plain text, by the reset. The styled links in tables were underlined only on hover | A link with no class of its own (or only TanStack Router's `active`) takes the link colour and an underline in `foundations/_base.scss`. The styled links are underlined at rest. Both thicken the underline on hover | SC 1.4.1: "Color is not used as the only visual means of conveying information, indicating an action, prompting a response, or distinguishing a visual element" [R7]. STD-GLB-FE-009 §3.3: "Color is not the sole means of conveying information." |
-| A pressed toggle (the language switch) looked like the one not pressed | Pressed takes the selected surface, strong text and the `border-strong` edge (3.03:1 against the bar in light, 3.91:1 in dark) | SC 1.4.11, "states", as above |
+| Text is at least 4.5:1 against what it sits on | Text is `neutral.text.strong`, `default` or `subtle`, a scheme's `text.*`, or a solid's `text.contrast`, on the surfaces the platform pairs them with | SC 1.4.3: "The visual presentation of text and images of text has a contrast ratio of at least 4.5:1" [R7]. No label here is large-scale text |
+| A field is identified by its edge, at 3:1 | `neutral.border.strong` against the panel and the field's own fill. An invalid field takes `danger.border.strong.selected`: the platform's default for it, `danger.border.strong.default`, is 2.38:1 in light, so `TextField`'s composition sets the platform's hook `--scnx-text-field-input-border-color-invalid` | SC 1.4.11: "Visual information required to identify user interface components and states" at "at least 3:1 against adjacent color(s)" [R7]. Of a text input: "As the border here is required to identify the presence of the input, it must have sufficient contrast to pass this criterion" [R8] |
+| Focus is a 2px solid outline, 2px off the element, and stays one under forced colours | The platform's base draws it on every focusable element, in `primary.border.default.focus`, `Highlight` under forced colours. Its text field draws it on the input's edge; `TextField`'s composition puts it 2px off, as everywhere else | STD-GLB-FE-005 §3.9: "Every focusable element shows a `:focus-visible` indicator drawn with `outline`", and "A shadow may add emphasis but never replaces the outline, because forced-colors mode computes `box-shadow` as `none`." SC 2.4.7 [R7] |
+| A link is told from the words around it by more than its colour | A link with no class of its own (or only TanStack Router's `active`) takes `primary.text.default` and an underline at rest (`foundations/_base.scss`); the styled links are underlined at rest. Both thicken the underline on hover | SC 1.4.1: "Color is not used as the only visual means of conveying information" [R7]. STD-GLB-FE-009 §3.3 |
+| A pressed toggle looks pressed | The platform's Button sets `aria-pressed` and draws no pressed state; `Button`'s composition gives a pressed toggle the selected surface, strong text and the `neutral.border.strong` edge | SC 1.4.11, "states", as above |
+| A status is never colour alone | `StatusPill` is the platform's Badge with one glyph per tone before the word | STD-GLB-FE-009 §3.3: "Color is not the sole means of conveying information." |
 
-The focus colour meets SC 1.4.11 against everything it sits on (STD-GLB-FE-009 §3.3: "Focus
-indicators meet SC 1.4.11 at 3:1 against the colors adjacent to the indicator"). The ring is a
-2px-thick outline whose every pixel changes from the background to the focus colour at 3.77:1 or
-more, which is the shape SC 2.4.13 Focus Appearance asks for: "at least as large as the area of a 2
-CSS pixel thick perimeter of the unfocused component" with "a contrast ratio of at least 3:1 between
-the same pixels in the focused and unfocused states" [R7]. SC 2.4.13 is Level AAA, and STD-GLB-FE-009
-§3.3 leaves it outside the AA target, so this is not a conformance claim.
+The ring is a 2px outline whose every pixel changes from the background to the focus colour at 5.74:1
+or more, which is the shape SC 2.4.13 Focus Appearance asks for [R7]. SC 2.4.13 is Level AAA, and
+STD-GLB-FE-009 §3.3 leaves it outside the AA target, so this is not a conformance claim.
 
-**Contrast is computed, not assumed.** axe-core leaves these pairs undecided (§Accessibility in a
-Browser), and STD-GLB-FE-009 §3.3 asks: "Tests use actual foreground/background pairs after alpha
-composition in each supported theme and state." `packages/ui/src/styles/contrast.test.ts` compiles
-the stylesheet the applications import and reads each theme's custom properties from it. It
-composites every pair the components draw over the plain canvas and over each aurora at full strength,
-and requires 4.5:1 for text and 3:1 for a field's edge, a pressed state and the focus indicator. It
-computes as identity-kernel's `internal/themecontrast` does, so the two report the same ratio for a
-pair. Its worst cases, light and dark:
+**Contrast is computed, not assumed.** STD-GLB-FE-009 §3.3 asks: "Tests use actual
+foreground/background pairs after alpha composition in each supported theme and state."
+`packages/ui/src/styles/contrast.test.ts` reads both modes of the `scnx-platform` theme from the pinned
+package's stylesheet, composites every pair the components and the frame draw over the canvas, and
+requires 4.5:1 for text and 3:1 for a field's edge, a pressed state and the focus indicator. A pair
+names the tokens the platform's component binds (`@scnx/system/specs/<component>.json`) or the tokens
+this repository's stylesheets read. It computes as identity-kernel's `internal/themecontrast` does, so
+the two report the same ratio for a pair. Its lowest ratios at 1.36.0, light / dark:
 
-| Pair | Before, light / dark | Now, light / dark |
+| Pair | Light | Dark |
 | :-- | --: | --: |
-| Primary button label (default, hover, pressed) | 4.15, 3.42, 5.27 / 10.66, 12.52, 8.77 | 5.06, 5.96, 6.47 / 10.66, 12.52, 8.77 |
-| Skip link | 4.15 / 10.66 | 5.06 / 10.66 |
-| A field's edge against the panel, against its fill | 1.35, 1.34 / 1.39, 1.35 | 3.32, 3.18 / 3.53, 4.02 |
-| A field's edge, hover | 1.80 / 2.22 | 5.97 / 6.90 |
-| An invalid field's edge | 2.05 / 2.10 | 4.88 / 5.88 |
-| A pressed toggle's edge, in the bar | no edge | 3.03 / 3.91 |
-| Focus indicator on a panel, on the canvas, in the rail | 3.95, 3.08, 3.60 / 9.58, 8.15, 10.63 | 4.82, 3.77, 4.40 / 9.58, 8.15, 10.63 |
-| Hint and description text on the panel; placeholder in a field | 5.97; 5.71 / 6.90; 7.87 | unchanged |
-| Link on the panel; on the canvas; in a danger message | 6.85; 5.35; 5.90 / 11.59; 9.87; 10.30 | unchanged |
-| Navigation section label in the rail | 5.44 / 7.66 | unchanged |
-| Status pills and messages on their tint (lowest) | 6.08 / 7.77 | unchanged |
+| Primary button label (ink), default, hover, pressed | 15.98, 11.95, 9.01 | 16.29, 14.94, 13.64 |
+| Danger button label, default | 4.55 | 4.55 |
+| Skip link (white on the signal) | 4.73 | 4.73 |
+| Description, caption, column header | 5.65 or more | 8.45 or more |
+| Status pills and messages on their tint (lowest) | 5.22 | 7.22 |
+| Link on the panel and on the canvas | 12.26 or more | 13.42 or more |
+| A field's edge against the panel and its fill | 3.47 | 3.39 |
+| An invalid field's edge (`danger.border.strong.selected`) | 4.55 | 3.85 |
+| The platform's own invalid edge (`danger.border.strong.default`), not drawn here | 2.38 | 3.26 |
+| A pressed toggle's edge, in the bar | 3.30 | 3.65 |
+| Focus indicator on a panel, on the canvas, in the rail | 6.03, 5.88, 5.74 | 8.52, 9.18, 9.18 |
 
-The full list, 40 pairs a theme, is printed by the test. The computation clips to sRGB per channel. It
-leaves out the backdrop's 140% saturation, the 5%-opaque grid lines and the `prefers-contrast: more`
-rendering. It is evidence for the manual contrast check, not a replacement for it.
+The full list, 49 pairs a mode, is printed by the test. The computation clips to sRGB per channel and
+leaves out the `prefers-contrast: more` rendering. It is evidence for the manual contrast check, not a
+replacement for it.
 
-**What changed for identity-kernel.** The light primary's tints (`primary-surface-subtle`,
-`primary-border-default`, `primary-shadow-default`) are now drawn from L 0.5, not L 0.55. The kernel's
-departures (`--scnx-login-action-*`, `--scnx-login-control-border`, `--scnx-login-focus*`) become
-these `--ds-*` values. Its tile's hover edge reads `border-strong`, which is now opaque.
+**What changed for identity-kernel.** The login theme's hand-copied tokens become the package's
+`scnx-platform` values, taken from the same pinned tarball by a sync step, never typed
+(`TDD-identity-kernel-004`).
 
 | Ref | Source |
 | :-- | :-- |
@@ -1656,4 +1690,9 @@ review, and locked-out subject after authenticator revocation.
 | Governed by | `ADR-IAM-011` §5.8 as amended 2026-10-21 — the enrolment caller record, registered and retired by a provider (1.35.0) |
 | Depends on | `TDD-identity-control-001` 1.27.0 — `GET`/`POST /v1/enrolment-callers` and `:retire` (1.35.0) |
 | Conforms to | STD-GLB-FE-009 §3.3 — contrast after alpha composition, in each theme and state |
-| Related design | `TDD-identity-kernel-004` §Visual Language — the login theme that copies `packages/ui`'s tokens |
+| Related design | `TDD-identity-kernel-004` §Visual Language — the login theme, on the same `scnx-platform` tokens from the same pinned package (1.36.0) |
+| Governed by | `ADR-IAM-012` §5.4 — its exit: the entry point re-exports `@scnx/system` and `@scnx/core-ui` (1.36.0, §Visual Language) |
+| Conforms to | STD-GLB-FE-005 §3.4, §3.5 — the platform's layer order, and its aggregate and theme stylesheets imported once (1.36.0) |
+| Conforms to | STD-UIP-TKN-002 §3.1, §3.4 — Tier-2 tokens only; the theme selected by `[data-scnx-theme][data-scnx-resolved-mode]` (1.36.0) |
+| Related design | `TDD-ui-platform-docs-001` D2 — the pinned, provenance-verified intake this repository copies (1.36.0) |
+| Related design | scnehaux-design `scnx-platform/Brand-Book.html` — the brand book of the `scnx-platform` theme (`ADR-UIP-VIS-002`, reference) (1.36.0) |

@@ -1,25 +1,44 @@
-// @identity-experience/ui: the temporary stand-in for the UI Platform's packages.
+// @identity-experience/ui: the one door applications take the UI Platform through.
 //
-//   primitives/  headless behaviour, mirroring @scnx/core-ui (ButtonBase ...)
-//   system/      styled components, mirroring @scnx/system (Button ...)
-//   styles/      the --ds-* token shim and the global foundations
+// The UI Platform's packages, `@scnx/system` and `@scnx/core-ui` (vendor/ui-platform/pin.json), are
+// re-exported here, so no application imports them directly (each application's dependency-cruiser
+// rules) and an upgrade or a replaced component changes this file only. Three kinds of export:
 //
-// This file is the one door applications import through (Component-Driven Development). When the
-// platform publishes a component, its line here changes to re-export the platform's, and no
-// application changes:
+//   re-exported  the platform's component as it ships
+//   composed     the platform's component with a composition the applications need, in a file of
+//                its own that renders it (a required caption, a status glyph, a focus offset)
+//   local        no platform counterpart yet; drawn from the platform's tokens
 //
-//   export { Button } from '@scnx/system/button';
-//
-// README.md records which component is local and which is the platform's.
-export { ButtonBase } from './primitives/button-base';
-export type { ButtonBaseAnchorProps, ButtonBaseButtonProps, ButtonBaseProps } from './primitives/button-base';
+// README.md lists each component and its kind, and why a composed or local one is not re-exported.
+export { ButtonBase } from '@scnx/core-ui/components/button-base';
+export type { AnchorModeProps, ButtonBaseProps, ButtonModeProps } from '@scnx/core-ui/components/button-base';
+export {
+  createThemeStore,
+  ThemeProvider,
+  useTheme,
+  type ResolvedMode,
+  type ThemeMode,
+  type ThemePreferenceAdapter,
+  type ThemeStore,
+} from '@scnx/core-ui/providers/theme-provider-base';
+export { Alert } from '@scnx/system/components/alert';
+export type { AlertProps, AlertScheme } from '@scnx/system/components/alert';
+export { Badge } from '@scnx/system/components/badge';
+export type { BadgeProps, BadgeScheme } from '@scnx/system/components/badge';
+
 export { Button } from './system/button';
 export type { ButtonProps, ButtonSize, ButtonVariant } from './system/button';
-export { Icon } from './system/icon';
-export type { IconName } from './system/icon';
 export { Panel } from './system/panel';
 export { StatusPill } from './system/status-pill';
 export type { StatusTone } from './system/status-pill';
 export { Table } from './system/table';
-export { SelectField, TextAreaField, TextField } from './system/field';
+export { TextField } from './system/text-field';
+export type { TextFieldProps } from './system/text-field';
+
+export { Icon } from './system/icon';
+export type { IconName } from './system/icon';
+export { SelectField, TextAreaField } from './system/field';
 export type { SelectOption } from './system/field';
+
+// The theme every application renders in (ADR-UIP-VIS-002; scnehaux-design scnx-platform).
+export const PLATFORM_THEME = 'scnx-platform';

@@ -21,7 +21,7 @@ export function LocaleSwitch(): ReactElement {
         <Button
           key={code}
           variant="ghost"
-          size="sm"
+          size="small"
           pressed={code === locale}
           onClick={() => {
             setLocale(code);

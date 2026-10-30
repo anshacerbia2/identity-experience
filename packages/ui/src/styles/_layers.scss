@@ -1,4 +1,5 @@
-// The one cascade-layer order STD-GLB-FE-005 §3.3 fixes. Loaded first, because the first mention
-// of a layer decides where it sits: were the reset layer emitted before this line, the utilities
-// layer could land ahead of the components layer.
-@layer reset, tokens, base, components, utilities, overrides;
+// The one cascade-layer order STD-GLB-FE-005 §3.4 fixes for an application that consumes the UI
+// Platform's CSS, the order @scnx/system's own stylesheets declare. Loaded first, because the first
+// mention of a layer decides where it sits: were the reset layer emitted before this line, the
+// utilities layer could land ahead of the components layer.
+@layer reset, tokens, base, components, recipes, utilities, overrides;

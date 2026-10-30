@@ -69,12 +69,12 @@ function ConditionList({
     body = (
       <Button
         variant="secondary"
-        size="sm"
-        icon={<Icon name="arrow" />}
+        size="small"
         onClick={() => {
           setOpen(true);
         }}
       >
+        <Icon name="arrow" />
         <Message id="workloads.conditions.show" />
       </Button>
     );
@@ -143,7 +143,7 @@ function ConditionList({
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   onClick={() => {
                     onOpen(row.principal_id);
                   }}
@@ -194,13 +194,13 @@ export function WorkloadConditions({
       <div className={styles['actions']}>
         <Button
           variant="secondary"
-          size="sm"
-          icon={<Icon name="pulse" />}
+          size="small"
           disabled={sweep.isPending}
           onClick={() => {
             sweep.mutate();
           }}
         >
+          <Icon name="pulse" />
           <Message id="workloads.sweep" />
         </Button>
         {sweep.isSuccess ? (

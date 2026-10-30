@@ -202,12 +202,12 @@ function RecordReview({
         ) : null}
         <Button
           variant="secondary"
-          icon={<Icon name="check" />}
           onClick={() => {
             setRecorded(false);
             setOpen(true);
           }}
         >
+          <Icon name="check" />
           <Message id="ceremony.review" />
         </Button>
       </div>
@@ -247,7 +247,7 @@ function RecordReview({
             },
           })}
           label={<Message id="ceremony.review.reviewer" />}
-          hint={<Message id="ceremony.review.reviewer.hint" />}
+          description={<Message id="ceremony.review.reviewer.hint" />}
           error={form.formState.errors.reviewer?.message}
           autoComplete="name"
           required
@@ -263,7 +263,8 @@ function RecordReview({
         />
         {review.isError ? <MutationError error={review.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={review.isPending} icon={<Icon name="check" />}>
+          <Button type="submit" disabled={review.isPending}>
+            <Icon name="check" />
             <Message id="ceremony.review.submit" />
           </Button>
           <Button

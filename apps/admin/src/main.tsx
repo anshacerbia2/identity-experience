@@ -1,6 +1,4 @@
-import '@fontsource-variable/inter';
-import '@fontsource-variable/jetbrains-mono';
-import '@identity-experience/ui/styles.scss';
+import '@identity-experience/ui/styles';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

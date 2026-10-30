@@ -107,7 +107,7 @@ export function UnmappedSection(): ReactElement {
                 {adoptable(finding, self) && finding.claimed_principal_id !== undefined ? (
                   <Button
                     variant="secondary"
-                    size="sm"
+                    size="small"
                     aria-expanded={adopting === finding.claimed_principal_id}
                     onClick={() => {
                       setAdopting(finding.claimed_principal_id ?? null);

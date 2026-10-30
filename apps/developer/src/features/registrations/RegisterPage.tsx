@@ -165,7 +165,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
             validate: (value) => value.trim() !== '' || t('register.clientKey.required'),
           })}
           label={<Message id="register.clientKey" />}
-          hint={<Message id="register.clientKey.hint" />}
+          description={<Message id="register.clientKey.hint" />}
           error={form.formState.errors.clientKey?.message}
           autoComplete="off"
           spellCheck={false}
@@ -176,7 +176,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
             validate: (value) => value.trim() !== '' || t('register.applicationRef.required'),
           })}
           label={<Message id="register.applicationRef" />}
-          hint={<Message id="register.applicationRef.hint" />}
+          description={<Message id="register.applicationRef.hint" />}
           error={form.formState.errors.applicationRef?.message}
           autoComplete="off"
           required
@@ -184,13 +184,13 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
         <SelectField
           {...form.register('profile')}
           label={<Message id="register.profile" />}
-          hint={<Message id={`register.profile.${profile}.hint`} />}
+          description={<Message id={`register.profile.${profile}.hint`} />}
           options={developerProfiles.map((value) => ({ value, label: t(profileLabel(value)) }))}
         />
         <SelectField
           {...form.register('audienceClass')}
           label={<Message id="register.audienceClass" />}
-          hint={<Message id="register.audienceClass.hint" />}
+          description={<Message id="register.audienceClass.hint" />}
           options={developerClasses.map((value) => ({ value, label: t(`register.audienceClass.${value}`) }))}
         />
         {profile === 'resource' ? (
@@ -199,7 +199,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
               validate: (value) => value !== '' || t('register.lifetimeClass.required'),
             })}
             label={<Message id="register.lifetimeClass" />}
-            hint={<Message id="register.lifetimeClass.hint" />}
+            description={<Message id="register.lifetimeClass.hint" />}
             error={form.formState.errors.lifetimeClass?.message}
             options={[
               { value: '', label: t('register.lifetimeClass.choose') },
@@ -217,7 +217,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
                 validate: (value) => redirectLines(value).length > 0 || t('changes.propose.empty'),
               })}
               label={<Message id="register.redirectUris" />}
-              hint={<Message id="register.redirectUris.hint" />}
+              description={<Message id="register.redirectUris.hint" />}
               error={form.formState.errors.redirectUris?.message}
               spellCheck={false}
               required
@@ -231,7 +231,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
                 {...form.register('audience')}
                 multiple
                 label={<Message id="register.audience" />}
-                hint={<Message id="register.audience.hint" />}
+                description={<Message id="register.audience.hint" />}
                 options={resources.map((resource) => ({
                   value: resource.client_key,
                   label: resource.client_key,
@@ -249,7 +249,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
               },
             })}
             label={<Message id="register.publicKey" />}
-            hint={<Message id="keys.rotate.hint" />}
+            description={<Message id="keys.rotate.hint" />}
             error={form.formState.errors.publicKey?.message}
             spellCheck={false}
             required
@@ -264,7 +264,7 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
                   t('request.owners.tooFew', { min: minProductionOwners }),
               })}
               label={<Message id="request.owners" />}
-              hint={<Message id="request.owners.hint" values={{ min: minProductionOwners }} />}
+              description={<Message id="request.owners.hint" values={{ min: minProductionOwners }} />}
               error={form.formState.errors.owners?.message}
               spellCheck={false}
               required
@@ -277,7 +277,8 @@ function RegisterForm({ mode, me }: { readonly mode: Mode; readonly me: string |
         ) : null}
         {sending.isError ? <MutationError error={sending.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={sending.isPending} icon={<Icon name="shield" />}>
+          <Button type="submit" disabled={sending.isPending}>
+            <Icon name="shield" />
             <Message id={mode === 'request' ? 'request.submit' : 'register.submit'} />
           </Button>
           <Button

@@ -42,12 +42,12 @@ export function ExceptionForm({ registrationId }: { readonly registrationId: str
       <div className={styles['formActions']}>
         <Button
           variant="secondary"
-          icon={<Icon name="clock" />}
           onClick={() => {
             setOpen(true);
             setGrantedUntil(null);
           }}
         >
+          <Icon name="clock" />
           <Message id="exception.open" />
         </Button>
         {grantedUntil === null ? null : (
@@ -109,7 +109,7 @@ export function ExceptionForm({ registrationId }: { readonly registrationId: str
             validate: (value) => value.trim() !== '' || t('exception.actor.required'),
           })}
           label={<Message id="exception.actor.label" />}
-          hint={<Message id="exception.actor.hint" />}
+          description={<Message id="exception.actor.hint" />}
           error={form.formState.errors.actor?.message}
           autoComplete="off"
           spellCheck={false}
@@ -121,7 +121,8 @@ export function ExceptionForm({ registrationId }: { readonly registrationId: str
         />
         {grant.isError ? <MutationError error={grant.error} /> : null}
         <div className={styles['formActions']}>
-          <Button type="submit" disabled={grant.isPending} icon={<Icon name="clock" />}>
+          <Button type="submit" disabled={grant.isPending}>
+            <Icon name="clock" />
             <Message id="exception.submit" />
           </Button>
           <Button

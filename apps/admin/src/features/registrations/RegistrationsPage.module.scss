@@ -1,30 +1,32 @@
+@use '@identity-experience/ui/roles.scss' as *;
+
 @layer components {
   .root {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-lg);
+    gap: var(--ds-dimension-spacing-page);
   }
 
   .hero {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
     max-inline-size: 48rem;
-    padding-block: var(--ds-spacing-lg) var(--ds-spacing-xs);
+    padding-block: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-compact);
   }
 
   .eyebrow {
-    font-family: var(--ds-font-family-mono);
-    font-size: var(--ds-font-size-xs);
-    letter-spacing: var(--ds-letter-spacing-wide);
+    font-family: $font-mono;
+    font-size: var(--ds-typography-label-small-font-size);
+    letter-spacing: $hud-tracking;
     text-transform: uppercase;
     color: var(--ds-color-primary-text-default-default);
   }
 
   .title {
-    font-size: var(--ds-font-size-xl);
-    font-weight: var(--ds-font-weight-semibold);
+    font-size: var(--ds-typography-heading-medium-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
     letter-spacing: -0.03em;
     overflow-wrap: anywhere;
     color: var(--ds-color-neutral-text-strong-default);
@@ -32,7 +34,7 @@
 
   .lead {
     max-inline-size: 40rem;
-    line-height: var(--ds-line-height-relaxed);
+    line-height: var(--ds-typography-article-readable-line-height);
     color: var(--ds-color-neutral-text-subtle-default);
   }
 
@@ -44,13 +46,13 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
   }
 
   .meta {
     display: inline-flex;
-    gap: var(--ds-spacing-3xs);
-    font-size: var(--ds-font-size-sm);
+    gap: var(--ds-dimension-spacing-stack-compact);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-subtle-default);
   }
 
@@ -58,12 +60,12 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
   }
 
   .filterLabel {
-    font-size: var(--ds-font-size-xs);
-    letter-spacing: var(--ds-letter-spacing-wide);
+    font-size: var(--ds-typography-label-small-font-size);
+    letter-spacing: $hud-tracking;
     text-transform: uppercase;
     color: var(--ds-color-neutral-text-subtle-default);
   }
@@ -71,22 +73,22 @@
   .filterList {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--ds-spacing-3xs);
-    padding: var(--ds-spacing-3xs);
-    border: var(--ds-stroke-thin) solid var(--ds-color-neutral-border-subtle-default);
+    gap: var(--ds-dimension-spacing-stack-compact);
+    padding: var(--ds-dimension-spacing-stack-compact);
+    border: var(--ds-dimension-border-width-default) solid var(--ds-color-neutral-border-subtle-default);
 
     // Not a full pill: on a narrow screen the list wraps, and a pill around two rows reads broken.
-    border-radius: var(--ds-radius-lg);
+    border-radius: var(--ds-dimension-radius-panel);
     background: var(--ds-color-neutral-surface-sunken-default);
   }
 
   .filterItem {
     display: inline-flex;
     align-items: center;
-    min-block-size: var(--ds-size-control-sm);
-    padding-inline: var(--ds-spacing-sm);
-    border-radius: var(--ds-radius-full);
-    font-size: var(--ds-font-size-sm);
+    min-block-size: var(--ds-dimension-size-control-compact);
+    padding-inline: var(--ds-dimension-spacing-control-default);
+    border-radius: var(--ds-dimension-radius-pill);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-default-default);
 
     &:hover {
@@ -95,10 +97,11 @@
 
     // The current filter reads as selected by weight and a ring, not by colour alone.
     &[aria-current='page'] {
-      font-weight: var(--ds-font-weight-semibold);
+      font-weight: var(--ds-typography-weight-semibold);
       color: var(--ds-color-neutral-text-strong-default);
       background: var(--ds-color-neutral-surface-default-selected);
-      box-shadow: inset 0 0 0 var(--ds-stroke-thin) var(--ds-color-primary-border-default-default);
+      box-shadow: inset 0 0 0 var(--ds-dimension-border-width-default)
+        var(--ds-color-primary-border-default-default);
     }
   }
 
@@ -106,7 +109,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--ds-spacing-md);
+    gap: var(--ds-dimension-spacing-stack-comfortable);
   }
 
   .clientLink {
@@ -122,15 +125,15 @@
   }
 
   .quiet {
-    font-size: var(--ds-font-size-sm);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-subtle-default);
   }
 
   .back {
     display: inline-flex;
     align-items: center;
-    gap: var(--ds-spacing-xs);
-    font-size: var(--ds-font-size-sm);
+    gap: var(--ds-dimension-spacing-stack-default);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-subtle-default);
 
     // The arrow points back: the shared glyph points forward.
@@ -142,47 +145,47 @@
   .section {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
   }
 
   .sectionTitle {
-    font-size: var(--ds-font-size-lg);
-    font-weight: var(--ds-font-weight-semibold);
+    font-size: var(--ds-typography-body-large-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
     color: var(--ds-color-neutral-text-strong-default);
   }
 
   .form {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-md);
+    gap: var(--ds-dimension-spacing-stack-comfortable);
     max-inline-size: 40rem;
   }
 
   .formRow {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-    gap: var(--ds-spacing-md);
+    gap: var(--ds-dimension-spacing-stack-comfortable);
   }
 
   .formActions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
   }
 
   .success {
     display: inline-flex;
     align-items: center;
-    gap: var(--ds-spacing-xs);
-    font-size: var(--ds-font-size-sm);
+    gap: var(--ds-dimension-spacing-stack-default);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-success-text-default-default);
   }
 
   .stack {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-3xs);
+    gap: var(--ds-dimension-spacing-stack-compact);
   }
 
   // A reason is prose an operator wrote, so it wraps rather than stretching the table.
@@ -198,8 +201,8 @@
     display: block;
     max-inline-size: 22rem;
     overflow: hidden;
-    font-family: var(--ds-font-family-mono);
-    font-size: var(--ds-font-size-xs);
+    font-family: $font-mono;
+    font-size: var(--ds-typography-label-small-font-size);
     white-space: nowrap;
     text-overflow: ellipsis;
     color: var(--ds-color-neutral-text-subtle-default);

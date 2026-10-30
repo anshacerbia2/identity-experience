@@ -36,11 +36,11 @@ function RegisterOffer(): ReactElement | null {
     <>
       <div className={styles['formActions']}>
         <Button
-          icon={<Icon name="shield" />}
           onClick={() => {
             void navigate({ to: '/registrations/new' });
           }}
         >
+          <Icon name="shield" />
           <Message id={requesting ? 'request.open' : 'register.open'} />
         </Button>
       </div>

@@ -28,31 +28,40 @@ worked around.
 
 Taken with the repository owner before the first line of code:
 
-| Decision            | Choice                                                                 | Why                                                                                                                                                                                                                                               |
-| :------------------ | :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| BFF runtime         | TypeScript on Node.js, Fastify                                         | SAD-002 §3 fixes TypeScript for every container here; TDD-001 §Runtime                                                                                                                                                                            |
-| Browser application | Vite + React 19, rendered in the browser                               | STD-GLB-FE-001 §3 requires client-side rendering for authenticated admin portals; ADR-GLB-FE-003 (meta-framework) keeps Next.js for SSR/SEO needs this console does not have                                                                      |
-| Next.js             | not used                                                               | Its server rendering buys nothing behind a login. Its inline hydration scripts would force a nonce-based policy where TDD-001 has `script-src 'self'`, and its server actions and middleware add request paths the BFF would have to prove closed |
-| Session store       | PostgreSQL                                                             | TDD-001 §Server-Side Session: shared across replicas, survives restarts, no second persistence technology                                                                                                                                         |
-| Router              | TanStack Router                                                        | Typed search parameters, for the URL-held state STD-GLB-FE-001 §3 requires                                                                                                                                                                        |
-| Styling             | SCSS Modules, cascade layers, OKLCH, logical properties                | STD-GLB-FE-005 §3.1–3.3                                                                                                                                                                                                                           |
-| Components          | `packages/ui`, a local stand-in for `@scnx/core-ui` and `@scnx/system` | The UI Platform is still being built; `ADR-IAM-012` is the approved exception, below                                                                                                                                                              |
+| Decision            | Choice                                                                                              | Why                                                                                                                                                                                                                                               |
+| :------------------ | :-------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| BFF runtime         | TypeScript on Node.js, Fastify                                                                      | SAD-002 §3 fixes TypeScript for every container here; TDD-001 §Runtime                                                                                                                                                                            |
+| Browser application | Vite + React 19, rendered in the browser                                                            | STD-GLB-FE-001 §3 requires client-side rendering for authenticated admin portals; ADR-GLB-FE-003 (meta-framework) keeps Next.js for SSR/SEO needs this console does not have                                                                      |
+| Next.js             | not used                                                                                            | Its server rendering buys nothing behind a login. Its inline hydration scripts would force a nonce-based policy where TDD-001 has `script-src 'self'`, and its server actions and middleware add request paths the BFF would have to prove closed |
+| Session store       | PostgreSQL                                                                                          | TDD-001 §Server-Side Session: shared across replicas, survives restarts, no second persistence technology                                                                                                                                         |
+| Router              | TanStack Router                                                                                     | Typed search parameters, for the URL-held state STD-GLB-FE-001 §3 requires                                                                                                                                                                        |
+| Styling             | SCSS Modules, cascade layers, the platform's `scnx-platform` tokens, logical properties             | STD-GLB-FE-005 §3.1–3.5                                                                                                                                                                                                                           |
+| Components          | `@scnx/system` and `@scnx/core-ui`, through `packages/ui`; pinned tarballs in `vendor/ui-platform/` | The UI Platform's packages, not yet on npm (`ADR-UIP-REL-001`): one CI run on `main`, pinned by digest and verified for provenance in CI. The exit of `ADR-IAM-012`, below                                                                        |
 
-**✅ The UI Platform exception is `ADR-IAM-012`, accepted 2026-10-20, expiring 2027-04-20.** SAD-002
-§10 rejects bypassing the UI Platform "without an approved exception", and STD-GLB-FE-005 §3.5 makes
-applications consumers of its token pipeline. The owner chose to build first; `ADR-IAM-012` (an
-exception ADR, Tier 2, `GDC-004 §4.2`) now records the departure, bounds it and names its exit, and
-SAD-002 2.2.0 §10 names it. Until it expires, `packages/ui` stands in for `@scnx/system` and
-`@scnx/core-ui`, under the mitigations it states, which this repository keeps:
+**✅ The UI Platform's packages are taken in (2026-10-30); the exit of `ADR-IAM-012` is proposed.**
+SAD-002 §10 rejects bypassing the UI Platform "without an approved exception", and STD-GLB-FE-005
+§3.5 makes applications consumers of its published stylesheets. `ADR-IAM-012` (accepted 2026-10-20,
+expiring 2027-04-20) was that exception while `packages/ui` stood in for the platform. Its exit is
+"`@scnx/system` and `@scnx/core-ui` are released, and the entry point re-exports them".
 
-- it mirrors the platform's component APIs and its `--ds-*` token names;
-- applications import it through one entry point, so the exit is a re-export;
-- the contrast test and axe run in CI at WCAG 2.2 AA in both themes.
-
-**Exit:** the UI Platform releases both packages and the entry point re-exports them. **Review
-before 2027-04-20:** if they are not released by then, a new exception ADR supersedes `ADR-IAM-012`,
-or the CI waiver check blocks this repository (`ADR-IAM-012 §5.4`). Its README maps each component to
-its platform counterpart.
+- `packages/ui`'s entry point now re-exports `@scnx/system` and `@scnx/core-ui` 2.0.0-beta.0, in the
+  `scnx-platform` theme, and the stand-in's tokens (`_ds-temporary.scss`) are deleted. The packages
+  are the tarballs of ui-platform's CI run on `main` at `2113337`, pinned by sha256 in
+  `vendor/ui-platform/pin.json` and verified for SLSA provenance by CI's `ui-platform` job, as
+  `ui-platform-docs` installs them (`TDD-ui-platform-docs-001` D2). The owner chose pinned tarballs
+  over waiting for the npm release (2026-10-30).
+- Five components are the platform's composed with a rule it does not draw yet (`Button`,
+  `TextField`, `Panel`, `StatusPill`, `Table`), and three stay local because the platform publishes
+  none (`SelectField`, `TextAreaField`, `Icon`). `packages/ui/README.md` lists each with its reason,
+  the token map, and six findings for ui-platform.
+- **Proposed for the owner to relay to scnehaux-architecture:** `ADR-IAM-012` moves to `deprecated`
+  (`GDC-010 §2.4.3`, scenario A) with the note "exit met on 2026-10-30 by pinned CI tarballs; the
+  three local components (`SelectField`, `TextAreaField`, `Icon`) remain until ui-platform publishes a
+  select, a multi-line field and an icon set". If the owner holds that the exit needs the npm release,
+  the waiver instead narrows to those three components and to the vendored intake, with the same
+  expiry.
+- Organization's console takes the same pin and the same map (`ADR-ORG-008`), so both consoles render
+  one release.
 
 **Corrected in TDD-001 1.1.0.** The content security policy named only `script-src` and
 `connect-src`, so `default-src 'none'` would have refused the application's own stylesheets and

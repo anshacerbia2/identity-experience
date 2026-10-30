@@ -44,7 +44,8 @@ function RedriveForm({
           />
           {redrive.isError ? <MutationError error={redrive.error} /> : null}
           <div className={styles['actions']}>
-            <Button type="submit" disabled={redrive.isPending} icon={<Icon name="pulse" />}>
+            <Button type="submit" disabled={redrive.isPending}>
+              <Icon name="pulse" />
               <Message id="projections.redrive" />
             </Button>
             <Button variant="ghost" disabled={redrive.isPending} onClick={onCancel}>
@@ -127,7 +128,7 @@ export function TenantConvergence(): ReactElement {
               <Table.Cell>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="small"
                   aria-expanded={redriving === tenant.tenant_id}
                   onClick={() => {
                     setRedriving(tenant.tenant_id);
@@ -158,13 +159,13 @@ export function TenantConvergence(): ReactElement {
         <div className={styles['actions']}>
           <Button
             variant="secondary"
-            size="sm"
-            icon={<Icon name="pulse" />}
+            size="small"
             disabled={sweep.isPending}
             onClick={() => {
               sweep.mutate();
             }}
           >
+            <Icon name="pulse" />
             <Message id="projections.sweep" />
           </Button>
           {sweep.isSuccess ? (

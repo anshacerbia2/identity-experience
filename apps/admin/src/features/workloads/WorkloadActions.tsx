@@ -102,8 +102,8 @@ function ActionForm({
             type="submit"
             variant={action === 'retire' ? 'danger' : 'primary'}
             disabled={mutation.isPending}
-            icon={<Icon name={action === 'restore' ? 'check' : 'shield'} />}
           >
+            <Icon name={action === 'restore' ? 'check' : 'shield'} />
             <Message id={`lifecycle.${action}`} />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={mutation.isPending}>
@@ -187,11 +187,8 @@ function UpkeepForm({
         />
         {mutation.isError ? <MutationError error={mutation.error} /> : null}
         <div className={styles['actions']}>
-          <Button
-            type="submit"
-            disabled={mutation.isPending}
-            icon={<Icon name={upkeep === 'review' ? 'check' : 'key'} />}
-          >
+          <Button type="submit" disabled={mutation.isPending}>
+            <Icon name={upkeep === 'review' ? 'check' : 'key'} />
             <Message id={text.submit} />
           </Button>
           <Button variant="ghost" onClick={onCancel} disabled={mutation.isPending}>
@@ -235,7 +232,7 @@ export function WorkloadUpkeepActions({ workload }: { readonly workload: Workloa
             <Button
               key={item}
               variant="secondary"
-              size="sm"
+              size="small"
               aria-expanded={selected === item}
               onClick={() => {
                 setOpen(item);
@@ -295,7 +292,7 @@ export function WorkloadActions({ workload }: { readonly workload: Workload }): 
             <Button
               key={action}
               variant={action === 'retire' ? 'danger' : 'secondary'}
-              size="sm"
+              size="small"
               aria-expanded={selected === action}
               onClick={() => {
                 setOpen(action);

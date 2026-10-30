@@ -75,7 +75,8 @@ function ReassignForm({
         />
         {reassign.isError ? <MutationError error={reassign.error} /> : null}
         <div className={styles['actions']}>
-          <Button type="submit" disabled={reassign.isPending} icon={<Icon name="users" />}>
+          <Button type="submit" disabled={reassign.isPending}>
+            <Icon name="users" />
             <Message id="workloads.reassign" />
           </Button>
           <Button variant="ghost" disabled={reassign.isPending} onClick={onCancel}>
@@ -172,13 +173,13 @@ function Details({ workload }: { readonly workload: Workload }): ReactElement {
           <div className={styles['actions']}>
             <Button
               variant="secondary"
-              size="sm"
-              icon={<Icon name="users" />}
+              size="small"
               onClick={() => {
                 setReassigning(true);
                 setReassigned(false);
               }}
             >
+              <Icon name="users" />
               <Message id="workloads.reassign" />
             </Button>
           </div>
@@ -258,7 +259,8 @@ export function WorkloadLookup({
           required
         />
         <div className={styles['actions']}>
-          <Button type="submit" variant="secondary" icon={<Icon name="arrow" />}>
+          <Button type="submit" variant="secondary">
+            <Icon name="arrow" />
             <Message id="workloads.lookup.submit" />
           </Button>
         </div>

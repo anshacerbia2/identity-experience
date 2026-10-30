@@ -1,42 +1,44 @@
+@use '@identity-experience/ui/roles.scss' as *;
+
 @layer components {
   .root {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-lg);
+    gap: var(--ds-dimension-spacing-page);
   }
 
   .hero {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
     max-inline-size: 48rem;
-    padding-block: var(--ds-spacing-lg) var(--ds-spacing-xs);
+    padding-block: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-compact);
   }
 
   .eyebrow {
-    font-family: var(--ds-font-family-mono);
-    font-size: var(--ds-font-size-xs);
-    letter-spacing: var(--ds-letter-spacing-wide);
+    font-family: $font-mono;
+    font-size: var(--ds-typography-label-small-font-size);
+    letter-spacing: $hud-tracking;
     text-transform: uppercase;
     color: var(--ds-color-primary-text-default-default);
   }
 
   .title {
-    font-size: var(--ds-font-size-xl);
-    font-weight: var(--ds-font-weight-semibold);
+    font-size: var(--ds-typography-heading-medium-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
     letter-spacing: -0.03em;
     color: var(--ds-color-neutral-text-strong-default);
   }
 
   .lead {
     max-inline-size: 44rem;
-    line-height: var(--ds-line-height-relaxed);
+    line-height: var(--ds-typography-article-readable-line-height);
     color: var(--ds-color-neutral-text-subtle-default);
   }
 
   .quiet {
-    font-size: var(--ds-font-size-sm);
+    font-size: var(--ds-typography-body-small-font-size);
     color: var(--ds-color-neutral-text-subtle-default);
   }
 
@@ -44,7 +46,7 @@
     display: flex;
     flex-direction: column;
     align-self: stretch;
-    gap: var(--ds-spacing-md);
+    gap: var(--ds-dimension-spacing-stack-comfortable);
     max-inline-size: 40rem;
   }
 
@@ -52,34 +54,34 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--ds-spacing-sm);
+    gap: var(--ds-dimension-spacing-control-default);
   }
 
   .notice {
     display: flex;
     align-items: flex-start;
-    gap: var(--ds-spacing-xs);
+    gap: var(--ds-dimension-spacing-stack-default);
     max-inline-size: 44rem;
-    font-size: var(--ds-font-size-sm);
-    line-height: var(--ds-line-height-relaxed);
+    font-size: var(--ds-typography-body-small-font-size);
+    line-height: var(--ds-typography-article-readable-line-height);
     color: var(--ds-color-neutral-text-strong-default);
   }
 
   .account {
     display: flex;
     flex-direction: column;
-    gap: var(--ds-spacing-3xs);
+    gap: var(--ds-dimension-spacing-stack-compact);
     margin: 0;
 
     & > dt {
-      font-size: var(--ds-font-size-xs);
-      letter-spacing: var(--ds-letter-spacing-wide);
+      font-size: var(--ds-typography-label-small-font-size);
+      letter-spacing: $hud-tracking;
       text-transform: uppercase;
       color: var(--ds-color-neutral-text-subtle-default);
     }
 
     & > dd {
-      margin: 0 0 var(--ds-spacing-xs);
+      margin: 0 0 var(--ds-dimension-spacing-stack-default);
       overflow-wrap: anywhere;
       color: var(--ds-color-neutral-text-strong-default);
     }
@@ -88,9 +90,9 @@
   /* The temporary password, shown once (STD-IAM-001 3.1.0 §3.1). Selected whole on a click, so a
      manual copy takes all of it and nothing else. */
   .secret {
-    font-family: var(--ds-font-family-mono);
-    font-size: var(--ds-font-size-lg);
-    letter-spacing: var(--ds-letter-spacing-wide);
+    font-family: $font-mono;
+    font-size: var(--ds-typography-body-large-font-size);
+    letter-spacing: $hud-tracking;
     overflow-wrap: anywhere;
     user-select: all;
     color: var(--ds-color-neutral-text-strong-default);
