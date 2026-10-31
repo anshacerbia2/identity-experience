@@ -1,23 +1,27 @@
 @use '@identity-experience/ui/roles.scss' as *;
 @use '../shell/frame';
 
-// The preferences' cells in the frame's bar (AppFrame), in the HUD voice, each target as tall as the
-// bar: the language, its current code in ground on an ink bar as the brand book marks a current
-// area, and the theme, an icon in a square cell.
+// The preferences' cells in the frame's bar (AppFrame), in the HUD voice: the language, its current
+// code in ground on an ink chip as the brand book marks a current area, and the theme, an icon in a
+// square cell as tall as the bar.
 @layer components {
   .locale {
     @include frame.cell;
 
     display: flex;
-    align-items: stretch;
-    padding-inline: 0.25rem;
+    align-items: center;
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
   }
 
+  // A code is a 24px target (WCAG 2.2 SC 2.5.8). The current one is shown by an edge the other has
+  // not, as well as by its fill, so it is not told by colour alone (SC 1.4.1, SC 1.4.11).
   .code {
     display: flex;
     align-items: center;
-    min-block-size: $layout-bar;
-    padding-inline: 0.625rem;
+    min-block-size: 1.5rem;
+    padding-inline: 0.5rem;
+    border: var(--ds-dimension-border-width-default) solid transparent;
     color: $muted;
     transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
 
@@ -29,18 +33,10 @@
       color: $text;
     }
 
-    &:focus-visible {
-      outline-offset: -4px;
-    }
-
-    // The bar stands 1px above the box's middle, where the capitals' own middle is.
     &[aria-pressed='true'] {
+      border-color: var(--ds-color-neutral-surface-solid-default);
       color: var(--ds-color-neutral-text-contrast-default);
-      background: linear-gradient(
-          var(--ds-color-neutral-surface-solid-default),
-          var(--ds-color-neutral-surface-solid-default)
-        )
-        center calc(50% - 1px) / calc(100% - 0.5rem) 1.375rem no-repeat;
+      background: var(--ds-color-neutral-surface-solid-default);
     }
   }
 

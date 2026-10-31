@@ -18,8 +18,15 @@
     }
   }
 
+  // A way back is a link, told from the text around it by its underline as well as its colour (WCAG
+  // 2.2 SC 1.4.1), whatever class the page gives it.
   .back {
     margin-block-end: var(--ds-dimension-spacing-stack-default);
+
+    :where(a) {
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
   }
 
   .eyebrow {
