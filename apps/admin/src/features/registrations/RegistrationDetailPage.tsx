@@ -17,6 +17,7 @@ import {
   useRegistration,
 } from '@identity-experience/app-core/registrations';
 import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -63,13 +64,11 @@ function Findings({
   const actionable = findings.data.some(applicable);
   const selected = findings.data.find((finding) => finding.finding_id === applying && applicable(finding));
   return (
-    <section className={styles['section']} aria-labelledby="findings-title">
-      <h2 id="findings-title" className={styles['sectionTitle']}>
-        <Message id="findings.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="findings.description" />
-      </p>
+    <Sheet
+      id="findings"
+      title={<Message id="findings.title" />}
+      description={<Message id="findings.description" />}
+    >
       {applied ? (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -180,34 +179,47 @@ function Findings({
           }}
         />
       )}
-    </section>
+    </Sheet>
   );
 }
 
-function RegistrationView({ registrationId }: { readonly registrationId: string }): ReactElement {
+function RegistrationView({
+  registrationId,
+  back,
+}: {
+  readonly registrationId: string;
+  readonly back: ReactElement;
+}): ReactElement {
   const registration = useRegistration(registrationId);
   if (registration.isPending) {
-    return <Panel.Root aria-busy="true" />;
+    return (
+      <Block>
+        {back}
+        <Panel.Root aria-busy="true" />
+      </Block>
+    );
   }
   if (registration.isError) {
     return (
-      <ApiErrorPanel
-        error={registration.error}
-        onRetry={() => {
-          void registration.refetch();
-        }}
-      />
+      <Block>
+        {back}
+        <ApiErrorPanel
+          error={registration.error}
+          onRetry={() => {
+            void registration.refetch();
+          }}
+        />
+      </Block>
     );
   }
   const found = registration.data;
   return (
     <>
-      <header className={styles['hero']}>
-        <h1 className={styles['title']}>{found.client_key}</h1>
+      <PageHead back={back} eyebrow={<Message id="registrations.eyebrow" />} title={found.client_key}>
         <StatusPill tone={stateTone[found.state]}>
           <Message id={stateLabel(found.state)} />
         </StatusPill>
-      </header>
+      </PageHead>
       <RegistrationDetails registration={found} />
       <LifecycleActions registration={found} />
       <RegistrationChanges registration={found} provider />
@@ -227,16 +239,21 @@ export function RegistrationDetailPage({
   readonly registrationId: string;
 }): ReactElement {
   const session = useSession();
+  const back = (
+    <Link to="/registrations" className={styles['back']}>
+      <Icon name="arrow" />
+      <Message id="registration.back" />
+    </Link>
+  );
   return (
     <div className={styles['root']}>
-      <Link to="/registrations" className={styles['back']}>
-        <Icon name="arrow" />
-        <Message id="registration.back" />
-      </Link>
       {session.data?.authenticated === true ? (
-        <RegistrationView registrationId={registrationId} />
+        <RegistrationView registrationId={registrationId} back={back} />
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          {back}
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

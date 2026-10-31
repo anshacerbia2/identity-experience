@@ -72,10 +72,9 @@
     font-size: var(--ds-typography-body-small-font-size);
 
     & > dt {
-      font-size: var(--ds-typography-label-small-font-size);
-      letter-spacing: $hud-tracking;
-      text-transform: uppercase;
-      color: var(--ds-color-neutral-text-subtle-default);
+      color: $muted;
+
+      @include hud(0.625rem);
     }
 
     & > dd {

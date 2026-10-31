@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react';
 
 import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Block, PageHead } from '@identity-experience/app-core/shell';
 
 import { Message } from '@/core/i18n/Message';
 
@@ -23,17 +24,11 @@ export function PrincipalsPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="principals.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="principals.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="principals.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="principals.eyebrow" />}
+        title={<Message id="principals.title" />}
+        lead={<Message id="principals.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <PrincipalSearch />
@@ -46,7 +41,9 @@ export function PrincipalsPage(): ReactElement {
           <ApplicationDevelopers />
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

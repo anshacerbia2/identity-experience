@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { FormattedDate } from 'react-intl';
 
 import { signInHref } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -72,43 +73,37 @@ function Start({
 }): ReactElement {
   const [pending, setPending] = useState(false);
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="enrolment.start.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="enrolment.start.body" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {notice === null ? null : (
-          <Notice
-            id={requestSentence[notice.kind]}
-            {...(notice.kind === 'limited' ? { minutes: notice.minutes } : {})}
-          />
-        )}
-        <div className={styles['actions']}>
-          <Button
-            disabled={pending}
-            onClick={() => {
-              setPending(true);
-              void requestCode(token).then((outcome) => {
-                setPending(false);
-                if (outcome.kind === 'sent') {
-                  onSent(outcome.enrolmentId);
-                } else {
-                  onNotice(outcome);
-                }
-              });
-            }}
-          >
-            <Icon name="arrow" />
-            <Message id="enrolment.start.send" />
-          </Button>
-        </div>
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="enrolment-start"
+      title={<Message id="enrolment.start.title" />}
+      description={<Message id="enrolment.start.body" />}
+    >
+      {notice === null ? null : (
+        <Notice
+          id={requestSentence[notice.kind]}
+          {...(notice.kind === 'limited' ? { minutes: notice.minutes } : {})}
+        />
+      )}
+      <div className={styles['actions']}>
+        <Button
+          disabled={pending}
+          onClick={() => {
+            setPending(true);
+            void requestCode(token).then((outcome) => {
+              setPending(false);
+              if (outcome.kind === 'sent') {
+                onSent(outcome.enrolmentId);
+              } else {
+                onNotice(outcome);
+              }
+            });
+          }}
+        >
+          <Icon name="arrow" />
+          <Message id="enrolment.start.send" />
+        </Button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -138,51 +133,45 @@ function Code({
       onNotice(outcome);
     }
   });
+  // One sentence for every token: the description does not say whether the invitation can be used.
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="enrolment.code.title" />
-        </Panel.Title>
-        <Panel.Description>
-          {/* One sentence for every token: it does not say whether the invitation can be used. */}
-          <Message id="enrolment.code.sent" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
-          <TextField
-            {...form.register('code', {
-              validate: (value) => isCode(value) || t('enrolment.code.invalid', { length: codeLength }),
-            })}
-            label={<Message id="enrolment.code.label" />}
-            description={<Message id="enrolment.code.hint" values={{ length: codeLength }} />}
-            error={form.formState.errors.code?.message}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            spellCheck={false}
-            required
+    <Sheet
+      id="enrolment-code"
+      title={<Message id="enrolment.code.title" />}
+      description={<Message id="enrolment.code.sent" />}
+    >
+      <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
+        <TextField
+          {...form.register('code', {
+            validate: (value) => isCode(value) || t('enrolment.code.invalid', { length: codeLength }),
+          })}
+          label={<Message id="enrolment.code.label" />}
+          description={<Message id="enrolment.code.hint" values={{ length: codeLength }} />}
+          error={form.formState.errors.code?.message}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          spellCheck={false}
+          required
+        />
+        {notice === null ? null : (
+          <Notice
+            id={verifySentence[notice.kind]}
+            {...(notice.kind === 'limited' ? { minutes: notice.minutes } : {})}
           />
-          {notice === null ? null : (
-            <Notice
-              id={verifySentence[notice.kind]}
-              {...(notice.kind === 'limited' ? { minutes: notice.minutes } : {})}
-            />
-          )}
-          <div className={styles['actions']}>
-            <Button type="submit" disabled={pending}>
-              <Icon name="key" />
-              <Message id="enrolment.code.submit" />
+        )}
+        <div className={styles['actions']}>
+          <Button type="submit" disabled={pending}>
+            <Icon name="key" />
+            <Message id="enrolment.code.submit" />
+          </Button>
+          {notice?.kind === 'wrong' ? (
+            <Button variant="secondary" disabled={pending} onClick={onRestart}>
+              <Message id="enrolment.code.restart" />
             </Button>
-            {notice?.kind === 'wrong' ? (
-              <Button variant="secondary" disabled={pending} onClick={onRestart}>
-                <Message id="enrolment.code.restart" />
-              </Button>
-            ) : null}
-          </div>
-        </form>
-      </Panel.Body>
-    </Panel.Root>
+          ) : null}
+        </div>
+      </form>
+    </Sheet>
   );
 }
 
@@ -191,77 +180,71 @@ type Copy = 'none' | 'copied' | 'failed';
 function Created({ account }: { readonly account: EnrolledAccount }): ReactElement {
   const [copy, setCopy] = useState<Copy>('none');
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="enrolment.created.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="enrolment.created.body" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        <dl className={styles['account']}>
-          <dt>
-            <Message id="enrolment.created.username" />
-          </dt>
-          <dd>{account.username}</dd>
-          <dt>
-            <Message id="enrolment.created.password" />
-          </dt>
-          <dd>
-            <code className={styles['secret']} data-temporary-password="">
-              {account.temporaryPassword}
-            </code>
-          </dd>
-          <dt>
-            <Message id="enrolment.created.lapses" />
-          </dt>
-          <dd>
-            <FormattedDate value={account.lapsesAt} dateStyle="medium" timeStyle="short" />
-          </dd>
-        </dl>
-        <p className={styles['notice']}>
-          <Icon name="alert" />
-          <Message id="enrolment.created.once" />
-        </p>
-        <div className={styles['actions']}>
-          <Button
-            variant="secondary"
-            size="small"
-            onClick={() => {
-              setCopy('none');
-              navigator.clipboard.writeText(account.temporaryPassword).then(
-                () => {
-                  setCopy('copied');
-                },
-                () => {
-                  setCopy('failed');
-                },
-              );
-            }}
-          >
-            <Icon name="key" />
-            <Message id="enrolment.created.copy" />
-          </Button>
-          {copy === 'none' ? null : (
-            <span className={styles['quiet']} role="status">
-              <Message id={copy === 'copied' ? 'enrolment.created.copied' : 'enrolment.created.copyFailed'} />
-            </span>
-          )}
-        </div>
-        <p className={styles['quiet']}>
-          <Message id="enrolment.created.next" />
-        </p>
-        <div className={styles['actions']}>
-          {/* The hosted login: the kernel asks for the temporary password, then for the person's own. */}
-          <Button href={signInHref('/account/')}>
-            <Icon name="arrow" />
-            <Message id="enrolment.created.continue" />
-          </Button>
-        </div>
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="enrolment-created"
+      title={<Message id="enrolment.created.title" />}
+      description={<Message id="enrolment.created.body" />}
+    >
+      <dl className={styles['account']}>
+        <dt>
+          <Message id="enrolment.created.username" />
+        </dt>
+        <dd>{account.username}</dd>
+        <dt>
+          <Message id="enrolment.created.password" />
+        </dt>
+        <dd>
+          <code className={styles['secret']} data-temporary-password="">
+            {account.temporaryPassword}
+          </code>
+        </dd>
+        <dt>
+          <Message id="enrolment.created.lapses" />
+        </dt>
+        <dd>
+          <FormattedDate value={account.lapsesAt} dateStyle="medium" timeStyle="short" />
+        </dd>
+      </dl>
+      <p className={styles['notice']}>
+        <Icon name="alert" />
+        <Message id="enrolment.created.once" />
+      </p>
+      <div className={styles['actions']}>
+        <Button
+          variant="secondary"
+          size="small"
+          onClick={() => {
+            setCopy('none');
+            navigator.clipboard.writeText(account.temporaryPassword).then(
+              () => {
+                setCopy('copied');
+              },
+              () => {
+                setCopy('failed');
+              },
+            );
+          }}
+        >
+          <Icon name="key" />
+          <Message id="enrolment.created.copy" />
+        </Button>
+        {copy === 'none' ? null : (
+          <span className={styles['quiet']} role="status">
+            <Message id={copy === 'copied' ? 'enrolment.created.copied' : 'enrolment.created.copyFailed'} />
+          </span>
+        )}
+      </div>
+      <p className={styles['quiet']}>
+        <Message id="enrolment.created.next" />
+      </p>
+      <div className={styles['actions']}>
+        {/* The hosted login: the kernel asks for the temporary password, then for the person's own. */}
+        <Button href={signInHref('/account/')}>
+          <Icon name="arrow" />
+          <Message id="enrolment.created.continue" />
+        </Button>
+      </div>
+    </Sheet>
   );
 }
 
@@ -274,16 +257,18 @@ export function EnrolmentPage(): ReactElement {
     body = <Created account={phase.account} />;
   } else if (token === null) {
     body = (
-      <Panel.Root>
-        <Panel.Header>
-          <Panel.Title>
-            <Message id="enrolment.missing.title" />
-          </Panel.Title>
-          <Panel.Description>
-            <Message id="enrolment.missing.body" />
-          </Panel.Description>
-        </Panel.Header>
-      </Panel.Root>
+      <Block>
+        <Panel.Root>
+          <Panel.Header>
+            <Panel.Title>
+              <Message id="enrolment.missing.title" />
+            </Panel.Title>
+            <Panel.Description>
+              <Message id="enrolment.missing.body" />
+            </Panel.Description>
+          </Panel.Header>
+        </Panel.Root>
+      </Block>
     );
   } else if (phase.kind === 'code') {
     body = (
@@ -320,17 +305,11 @@ export function EnrolmentPage(): ReactElement {
 
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="enrolment.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="enrolment.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="enrolment.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="enrolment.eyebrow" />}
+        title={<Message id="enrolment.title" />}
+        lead={<Message id="enrolment.lead" />}
+      />
       {body}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 
 import { useSession, SignInRequired } from '@identity-experience/app-core/session';
+import { Block, PageHead } from '@identity-experience/app-core/shell';
 
 import { Message } from '@/core/i18n/Message';
 
@@ -19,17 +20,11 @@ export function WorkloadsPage(): ReactElement {
   const [lookedUp, setLookedUp] = useState<string | null>(null);
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="workloads.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="workloads.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="workloads.lead" />
-        </p>
-      </header>
+      <PageHead
+        eyebrow={<Message id="workloads.eyebrow" />}
+        title={<Message id="workloads.title" />}
+        lead={<Message id="workloads.lead" />}
+      />
       {session.data?.authenticated === true ? (
         <>
           <CreateWorkloadForm />
@@ -38,7 +33,9 @@ export function WorkloadsPage(): ReactElement {
           <EnrolmentCallers />
         </>
       ) : session.isPending ? null : (
-        <SignInRequired />
+        <Block>
+          <SignInRequired />
+        </Block>
       )}
     </div>
   );

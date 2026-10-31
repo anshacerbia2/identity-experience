@@ -11,6 +11,7 @@ import type {
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { profileLabel, useDecideRequest, useRequestQueue } from '@identity-experience/app-core/registrations';
 import { useSession } from '@identity-experience/app-core/session';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -247,10 +248,7 @@ export function RequestQueue(): ReactElement {
   }
 
   return (
-    <section className={styles['list']} aria-labelledby="request-queue-title">
-      <h2 id="request-queue-title" className={styles['sectionTitle']}>
-        <Message id="requestQueue.title" />
-      </h2>
+    <Sheet id="request-queue" title={<Message id="requestQueue.title" />}>
       {done === null ? null : (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -268,6 +266,6 @@ export function RequestQueue(): ReactElement {
         </p>
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }

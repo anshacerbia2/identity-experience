@@ -1,11 +1,12 @@
 import { Link } from '@tanstack/react-router';
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, SelectField, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -35,134 +36,131 @@ const notIndependentLabel: Readonly<Record<NotIndependent, MessageKey>> = {
 
 function CeremonyRecord({ ceremony }: { readonly ceremony: BootstrapCeremony }): ReactElement {
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="ceremony.record.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="ceremony.record.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        <p>
-          {ceremony.reviewed ? (
-            <StatusPill tone="success">
-              <Message id="ceremony.reviewed" values={{ count: ceremony.reviews.length }} />
-            </StatusPill>
+    <Sheet
+      id="ceremony-record"
+      title={<Message id="ceremony.record.title" />}
+      description={<Message id="ceremony.record.description" />}
+    >
+      <p>
+        {ceremony.reviewed ? (
+          <StatusPill tone="success">
+            <Message id="ceremony.reviewed" values={{ count: ceremony.reviews.length }} />
+          </StatusPill>
+        ) : (
+          <StatusPill tone="warning">
+            <Message id="ceremony.unreviewed" />
+          </StatusPill>
+        )}
+      </p>
+      <dl className={styles['details']}>
+        <dt>
+          <Message id="ceremony.field.operator" />
+        </dt>
+        <dd className={styles['mono']}>{ceremony.operator}</dd>
+        <dt>
+          <Message id="ceremony.field.witness" />
+        </dt>
+        <dd className={styles['mono']}>{ceremony.witness}</dd>
+        <dt>
+          <Message id="ceremony.field.reason" />
+        </dt>
+        <dd>{ceremony.reason}</dd>
+        <dt>
+          <Message id="ceremony.field.principal" />
+        </dt>
+        <dd>
+          {ceremony.principal_id === null ? (
+            <Message id="ceremony.principal.none" />
           ) : (
-            <StatusPill tone="warning">
-              <Message id="ceremony.unreviewed" />
-            </StatusPill>
+            <Link
+              to="/principals/$principalId"
+              params={{ principalId: ceremony.principal_id }}
+              className={styles['link']}
+            >
+              {ceremony.principal_id}
+            </Link>
           )}
-        </p>
-        <dl className={styles['details']}>
-          <dt>
-            <Message id="ceremony.field.operator" />
-          </dt>
-          <dd className={styles['mono']}>{ceremony.operator}</dd>
-          <dt>
-            <Message id="ceremony.field.witness" />
-          </dt>
-          <dd className={styles['mono']}>{ceremony.witness}</dd>
-          <dt>
-            <Message id="ceremony.field.reason" />
-          </dt>
-          <dd>{ceremony.reason}</dd>
-          <dt>
-            <Message id="ceremony.field.principal" />
-          </dt>
-          <dd>
-            {ceremony.principal_id === null ? (
-              <Message id="ceremony.principal.none" />
-            ) : (
-              <Link
-                to="/principals/$principalId"
-                params={{ principalId: ceremony.principal_id }}
-                className={styles['link']}
-              >
-                {ceremony.principal_id}
-              </Link>
-            )}
-          </dd>
-          <dt>
-            <Message id="ceremony.field.requested" />
-          </dt>
-          <dd>
-            <FormattedDate value={ceremony.requested_at} dateStyle="medium" timeStyle="short" />
-          </dd>
-        </dl>
-      </Panel.Body>
-    </Panel.Root>
+        </dd>
+        <dt>
+          <Message id="ceremony.field.requested" />
+        </dt>
+        <dd>
+          <FormattedDate value={ceremony.requested_at} dateStyle="medium" timeStyle="short" />
+        </dd>
+      </dl>
+    </Sheet>
   );
 }
 
-function Reviews({ ceremony }: { readonly ceremony: BootstrapCeremony }): ReactElement {
+// Reviews is the record's reviews, oldest first, and under them what the signed-in provider may do:
+// record a review, or read why they may not.
+function Reviews({
+  ceremony,
+  children,
+}: {
+  readonly ceremony: BootstrapCeremony;
+  readonly children: ReactNode;
+}): ReactElement {
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="ceremony.reviews.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="ceremony.reviews.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {ceremony.reviews.length === 0 ? (
-          <p className={styles['quiet']} role="status">
-            <Message id="ceremony.reviews.none" />
-          </p>
-        ) : (
-          <Table.Root caption={<Message id="ceremony.reviews.caption" />} captionHidden>
-            <Table.Head>
-              <Table.Row>
-                <Table.HeaderCell>
-                  <Message id="ceremony.reviews.column.reviewer" />
-                </Table.HeaderCell>
-                <Table.HeaderCell>
-                  <Message id="ceremony.reviews.column.outcome" />
-                </Table.HeaderCell>
-                <Table.HeaderCell>
-                  <Message id="ceremony.reviews.column.statement" />
-                </Table.HeaderCell>
-                <Table.HeaderCell>
-                  <Message id="ceremony.reviews.column.recordedBy" />
-                </Table.HeaderCell>
-                <Table.HeaderCell>
-                  <Message id="ceremony.reviews.column.when" />
-                </Table.HeaderCell>
+    <Sheet
+      id="ceremony-reviews"
+      title={<Message id="ceremony.reviews.title" />}
+      description={<Message id="ceremony.reviews.description" />}
+    >
+      {ceremony.reviews.length === 0 ? (
+        <p className={styles['quiet']} role="status">
+          <Message id="ceremony.reviews.none" />
+        </p>
+      ) : (
+        <Table.Root caption={<Message id="ceremony.reviews.caption" />} captionHidden>
+          <Table.Head>
+            <Table.Row>
+              <Table.HeaderCell>
+                <Message id="ceremony.reviews.column.reviewer" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="ceremony.reviews.column.outcome" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="ceremony.reviews.column.statement" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="ceremony.reviews.column.recordedBy" />
+              </Table.HeaderCell>
+              <Table.HeaderCell>
+                <Message id="ceremony.reviews.column.when" />
+              </Table.HeaderCell>
+            </Table.Row>
+          </Table.Head>
+          <Table.Body>
+            {ceremony.reviews.map((review) => (
+              <Table.Row key={review.review_id}>
+                <Table.Cell>{review.reviewer}</Table.Cell>
+                <Table.Cell>
+                  <StatusPill tone={review.outcome === 'satisfactory' ? 'success' : 'warning'}>
+                    <Message id={outcomeLabel[review.outcome]} />
+                  </StatusPill>
+                </Table.Cell>
+                <Table.Cell>{review.statement}</Table.Cell>
+                <Table.Cell>
+                  <Link
+                    to="/principals/$principalId"
+                    params={{ principalId: review.reviewer_principal_id }}
+                    className={styles['link']}
+                  >
+                    {review.reviewer_principal_id}
+                  </Link>
+                </Table.Cell>
+                <Table.Cell>
+                  <FormattedDate value={review.reviewed_at} dateStyle="medium" timeStyle="short" />
+                </Table.Cell>
               </Table.Row>
-            </Table.Head>
-            <Table.Body>
-              {ceremony.reviews.map((review) => (
-                <Table.Row key={review.review_id}>
-                  <Table.Cell>{review.reviewer}</Table.Cell>
-                  <Table.Cell>
-                    <StatusPill tone={review.outcome === 'satisfactory' ? 'success' : 'warning'}>
-                      <Message id={outcomeLabel[review.outcome]} />
-                    </StatusPill>
-                  </Table.Cell>
-                  <Table.Cell>{review.statement}</Table.Cell>
-                  <Table.Cell>
-                    <Link
-                      to="/principals/$principalId"
-                      params={{ principalId: review.reviewer_principal_id }}
-                      className={styles['link']}
-                    >
-                      {review.reviewer_principal_id}
-                    </Link>
-                  </Table.Cell>
-                  <Table.Cell>
-                    <FormattedDate value={review.reviewed_at} dateStyle="medium" timeStyle="short" />
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table.Root>
-        )}
-      </Panel.Body>
-    </Panel.Root>
+            ))}
+          </Table.Body>
+        </Table.Root>
+      )}
+      {children}
+    </Sheet>
   );
 }
 
@@ -287,16 +285,26 @@ function Ceremony(): ReactElement {
   const ceremony = useCeremony();
   const session = useSession();
   if (ceremony.isPending) {
-    return <Panel.Root aria-busy="true" />;
+    return (
+      <Block>
+        <Panel.Root aria-busy="true" />
+      </Block>
+    );
   }
   if (ceremony.isError) {
-    return <ApiErrorPanel error={ceremony.error} onRetry={() => void ceremony.refetch()} />;
+    return (
+      <Block>
+        <ApiErrorPanel error={ceremony.error} onRetry={() => void ceremony.refetch()} />
+      </Block>
+    );
   }
   if (ceremony.data === null) {
     return (
-      <p className={styles['quiet']} role="status">
-        <Message id="ceremony.none" />
-      </p>
+      <Block>
+        <p className={styles['quiet']} role="status">
+          <Message id="ceremony.none" />
+        </p>
+      </Block>
     );
   }
   const signedIn =
@@ -307,14 +315,15 @@ function Ceremony(): ReactElement {
   return (
     <>
       <CeremonyRecord ceremony={ceremony.data} />
-      <Reviews ceremony={ceremony.data} />
-      {ceremony.data.principal_id === null ? null : excluded === null ? (
-        <RecordReview ceremony={ceremony.data} displayName={signedIn.displayName} />
-      ) : (
-        <p className={styles['quiet']} role="status">
-          <Message id={notIndependentLabel[excluded]} />
-        </p>
-      )}
+      <Reviews ceremony={ceremony.data}>
+        {ceremony.data.principal_id === null ? null : excluded === null ? (
+          <RecordReview ceremony={ceremony.data} displayName={signedIn.displayName} />
+        ) : (
+          <p className={styles['quiet']} role="status">
+            <Message id={notIndependentLabel[excluded]} />
+          </p>
+        )}
+      </Reviews>
     </>
   );
 }
@@ -326,18 +335,18 @@ export function CeremonyPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="ceremony.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="ceremony.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="ceremony.lead" />
-        </p>
-      </header>
-      {session.data?.authenticated === true ? <Ceremony /> : session.isPending ? null : <SignInRequired />}
+      <PageHead
+        eyebrow={<Message id="ceremony.eyebrow" />}
+        title={<Message id="ceremony.title" />}
+        lead={<Message id="ceremony.lead" />}
+      />
+      {session.data?.authenticated === true ? (
+        <Ceremony />
+      ) : session.isPending ? null : (
+        <Block>
+          <SignInRequired />
+        </Block>
+      )}
     </div>
   );
 }

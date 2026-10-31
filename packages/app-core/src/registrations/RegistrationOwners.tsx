@@ -9,6 +9,7 @@ import { ApiErrorPanel } from '../api/ApiErrorPanel';
 import { activeOwners } from '../domain/registration';
 import { CoreMessage } from '../i18n/CoreMessage';
 import { useSession } from '../session/session';
+import { Sheet } from '../shell/Sheet';
 
 // RegistrationOwners lists who is accountable for a registration now (ADR-IAM-003). It is read-only:
 // a provider grants and revokes ownership, with a reason, and an owner cannot add another owner or
@@ -77,14 +78,12 @@ export function RegistrationOwners({ registrationId }: { readonly registrationId
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="owners-title">
-      <h2 id="owners-title" className={styles['sectionTitle']}>
-        <CoreMessage id="owners.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <CoreMessage id="owners.description" />
-      </p>
+    <Sheet
+      id="owners"
+      title={<CoreMessage id="owners.title" />}
+      description={<CoreMessage id="owners.description" />}
+    >
       {body}
-    </section>
+    </Sheet>
   );
 }

@@ -28,6 +28,7 @@ import {
 } from '../domain/registration';
 import { ReasonField, reasonRules } from '../forms/ReasonField';
 import { CoreMessage as Message, useCoreMessage } from '../i18n/CoreMessage';
+import { Sheet } from '../shell/Sheet';
 
 const tones: Readonly<Record<KeyState, StatusTone>> = {
   active: 'success',
@@ -326,13 +327,7 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="keys-title">
-      <h2 id="keys-title" className={styles['sectionTitle']}>
-        <Message id="keys.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="keys.description" />
-      </p>
+    <Sheet id="keys" title={<Message id="keys.title" />} description={<Message id="keys.description" />}>
       {notice === null ? null : (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -340,6 +335,6 @@ export function ClientKeys({ registration }: { readonly registration: Registrati
         </p>
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }

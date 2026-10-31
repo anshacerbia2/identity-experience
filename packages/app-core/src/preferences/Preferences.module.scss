@@ -1,0 +1,70 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use '../shell/frame';
+
+// The preferences' cells in the frame's bar (AppFrame), in the HUD voice: the language, its current
+// code in ground on an ink chip as the brand book marks a current area, and the theme, an icon in a
+// square cell as tall as the bar.
+@layer components {
+  .locale {
+    @include frame.cell;
+
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding-inline: 0.5rem;
+  }
+
+  // A code is a 24px target (WCAG 2.2 SC 2.5.8). The current one is shown by an edge the other has
+  // not, as well as by its fill, so it is not told by colour alone (SC 1.4.1, SC 1.4.11).
+  .code {
+    display: flex;
+    align-items: center;
+    min-block-size: 1.5rem;
+    padding-inline: 0.5rem;
+    border: var(--ds-dimension-border-width-default) solid transparent;
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    @include hud(0.6875rem);
+
+    line-height: 1;
+
+    &:hover {
+      color: $text;
+    }
+
+    &[aria-pressed='true'] {
+      border-color: var(--ds-color-neutral-surface-solid-default);
+      color: var(--ds-color-neutral-text-contrast-default);
+      background: var(--ds-color-neutral-surface-solid-default);
+    }
+  }
+
+  .theme {
+    @include frame.cell;
+
+    display: grid;
+    place-items: center;
+    inline-size: $layout-bar;
+    min-block-size: $layout-bar;
+    font-size: $icon-text;
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    &:hover {
+      color: $text;
+      background: $hover;
+    }
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+  }
+
+  @media (forced-colors: active) {
+    .code[aria-pressed='true'] {
+      color: HighlightText;
+      background: Highlight;
+    }
+  }
+}

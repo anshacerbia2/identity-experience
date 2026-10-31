@@ -3,6 +3,7 @@ import { useState, type ReactElement, type ReactNode } from 'react';
 import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -33,13 +34,7 @@ function HeldList({
   readonly children: ReactNode;
 }): ReactElement {
   return (
-    <section className={styles['section']} aria-labelledby={id}>
-      <h2 id={id} className={styles['sectionTitle']}>
-        <Message id={title} />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id={description} />
-      </p>
+    <Sheet id={id} title={<Message id={title} />} description={<Message id={description} />}>
       {open ? (
         children
       ) : (
@@ -50,7 +45,7 @@ function HeldList({
           </Button>
         </div>
       )}
-    </section>
+    </Sheet>
   );
 }
 
@@ -124,7 +119,7 @@ export function PendingSection(): ReactElement {
   }
   return (
     <HeldList
-      id="pending-title"
+      id="pending"
       title="principals.pending.title"
       description="principals.pending.description"
       show="principals.pending.show"
@@ -206,7 +201,7 @@ export function QuarantinedSection(): ReactElement {
   }
   return (
     <HeldList
-      id="quarantined-title"
+      id="quarantined"
       title="principals.quarantined.title"
       description="principals.quarantined.description"
       show="principals.quarantined.show"

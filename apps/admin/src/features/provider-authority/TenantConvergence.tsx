@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -146,64 +147,58 @@ export function TenantConvergence(): ReactElement {
   }
 
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="projections.unconverged.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="projections.unconverged.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        <div className={styles['actions']}>
-          <Button
-            variant="secondary"
-            size="small"
-            disabled={sweep.isPending}
-            onClick={() => {
-              sweep.mutate();
-            }}
-          >
-            <Icon name="pulse" />
-            <Message id="projections.sweep" />
-          </Button>
-          {sweep.isSuccess ? (
-            <p className={styles['quiet']} role="status">
-              <Message
-                id={sweep.data.snapshot_read ? 'projections.sweep.done' : 'projections.sweep.noSnapshot'}
-                values={{
-                  outcome: sweep.data.outcome,
-                  rows: sweep.data.snapshot_rows,
-                  unknown: sweep.data.unknown_organizations,
-                  marked: sweep.data.tenants_marked,
-                }}
-              />
-            </p>
-          ) : null}
-        </div>
-        {sweep.isError ? <MutationError error={sweep.error} /> : null}
-        {redriven === null ? null : (
-          <p className={styles['success']} role="status">
-            <Icon name="check" />
-            <Message id="projections.redrive.done" />
+    <Sheet
+      id="tenant-convergence"
+      title={<Message id="projections.unconverged.title" />}
+      description={<Message id="projections.unconverged.description" />}
+    >
+      <div className={styles['actions']}>
+        <Button
+          variant="secondary"
+          size="small"
+          disabled={sweep.isPending}
+          onClick={() => {
+            sweep.mutate();
+          }}
+        >
+          <Icon name="pulse" />
+          <Message id="projections.sweep" />
+        </Button>
+        {sweep.isSuccess ? (
+          <p className={styles['quiet']} role="status">
+            <Message
+              id={sweep.data.snapshot_read ? 'projections.sweep.done' : 'projections.sweep.noSnapshot'}
+              values={{
+                outcome: sweep.data.outcome,
+                rows: sweep.data.snapshot_rows,
+                unknown: sweep.data.unknown_organizations,
+                marked: sweep.data.tenants_marked,
+              }}
+            />
           </p>
-        )}
-        {body}
-        {redriving === null ? null : (
-          <RedriveForm
-            key={redriving}
-            tenantId={redriving}
-            onDone={() => {
-              setRedriven(redriving);
-              setRedriving(null);
-            }}
-            onCancel={() => {
-              setRedriving(null);
-            }}
-          />
-        )}
-      </Panel.Body>
-    </Panel.Root>
+        ) : null}
+      </div>
+      {sweep.isError ? <MutationError error={sweep.error} /> : null}
+      {redriven === null ? null : (
+        <p className={styles['success']} role="status">
+          <Icon name="check" />
+          <Message id="projections.redrive.done" />
+        </p>
+      )}
+      {body}
+      {redriving === null ? null : (
+        <RedriveForm
+          key={redriving}
+          tenantId={redriving}
+          onDone={() => {
+            setRedriven(redriving);
+            setRedriving(null);
+          }}
+          onCancel={() => {
+            setRedriving(null);
+          }}
+        />
+      )}
+    </Sheet>
   );
 }

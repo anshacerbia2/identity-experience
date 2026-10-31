@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
 
-import { Button, Icon } from '@identity-experience/ui';
+import { ButtonBase } from '@identity-experience/ui';
 
-import styles from './LocaleSwitch.module.scss';
 import { locales, selectLocale, usePreferences } from './preferences-store';
+import styles from './Preferences.module.scss';
 import { useCoreMessage } from '../i18n/CoreMessage';
 
 // The locale codes are shown as they are, EN and ID, which reads the same in every language and is
@@ -14,14 +14,10 @@ export function LocaleSwitch(): ReactElement {
   const t = useCoreMessage();
   return (
     <div className={styles['locale']} role="group" aria-label={t('shell.locale.label')}>
-      <span className={styles['localeIcon']} aria-hidden="true">
-        <Icon name="globe" />
-      </span>
       {locales.map((code) => (
-        <Button
+        <ButtonBase
           key={code}
-          variant="ghost"
-          size="small"
+          className={styles['code'] ?? ''}
           pressed={code === locale}
           onClick={() => {
             setLocale(code);
@@ -29,7 +25,7 @@ export function LocaleSwitch(): ReactElement {
           lang={code}
         >
           {code.toUpperCase()}
-        </Button>
+        </ButtonBase>
       ))}
     </div>
   );

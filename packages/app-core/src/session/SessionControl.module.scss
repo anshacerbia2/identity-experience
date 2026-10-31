@@ -1,0 +1,51 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use '../shell/frame';
+
+// The session's cells in the frame's bar (AppFrame), in the HUD voice: who is signed in, read out, and
+// each action a cell of the strip, its target as tall as the bar.
+@layer components {
+  .cell {
+    @include frame.cell;
+
+    display: flex;
+    align-items: center;
+    padding-inline: var(--ds-dimension-spacing-inset-default);
+  }
+
+  // Who is signed in, in the HUD face but in the case it is written in: without a display name it is
+  // the principal's identifier, which upper case would misstate.
+  .who {
+    max-inline-size: 16rem;
+    overflow-wrap: anywhere;
+    font: var(--ds-typography-weight-medium) 0.75rem / 1.4 $font-mono;
+    letter-spacing: 0.02em;
+    color: $text;
+  }
+
+  .action {
+    @include frame.cell;
+
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: $layout-bar;
+    padding-inline: var(--ds-dimension-spacing-inset-default);
+    color: $muted;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    @include hud(0.6875rem, 0.12em);
+
+    &:hover {
+      color: $text;
+      background: $hover;
+    }
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+
+    &:disabled {
+      cursor: progress;
+    }
+  }
+}

@@ -10,6 +10,7 @@ import type {
 } from '@identity-experience/app-core/domain/registration';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { useDecideRequest, useMyRequests } from '@identity-experience/app-core/registrations';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, type StatusTone } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -77,12 +78,14 @@ export function MyRequests(): ReactElement | null {
   }
   if (requests.isError) {
     return (
-      <ApiErrorPanel
-        error={requests.error}
-        onRetry={() => {
-          void requests.refetch();
-        }}
-      />
+      <Sheet id="requests" title={<Message id="requests.title" />}>
+        <ApiErrorPanel
+          error={requests.error}
+          onRetry={() => {
+            void requests.refetch();
+          }}
+        />
+      </Sheet>
     );
   }
   if (requests.data.length === 0) {
@@ -92,10 +95,7 @@ export function MyRequests(): ReactElement | null {
     (request) => request.request_id === withdrawing && request.state === 'proposed',
   );
   return (
-    <section className={styles['root']} aria-labelledby="requests-title">
-      <h2 id="requests-title" className={styles['sectionTitle']}>
-        <Message id="requests.title" />
-      </h2>
+    <Sheet id="requests" title={<Message id="requests.title" />}>
       <Table.Root caption={<Message id="requests.caption" />} captionHidden>
         <Table.Head>
           <Table.Row>
@@ -175,6 +175,6 @@ export function MyRequests(): ReactElement | null {
         <Icon name="shield" />
         <Message id="requests.note" />
       </p>
-    </section>
+    </Sheet>
   );
 }

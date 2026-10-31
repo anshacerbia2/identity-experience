@@ -1,0 +1,63 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use 'frame' as *;
+
+@layer components {
+  // As many columns as the room holds. Each cell draws the line above it and the line before it, and
+  // sits 1px up and 1px back, so the lines of the first row and the first column fall outside the
+  // block and are clipped: between two cells there is one line, and a short last row ends clean. The
+  // block draws its top line; what follows it, a sheet's rule or the title block, draws the bottom one.
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+
+    // A wide cell that does not fit the end of a row leaves a hole there; a later, narrower fact
+    // fills it, so no row ends short but the last.
+    grid-auto-flow: row dense;
+    overflow: clip;
+    border-block-start: var(--ds-dimension-border-width-default) solid $line;
+  }
+
+  .fact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    margin: -1px 0 0 -1px;
+
+    // Every cell starts its words as far in as the page's head does, so the first cell of each row
+    // lines up with the head above, whichever row it falls on.
+    padding: 1.125rem 1.25rem 1.25rem $pad;
+    border-block-start: var(--ds-dimension-border-width-default) solid $line;
+    border-inline-start: var(--ds-dimension-border-width-default) solid $line;
+
+    &[data-wide] {
+      grid-column: span 2;
+    }
+
+    @include narrow {
+      padding-inline-start: $pad-narrow;
+
+      &[data-wide] {
+        grid-column: auto;
+      }
+    }
+  }
+
+  .term {
+    color: $muted;
+
+    @include hud(0.625rem);
+  }
+
+  .value {
+    font-size: var(--ds-typography-body-small-font-size);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    color: var(--ds-color-neutral-text-strong-default);
+
+    &[data-mono] {
+      font-family: $font-mono;
+      font-size: 0.8125rem;
+    }
+  }
+}

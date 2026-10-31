@@ -5,6 +5,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -205,13 +206,11 @@ export function ParkedOperations(): ReactElement {
       : parked.data.find((operation) => operation.operation_id === redriving);
 
   return (
-    <section className={styles['section']} aria-labelledby="parked-title">
-      <h2 id="parked-title" className={styles['sectionTitle']}>
-        <Message id="operations.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="operations.description" />
-      </p>
+    <Sheet
+      id="parked"
+      title={<Message id="operations.title" />}
+      description={<Message id="operations.description" />}
+    >
       {outcome === null ? null : <RedriveOutcome operation={outcome} />}
       {body}
       {selected === undefined ? null : (
@@ -227,6 +226,6 @@ export function ParkedOperations(): ReactElement {
           }}
         />
       )}
-    </section>
+    </Sheet>
   );
 }

@@ -121,7 +121,7 @@ describe('TenantContextPage', () => {
     expect(requests.map((url) => url.pathname)).not.toContain('/api/v1/projections/tenant-context/report');
 
     await userEvent.click(read);
-    const region = await screen.findByRole('region', { name: 'The report an operator posts' });
+    const region = await screen.findByRole('region', { name: 'The report, as JSON' });
     expect(JSON.parse(region.textContent)).toEqual(report);
     expect(screen.getByText('4217')).toBeInTheDocument();
     expect(screen.getByText('identity-control')).toBeInTheDocument();

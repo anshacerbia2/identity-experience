@@ -10,6 +10,7 @@ import {
 } from '@identity-experience/app-core/domain/registration';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
 import { useOwners, useStanding } from '@identity-experience/app-core/registrations';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -229,13 +230,11 @@ export function OwnerManagement({ registration }: { readonly registration: Regis
       : owners.data.find((owner) => owner.principal_id === revoking && owner.revoked_at === null);
 
   return (
-    <section className={styles['section']} aria-labelledby="owner-management-title">
-      <h2 id="owner-management-title" className={styles['sectionTitle']}>
-        <Message id="owners.manage.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="owners.manage.description" />
-      </p>
+    <Sheet
+      id="owner-management"
+      title={<Message id="owners.manage.title" />}
+      description={<Message id="owners.manage.description" />}
+    >
       {done === null ? null : (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -285,6 +284,6 @@ export function OwnerManagement({ registration }: { readonly registration: Regis
         />
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }

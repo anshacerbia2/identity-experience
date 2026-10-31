@@ -5,6 +5,7 @@ import { FormattedDate } from 'react-intl';
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import { reviewOverdue } from '@identity-experience/app-core/domain/workload';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
 import { Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -15,6 +16,14 @@ import styles from './WorkloadsPage.module.scss';
 
 function MyWorkloads(): ReactElement {
   const mine = useMyWorkloads();
+  return (
+    <Sheet id="workloads" title={<Message id="workloads.list.title" />}>
+      <Workloads mine={mine} />
+    </Sheet>
+  );
+}
+
+function Workloads({ mine }: { readonly mine: ReturnType<typeof useMyWorkloads> }): ReactElement {
   if (mine.isPending) {
     return (
       <p className={styles['quiet']} role="status">
@@ -122,18 +131,18 @@ export function MyWorkloadsPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="mine.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="workloads.title" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="workloads.lead" />
-        </p>
-      </header>
-      {session.data?.authenticated === true ? <MyWorkloads /> : session.isPending ? null : <SignInRequired />}
+      <PageHead
+        eyebrow={<Message id="mine.eyebrow" />}
+        title={<Message id="workloads.title" />}
+        lead={<Message id="workloads.lead" />}
+      />
+      {session.data?.authenticated === true ? (
+        <MyWorkloads />
+      ) : session.isPending ? null : (
+        <Block>
+          <SignInRequired />
+        </Block>
+      )}
     </div>
   );
 }

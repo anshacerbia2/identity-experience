@@ -1,0 +1,147 @@
+@use '@identity-experience/ui/roles.scss' as *;
+@use 'frame' as *;
+
+// The cross's colour: text at 72%, where a rule meets a column's line (the brand book's 03 Lines).
+$cross: color-mix(in oklab, #{$text} 72%, transparent);
+
+@layer components {
+  // A sheet's rule is its top line, across the page, and the line of the sheet before it ends where it
+  // starts: one line, never two.
+  .sheet {
+    position: relative;
+    border-block-start: var(--ds-dimension-border-width-default) solid $line;
+    counter-increment: sheet;
+
+    // A cross where the rule meets each of the column's lines, once the column has its lines: an 11px
+    // plus over each joint. Below that width an end of the rule is the screen's edge, and a cross
+    // there would reach past it.
+    @include framed {
+      &::after {
+        position: absolute;
+        inset-block-start: -6px;
+        inset-inline: -6px;
+        block-size: 11px;
+        content: '';
+        pointer-events: none;
+        background:
+          linear-gradient($cross, $cross) 5px 0 / 1px 11px no-repeat,
+          linear-gradient($cross, $cross) 0 5px / 11px 1px no-repeat,
+          linear-gradient($cross, $cross) right 5px top 0 / 1px 11px no-repeat,
+          linear-gradient($cross, $cross) right 0 top 5px / 11px 1px no-repeat;
+      }
+    }
+  }
+
+  // The bar: `NN / Title ··· facts`, in the HUD voice. Opaque, so what scrolls beneath it never shows
+  // through. On a large screen it holds under the frame's bar while its sheet is read; elsewhere it
+  // scrolls with the page, and only the scope line stays in view (STD-GLB-FE-005 2.2.0 §3.10).
+  .bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem var(--ds-dimension-spacing-inset-default);
+    min-block-size: $sheet-bar;
+    padding: 0.875rem $pad;
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
+    color: $muted;
+    background: var(--ds-color-neutral-surface-canvas-default);
+
+    @include hud;
+
+    @include holding {
+      position: sticky;
+      inset-block-start: $held;
+      z-index: var(--ds-dimension-z-index-sticky);
+    }
+
+    @include narrow {
+      padding-inline: $pad-narrow;
+    }
+  }
+
+  // The sheet's number, counted by the page and drawn, not read. It turns blue while its sheet is the
+  // one being read (AppFrame marks it here).
+  .number {
+    display: inline-flex;
+    flex: none;
+    transition: color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    &::before {
+      content: counter(sheet, decimal-leading-zero) / '';
+    }
+
+    &::after {
+      margin-inline-start: 0.625rem;
+      content: '/' / '';
+      color: color-mix(in oklab, #{$text} 42%, transparent);
+    }
+
+    .sheet[data-here] & {
+      color: var(--ds-color-primary-text-default-default);
+    }
+  }
+
+  .title {
+    flex: 1 1 12rem;
+    min-inline-size: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    overflow-wrap: anywhere;
+    color: $text;
+  }
+
+  // The bar's facts, to the right of the title, a faint dot between two.
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0;
+
+    > div {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    > div + div::before {
+      margin-inline: 0.75rem;
+      content: '·' / '';
+      color: color-mix(in oklab, #{$text} 42%, transparent);
+    }
+
+    dd {
+      color: $text;
+    }
+  }
+
+  // The body keeps the stack a section had: its parts one under another, a control apart.
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-dimension-spacing-control-default);
+    padding: var(--ds-dimension-spacing-inset-comfortable) $pad 3rem;
+
+    @include narrow {
+      padding: var(--ds-dimension-spacing-inset-default) $pad-narrow 2rem;
+    }
+
+    // The body stretches what it holds, so a panel never narrows to its content (§Layout), but a
+    // button or a link standing on its own keeps its own width.
+    > :where(button, a) {
+      align-self: flex-start;
+    }
+
+    // The bar's line is the block's top line, so the block draws none of its own.
+    &[data-flush] {
+      gap: 0;
+      padding: 0;
+      margin-block-start: -1px;
+    }
+  }
+
+  .description {
+    max-inline-size: 72ch;
+    margin-block-end: var(--ds-dimension-spacing-stack-default);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: $muted;
+  }
+}

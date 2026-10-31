@@ -1,83 +1,190 @@
 @use '@identity-experience/ui/roles.scss' as *;
+@use '@identity-experience/app-core/frame.scss' as frame;
 
 @layer components {
   .root {
     display: flex;
     flex-direction: column;
-    gap: calc(2 * var(--ds-dimension-spacing-page));
+    container-type: inline-size;
   }
 
-  .hero {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ds-dimension-spacing-stack-comfortable);
-    max-inline-size: 48rem;
-    padding-block: var(--ds-dimension-spacing-section) var(--ds-dimension-spacing-inset-default);
-  }
-
-  .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ds-dimension-spacing-stack-default);
-    font-family: $font-mono;
-    font-size: var(--ds-typography-label-small-font-size);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-primary-text-default-default);
-  }
-
-  // A mark in the signal colour: the console is live.
-  .beacon {
-    inline-size: 0.5rem;
-    block-size: 0.5rem;
-    border-radius: var(--ds-dimension-radius-pill);
-    background: var(--ds-color-primary-surface-solid-default);
-  }
-
-  .title {
-    font-size: var(--ds-typography-heading-xlarge-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    line-height: var(--ds-typography-heading-large-line-height);
-    letter-spacing: -0.035em;
-    color: var(--ds-color-neutral-text-strong-default);
-  }
-
-  .lead {
-    max-inline-size: 40rem;
-    font-size: var(--ds-typography-body-default-font-size);
-    line-height: var(--ds-typography-article-readable-line-height);
-    color: var(--ds-color-neutral-text-subtle-default);
-  }
-
-  .grid {
+  // How a request travels: the four hops as cells that share their lines, what carries the request on
+  // written on the line between two. Four across once the page holds them, else one under another. A
+  // line in the signal draws across the hops once, as the documentation site draws a rule in: motion
+  // that shows the path, never looped, and still under reduced motion (packages/ui base).
+  .plane {
+    position: relative;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-    gap: var(--ds-dimension-spacing-page);
-  }
+    grid-template-columns: minmax(0, 1fr);
+    margin-block-start: var(--ds-dimension-spacing-stack-default);
+    border: 1px solid $line;
+    counter-reset: hop;
 
-  .card {
-    block-size: 100%;
-    transition:
-      transform var(--ds-motion-enter-duration) var(--ds-motion-feedback-easing),
-      border-color var(--ds-motion-enter-duration) var(--ds-motion-feedback-easing);
+    @container (width >= 48rem) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
 
-    &:hover {
-      border-color: var(--ds-color-neutral-border-strong-default);
-      transform: translateY(-2px);
+    &::before {
+      position: absolute;
+      inset-block-start: -1px;
+      inset-inline: -1px;
+      block-size: 2px;
+      content: '';
+      background: $signal;
+      transform-origin: left center;
+      animation: draw 1800ms cubic-bezier(0.65, 0, 0.35, 1) 300ms both;
     }
   }
 
-  .cardIcon {
+  @keyframes draw {
+    0% {
+      opacity: 1;
+      transform: scaleX(0);
+    }
+
+    70% {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    100% {
+      opacity: 0;
+      transform: scaleX(1);
+    }
+  }
+
+  .hop {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-inline-size: 0;
+    padding: 1.75rem 1.5rem 2rem;
+    counter-increment: hop;
+
+    & + & {
+      border-block-start: 1px solid $line;
+
+      @container (width >= 48rem) {
+        border-block-start: 0;
+        border-inline-start: 1px solid $line;
+      }
+    }
+
+    // The hop's letter, drawn, not read: A to D along the path.
+    &::before {
+      content: counter(hop, upper-alpha) / '';
+      color: $muted;
+
+      @include hud;
+    }
+  }
+
+  .hopName {
+    font-size: 1.125rem;
+    font-weight: var(--ds-typography-weight-semibold);
+    letter-spacing: -0.015em;
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .hopHolds {
+    font-size: var(--ds-typography-body-small-font-size);
+    line-height: 1.5;
+    color: $muted;
+  }
+
+  // What carries the request on, set on the line to the next hop: below the hop when they stand one
+  // under another; side by side, on the figure's top line where the two hops' line meets it, so it
+  // never covers a hop's words.
+  .onward {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 1.5rem;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid $line;
+    color: $text;
+    background: var(--ds-color-neutral-surface-canvas-default);
+    transform: translateY(50%);
+
+    @include hud(0.625rem);
+
+    &::after {
+      content: '↓' / '';
+      color: var(--ds-color-primary-text-default-default);
+    }
+
+    @container (width >= 48rem) {
+      inset-block: 0 auto;
+      inset-inline: auto 0;
+      transform: translate(50%, -50%);
+
+      &::after {
+        content: '→' / '';
+      }
+    }
+  }
+
+  // Cells that share their lines (the brand book's 03 Lines), run from line to line in their sheet. One
+  // column, then three once the page holds them.
+  .cells {
     display: grid;
-    place-items: center;
-    inline-size: var(--ds-dimension-size-control-default);
-    block-size: var(--ds-dimension-size-control-default);
-    margin-block-end: var(--ds-dimension-spacing-stack-default);
-    border: var(--ds-dimension-border-width-default) solid var(--ds-color-info-border-default-default);
-    border-radius: var(--ds-dimension-radius-control);
-    font-size: $icon-nav;
-    color: var(--ds-color-info-icon-default-default);
-    background: var(--ds-color-info-surface-subtle-default);
+    grid-template-columns: minmax(0, 1fr);
+    overflow: clip;
+    counter-reset: cell;
+
+    @container (width >= 44rem) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .cell {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin: -1px 0 0 -1px;
+    padding: 2rem 1.5rem 2.25rem;
+    border-block-start: 1px solid $line;
+    border-inline-start: 1px solid $line;
+
+    &:first-child {
+      padding-inline-start: frame.$pad;
+    }
+
+    // The cell's number, in the HUD voice: drawn, not read (its alternative text is empty), so a
+    // figure never enters the page's text.
+    &::before {
+      counter-increment: cell;
+      content: counter(cell, decimal-leading-zero) / '';
+      color: $muted;
+
+      @include hud;
+    }
+
+    @include frame.narrow {
+      &,
+      &:first-child {
+        padding-inline: frame.$pad-narrow;
+      }
+    }
+  }
+
+  // The brand book's card heading: Inter 600, 1rem, a little tight.
+  .cellTitle {
+    font-size: var(--ds-typography-heading-xsmall-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
+    letter-spacing: -0.012em;
+    color: var(--ds-color-neutral-text-strong-default);
+  }
+
+  .cellBody {
+    flex: 1;
+    font-size: var(--ds-typography-body-small-font-size);
+    line-height: 1.6;
+    color: $muted;
   }
 }

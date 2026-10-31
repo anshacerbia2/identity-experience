@@ -7,6 +7,7 @@ import {
   unmanagedClients,
   type DriftStatus,
 } from '@identity-experience/app-core/domain/registration';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, type StatusTone } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -61,32 +62,32 @@ function LastRun({ status }: { readonly status: DriftStatus }): ReactElement {
 export function DriftSummary(): ReactElement {
   const drift = useDriftStatus();
   const sweep = useRunSweep();
+  const title = <Message id="drift.title" />;
+  const description = <Message id="drift.description" />;
   if (drift.isPending) {
-    return <Panel.Root aria-busy="true" className={styles['summary']} />;
+    return (
+      <Sheet id="drift" title={title} description={description}>
+        <Panel.Root aria-busy="true" className={styles['summary']} />
+      </Sheet>
+    );
   }
   if (drift.isError) {
     return (
-      <ApiErrorPanel
-        error={drift.error}
-        onRetry={() => {
-          void drift.refetch();
-        }}
-      />
+      <Sheet id="drift" title={title} description={description}>
+        <ApiErrorPanel
+          error={drift.error}
+          onRetry={() => {
+            void drift.refetch();
+          }}
+        />
+      </Sheet>
     );
   }
   const open = drift.data.findings ?? [];
   const waiting = open.filter(needsOperator).length;
   const unmanaged = unmanagedClients(open);
   return (
-    <Panel.Root className={styles['summary']}>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="drift.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="drift.description" />
-        </Panel.Description>
-      </Panel.Header>
+    <Sheet id="drift" title={title} description={description}>
       <div className={styles['summaryRow']}>
         <LastRun status={drift.data} />
         <StatusPill tone={open.length === 0 ? 'success' : 'warning'}>
@@ -123,6 +124,6 @@ export function DriftSummary(): ReactElement {
         ) : null}
       </div>
       {sweep.isError ? <MutationError error={sweep.error} /> : null}
-    </Panel.Root>
+    </Sheet>
   );
 }

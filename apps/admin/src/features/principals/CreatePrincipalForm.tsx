@@ -2,6 +2,7 @@ import { useState, type ReactElement } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -54,12 +55,12 @@ function Created({
   );
 }
 
-// CreatePrincipalForm creates a person. identity-control issues the principal_id and creates the
+// CreatePrincipal creates a person. identity-control issues the principal_id and creates the
 // Keycloak user with no credential and UPDATE_PASSWORD outstanding (TDD-identity-control-001). The
 // panel that follows offers the person's first credential, a temporary password identity-control
 // generates and shows once (ADR-IAM-010); no password a provider types passes through here. A workload
 // is created on the Workloads page.
-export function CreatePrincipalForm(): ReactElement {
+function CreatePrincipal(): ReactElement {
   const t = useMessage();
   const [open, setOpen] = useState(false);
   const create = useCreatePrincipal();
@@ -147,5 +148,13 @@ export function CreatePrincipalForm(): ReactElement {
         </div>
       </form>
     </Panel.Root>
+  );
+}
+
+export function CreatePrincipalForm(): ReactElement {
+  return (
+    <Sheet id="create-principal" title={<Message id="principals.create.sheet" />}>
+      <CreatePrincipal />
+    </Sheet>
   );
 }

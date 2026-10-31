@@ -39,11 +39,27 @@ export const en = {
   'overview.card.principals.body':
     'Create Principals, see mappings whose Keycloak user is gone, and relink them with a stated reason.',
   'overview.status.inProgress': 'In progress',
+  'overview.plane.title': 'How a request travels',
+  'overview.plane.description':
+    'Each hop holds only what it must. The browser never holds a token, and the Identity Control API decides every action before the kernel sees it.',
+  'overview.plane.browser': 'Browser',
+  'overview.plane.browser.holds': 'An opaque session cookie',
+  'overview.plane.bff': 'Experience BFF',
+  'overview.plane.bff.holds': 'Every token, on the server',
+  'overview.plane.control': 'Identity Control API',
+  'overview.plane.control.holds': 'Every decision, reauthorized',
+  'overview.plane.kernel': 'Keycloak',
+  'overview.plane.kernel.holds': 'Credentials and sessions',
+  'overview.plane.hop.cookie': 'Cookie',
+  'overview.plane.hop.token': 'Access token',
+  'overview.plane.hop.admin': 'Admin API',
+  'overview.surfaces.title': 'What this console holds',
 
   'shell.nav.registrations': 'Registrations',
 
   'registrations.eyebrow': 'Protocol clients',
   'registrations.title': 'Registrations',
+  'registrations.list.title': 'Every registration',
   'registrations.lead':
     'Every client and protected resource the Identity Control API has registered, and whether Keycloak still holds what was registered.',
   'registrations.filter.label': 'Filter by state',
@@ -181,6 +197,7 @@ export const en = {
   'principals.lead':
     'Find a Principal and contain it, create a person, and give a Principal whose Keycloak user is gone a user again. A workload is created on the Workloads page. There is no list of every Principal: a search finds one, and a directory export is not administration.',
 
+  'principals.create.sheet': 'Create a person',
   'principals.create.open': 'Create a Principal',
   'principals.create.title': 'New Principal',
   'principals.create.body':
@@ -778,6 +795,7 @@ export const en = {
   'projections.report.title': 'The report an operator posts',
   'projections.report.description':
     'Read when you ask: it lists every active Membership. Its mark must stay its own, or Organization Control compares it against the wrong position.',
+  'projections.report.json': 'The report, as JSON',
   'projections.read': 'Read the report',
   'projections.again': 'Read it again',
   'projections.consumer': 'Consumer',
@@ -880,11 +898,27 @@ export const id: Messages = {
   'overview.card.principals.body':
     'Buat Principal, lihat mapping yang user Keycloak-nya hilang, dan relink dengan alasan tertulis.',
   'overview.status.inProgress': 'Sedang dibangun',
+  'overview.plane.title': 'Bagaimana sebuah permintaan berjalan',
+  'overview.plane.description':
+    'Setiap langkah hanya memegang yang perlu. Peramban tidak pernah memegang token, dan Identity Control API memutuskan setiap tindakan sebelum kernel melihatnya.',
+  'overview.plane.browser': 'Peramban',
+  'overview.plane.browser.holds': 'Cookie sesi yang buram',
+  'overview.plane.bff': 'BFF Experience',
+  'overview.plane.bff.holds': 'Setiap token, di server',
+  'overview.plane.control': 'Identity Control API',
+  'overview.plane.control.holds': 'Setiap keputusan, diotorisasi ulang',
+  'overview.plane.kernel': 'Keycloak',
+  'overview.plane.kernel.holds': 'Kredensial dan sesi',
+  'overview.plane.hop.cookie': 'Cookie',
+  'overview.plane.hop.token': 'Token akses',
+  'overview.plane.hop.admin': 'API admin',
+  'overview.surfaces.title': 'Isi konsol ini',
 
   'shell.nav.registrations': 'Registrasi',
 
   'registrations.eyebrow': 'Client protokol',
   'registrations.title': 'Registrasi',
+  'registrations.list.title': 'Semua registrasi',
   'registrations.lead':
     'Setiap client dan resource yang terdaftar di Identity Control API, dan apakah Keycloak masih memegang apa yang didaftarkan.',
   'registrations.filter.label': 'Saring berdasarkan status',
@@ -1021,6 +1055,7 @@ export const id: Messages = {
   'principals.lead':
     'Cari Principal dan tahan aksesnya, buat Principal untuk orang, dan beri user Keycloak lagi untuk Principal yang user-nya hilang. Workload dibuat di halaman Workload. Tidak ada daftar semua Principal: pencarian menemukan satu, dan mengekspor direktori bukan administrasi.',
 
+  'principals.create.sheet': 'Buat Principal untuk orang',
   'principals.create.open': 'Buat Principal',
   'principals.create.title': 'Principal baru',
   'principals.create.body':
@@ -1620,6 +1655,7 @@ export const id: Messages = {
   'projections.report.title': 'Laporan yang dikirim operator',
   'projections.report.description':
     'Dibaca saat kamu minta: laporan ini memuat setiap Membership aktif. Mark-nya harus tetap miliknya sendiri, atau Organization Control membandingkannya dengan posisi yang salah.',
+  'projections.report.json': 'Laporannya, dalam JSON',
   'projections.read': 'Baca laporan',
   'projections.again': 'Baca lagi',
   'projections.consumer': 'Konsumen',

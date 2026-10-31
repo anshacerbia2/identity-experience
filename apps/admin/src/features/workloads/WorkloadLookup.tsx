@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, TextField, type StatusTone } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -240,13 +241,11 @@ export function WorkloadLookup({
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="lookup-title">
-      <h2 id="lookup-title" className={styles['sectionTitle']}>
-        <Message id="workloads.lookup.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="workloads.lookup.body" />
-      </p>
+    <Sheet
+      id="lookup"
+      title={<Message id="workloads.lookup.title" />}
+      description={<Message id="workloads.lookup.body" />}
+    >
       <form className={styles['form']} onSubmit={(event) => void submit(event)} noValidate>
         <TextField
           {...form.register('principalId', {
@@ -266,6 +265,6 @@ export function WorkloadLookup({
         </div>
       </form>
       {body}
-    </section>
+    </Sheet>
   );
 }

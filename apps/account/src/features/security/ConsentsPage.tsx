@@ -3,7 +3,8 @@ import { FormattedDate, useIntl } from 'react-intl';
 
 import { ApiErrorPanel, MutationError, useIdempotencyKey } from '@identity-experience/app-core/api';
 import { SignInRequired, useSession } from '@identity-experience/app-core/session';
-import { Button, Icon, Panel, Table } from '@identity-experience/ui';
+import { Block, PageHead, Sheet } from '@identity-experience/app-core/shell';
+import { Button, Icon, Table } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
 
@@ -163,22 +164,18 @@ function Consents(): ReactElement {
     );
   }
 
+  // The table is captioned with the sheet's title and names the region itself.
   return (
-    <Panel.Root>
-      <Panel.Header>
-        <Panel.Title>
-          <Message id="consents.title" />
-        </Panel.Title>
-        <Panel.Description>
-          <Message id="consents.description" />
-        </Panel.Description>
-      </Panel.Header>
-      <Panel.Body>
-        {body}
-        {mutation.isError ? <MutationError error={mutation.error} /> : null}
-        {withdrawal === null ? null : <Withdrawn withdrawal={withdrawal} />}
-      </Panel.Body>
-    </Panel.Root>
+    <Sheet
+      id="consents"
+      title={<Message id="consents.title" />}
+      description={<Message id="consents.description" />}
+      named={false}
+    >
+      {body}
+      {mutation.isError ? <MutationError error={mutation.error} /> : null}
+      {withdrawal === null ? null : <Withdrawn withdrawal={withdrawal} />}
+    </Sheet>
   );
 }
 
@@ -189,18 +186,18 @@ export function ConsentsPage(): ReactElement {
   const session = useSession();
   return (
     <div className={styles['root']}>
-      <header className={styles['hero']}>
-        <p className={styles['eyebrow']}>
-          <Message id="security.eyebrow" />
-        </p>
-        <h1 className={styles['title']}>
-          <Message id="consents.pageTitle" />
-        </h1>
-        <p className={styles['lead']}>
-          <Message id="consents.lead" />
-        </p>
-      </header>
-      {session.data?.authenticated === true ? <Consents /> : session.isPending ? null : <SignInRequired />}
+      <PageHead
+        eyebrow={<Message id="security.eyebrow" />}
+        title={<Message id="consents.pageTitle" />}
+        lead={<Message id="consents.lead" />}
+      />
+      {session.data?.authenticated === true ? (
+        <Consents />
+      ) : session.isPending ? null : (
+        <Block>
+          <SignInRequired />
+        </Block>
+      )}
     </div>
   );
 }

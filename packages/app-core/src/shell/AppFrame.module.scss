@@ -1,32 +1,29 @@
 @use '@identity-experience/ui/roles.scss' as *;
+@use 'frame' as *;
 
-// The scope line's height: one line of small text and its padding. The bar sticks below it on a wide
-// screen, and the page pads its scroll position by it, so focus never lands under it.
-$scope-line: 2rem;
-
+// The frame is drawn as the brand book draws a page (scnehaux-design scnx-platform/Brand-Book.html, 03
+// Lines and 04 Layout): the scope line and a bar of cells across the screen, then a centre column
+// bounded by two lines, the rail and the page inside it sharing the line between them, and the page's
+// title block at its foot. One line between any two areas, never a box in a box.
 @layer components {
   // A component scrolled into view by focus lands below what stays in view, never under it
   // (WCAG 2.2 SC 2.4.11, technique C43; STD-GLB-FE-005 2.2.0 §3.10). scroll-padding defines "offsets
   // that define the optimal viewing region of a scrollport", used when an element is "scrolled into
   // view (e.g. for targeting or focusing operations)" (CSS Scroll Snap 1 §4.2). The document is the
-  // scroller, so the padding is on the root, whenever this frame is on the page.
+  // scroller, so the padding is on the root, whenever this frame is on the page. On a large screen
+  // what stays in view is the scope line, the bar and a held sheet bar; elsewhere the scope line only.
   :root:has(.root) {
-    scroll-padding-block-start: calc($scope-line + $layout-bar + var(--ds-dimension-spacing-stack-default));
+    scroll-padding-block-start: calc($scope-line + var(--ds-dimension-spacing-stack-default));
 
-    @media (width < 60rem), (height < 30rem) {
-      scroll-padding-block-start: calc($scope-line + var(--ds-dimension-spacing-stack-default));
+    @include holding {
+      scroll-padding-block-start: calc($held + $sheet-bar + var(--ds-dimension-spacing-stack-default));
     }
   }
 
-  // Mobile first: the rail sits above the page, and becomes a fixed column once there is room.
   .root {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     min-block-size: 100dvh;
-
-    @media (width >= 60rem) {
-      grid-template-columns: $layout-rail 1fr;
-    }
   }
 
   .skip {
@@ -35,152 +32,47 @@ $scope-line: 2rem;
     inset-inline-start: var(--ds-dimension-spacing-inline-default);
     z-index: var(--ds-dimension-z-index-overlay);
     padding: var(--ds-dimension-spacing-inset-compact) var(--ds-dimension-spacing-control-default);
-    border-radius: var(--ds-dimension-radius-control);
-    color: var(--ds-color-primary-text-contrast-default);
-    background: var(--ds-color-primary-surface-solid-default);
+    color: var(--ds-color-neutral-text-contrast-default);
+    background: var(--ds-color-neutral-surface-solid-default);
     transform: translateY(-200%);
+
+    @include hud;
 
     &:focus-visible {
       transform: none;
     }
   }
 
-  .rail {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ds-dimension-spacing-page);
-    padding: var(--ds-dimension-spacing-inset-default);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    background: var(--ds-color-neutral-surface-sunken-default);
-
-    @media (width >= 60rem) {
-      position: sticky;
-      inset-block-start: 0;
-      block-size: 100dvh;
-      padding: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-default);
-      border-block-end: 0;
-      border-inline-end: var(--ds-dimension-border-width-default) solid
-        var(--ds-color-neutral-border-subtle-default);
-    }
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-dimension-spacing-control-default);
-    padding-inline: var(--ds-dimension-spacing-inset-compact);
-    border-radius: var(--ds-dimension-radius-control);
-  }
-
-  .brandMark {
-    display: grid;
-    place-items: center;
-    inline-size: var(--ds-dimension-size-control-compact);
-    block-size: var(--ds-dimension-size-control-compact);
-    border: var(--ds-dimension-border-width-default) solid var(--ds-color-primary-border-default-default);
-    border-radius: var(--ds-dimension-radius-control);
-    font-size: $icon-nav;
-    color: var(--ds-color-primary-icon-default-default);
-    background: var(--ds-color-primary-surface-subtle-default);
-  }
-
-  .brandName {
-    font-size: var(--ds-typography-body-small-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: var(--ds-typography-heading-large-letter-spacing);
-    color: var(--ds-color-neutral-text-strong-default);
-  }
-
-  .nav {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-comfortable);
-  }
-
-  // One labelled group of the navigation: its label, then its links (TDD-identity-experience-003
-  // §Navigation groups by what an administrator acts on).
-  .navGroup {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-default);
-  }
-
-  .navSection {
-    padding-inline: var(--ds-dimension-spacing-control-default);
-    font-size: var(--ds-typography-label-small-font-size);
-    font-weight: var(--ds-typography-weight-medium);
-    letter-spacing: $hud-tracking;
-    text-transform: uppercase;
-    color: var(--ds-color-neutral-text-subtle-default);
-  }
-
-  .navList {
-    display: flex;
-    flex-direction: column;
-    gap: var(--ds-dimension-spacing-stack-compact);
-  }
-
-  .navItem {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: var(--ds-dimension-spacing-control-default);
-    min-block-size: var(--ds-dimension-size-control-default);
-    padding-inline: var(--ds-dimension-spacing-control-default);
-    border-radius: var(--ds-dimension-radius-control);
-    font-size: var(--ds-typography-body-small-font-size);
-    color: var(--ds-color-neutral-text-default-default);
-    transition: background-color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
-
-    &:hover {
-      background: var(--ds-color-neutral-surface-default-hover);
-    }
-
-    &[aria-current='page'] {
-      color: var(--ds-color-neutral-text-strong-default);
-      background: var(--ds-color-neutral-surface-default-selected);
-    }
-
-    // The current item's edge is marked: position is shown by a marker and a weight as well as a colour.
-    &[aria-current='page']::before {
-      position: absolute;
-      inset-block: var(--ds-dimension-spacing-stack-default);
-      inset-inline-start: 0;
-      inline-size: 3px;
-      border-radius: var(--ds-dimension-radius-pill);
-      content: '';
-      background: var(--ds-color-primary-surface-solid-default);
-    }
-  }
-
-  .column {
-    display: flex;
-    flex-direction: column;
-    min-inline-size: 0;
-  }
-
   // The scope line: what the person acts on, in one line that stays in view at every width (SAD-002
-  // 2.2.0 §8.7). Opaque, so what scrolls beneath never shows through its words. Its text is short by
-  // design and never wraps; were it ever longer than the line, it would end in an ellipsis rather than
-  // grow a second line.
+  // 2.2.0 §8.7), in the HUD voice. Opaque, so what scrolls beneath never shows through its words. Its
+  // text is short by design and never wraps; were it ever longer than the line, it would end in an
+  // ellipsis rather than grow a second line.
   .scope {
     position: sticky;
     inset-block-start: 0;
-    z-index: var(--ds-dimension-z-index-sticky);
+    z-index: calc(var(--ds-dimension-z-index-sticky) + 1);
     display: flex;
     align-items: center;
-    gap: var(--ds-dimension-spacing-stack-default);
+    gap: 0.5rem;
     block-size: $scope-line;
-    padding-inline: var(--ds-dimension-spacing-inset-comfortable);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    font-size: var(--ds-typography-label-small-font-size);
-    font-weight: var(--ds-typography-weight-semibold);
-    letter-spacing: $hud-tracking;
+    padding-inline: 1.25rem;
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
     white-space: nowrap;
-    color: var(--ds-color-neutral-text-strong-default);
+    color: $text;
     background: var(--ds-color-neutral-surface-canvas-default);
+
+    @include hud(0.6875rem, 0.12em);
+
+    @include narrow {
+      padding-inline: $pad-narrow;
+    }
+  }
+
+  .here {
+    flex: none;
+    inline-size: 6px;
+    block-size: 6px;
+    background: $signal;
   }
 
   .scopeText {
@@ -189,60 +81,260 @@ $scope-line: 2rem;
     text-overflow: ellipsis;
   }
 
-  // On a wide screen the bar stays in view below the scope line. Under the wide layout, or on a short
-  // viewport, it is static and scrolls away (below).
+  // The bar: a strip of cells across the screen, one line between any two, as the documentation
+  // site's nav strip. The mark and the application's name, the environment, then the session, the
+  // language and the theme. On a large screen it holds under the scope line.
   .bar {
-    flex-wrap: wrap;
-    padding-block: var(--ds-dimension-spacing-inset-compact);
-    position: sticky;
-    inset-block-start: $scope-line;
-    z-index: var(--ds-dimension-z-index-sticky);
+    z-index: calc(var(--ds-dimension-z-index-sticky) + 1);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--ds-dimension-spacing-stack-comfortable);
+    align-items: stretch;
     min-block-size: $layout-bar;
-    padding-inline: var(--ds-dimension-spacing-inset-comfortable);
-    border-block-end: var(--ds-dimension-border-width-default) solid
-      var(--ds-color-neutral-border-subtle-default);
-    background: var(--ds-color-neutral-surface-sunken-default);
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
+    background: var(--ds-color-neutral-surface-canvas-default);
+
+    @include holding {
+      position: sticky;
+      inset-block-start: $scope-line;
+    }
+
+    @include narrow {
+      flex-wrap: wrap;
+    }
   }
 
+  .brand {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.625rem;
+    padding-inline: 1.25rem 1.5rem;
+    border-inline-end: var(--ds-dimension-border-width-default) solid $line;
+    font-size: var(--ds-typography-body-small-font-size);
+    font-weight: var(--ds-typography-weight-semibold);
+    letter-spacing: -0.01em;
+    color: var(--ds-color-neutral-text-strong-default);
+
+    &:focus-visible {
+      outline-offset: -4px;
+    }
+
+    @include narrow {
+      min-block-size: $layout-bar;
+      padding-inline: $pad-narrow;
+      border-inline-end: 0;
+    }
+  }
+
+  // The mark is wider than tall, 21:9, and drawn in the ink role.
+  .brandMark {
+    flex: none;
+    inline-size: 2.25rem;
+    aspect-ratio: 21 / 9;
+    fill: var(--ds-color-neutral-surface-solid-default);
+  }
+
+  .environment {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    padding-inline: 1.25rem;
+
+    @include narrow {
+      padding-inline: $pad-narrow;
+    }
+  }
+
+  // Each cell draws the line before it (frame.cell).
   .barEnd {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ds-dimension-spacing-stack-default);
+    align-items: stretch;
+
+    @include narrow {
+      flex-wrap: wrap;
+      inline-size: 100%;
+    }
   }
 
-  .main {
+  // The centre column: from 75rem it is bounded by two lines, between margins, and the lines run to the
+  // foot of the page; below that it takes the screen's width, whose edges are its lines.
+  .column {
+    display: grid;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr);
     inline-size: 100%;
-    max-inline-size: $layout-page;
-    margin-inline: auto;
-    padding: var(--ds-dimension-spacing-section) var(--ds-dimension-spacing-inset-comfortable)
-      calc(2 * var(--ds-dimension-spacing-section));
+
+    @include wide {
+      grid-template-columns: $layout-rail minmax(0, 1fr);
+    }
+
+    @include framed {
+      inline-size: calc(100% - 2 * #{$margin});
+      max-inline-size: 96rem;
+      margin-inline: auto;
+      border-inline: var(--ds-dimension-border-width-default) solid $line;
+    }
+  }
+
+  // The rail: the navigation, as the documentation site's sidebar. On a large screen it holds under the
+  // bar and scrolls on its own; under the wide layout it is a block of links above the page. The line
+  // between it and the page is the page's (.page), so it runs to the foot however short the rail is.
+  .rail {
+    border-block-end: var(--ds-dimension-border-width-default) solid $line;
+
+    @include wide {
+      border-block-end: 0;
+    }
+
+    @include holding {
+      position: sticky;
+      inset-block-start: $held;
+      align-self: start;
+      max-block-size: calc(100dvh - #{$held});
+      overflow-y: auto;
+    }
+  }
+
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-dimension-spacing-inset-comfortable);
+    padding: 1.75rem 0.75rem;
+  }
+
+  // One labelled group of the navigation: its label, then its links (TDD-identity-experience-003
+  // §Navigation groups by what an administrator acts on).
+  .navGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .navSection {
+    padding-inline: 0.625rem;
+    color: $muted;
+
+    @include hud(0.625rem);
+  }
+
+  // 2px between items, so two backgrounds, under the pointer or current, never touch.
+  .navList {
+    display: grid;
+    gap: 2px;
+  }
+
+  .navItem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--ds-dimension-spacing-control-default);
+    min-block-size: 2rem;
+    padding-inline: 0.625rem;
+    font-size: var(--ds-typography-body-small-font-size);
+    color: $muted;
+    transition:
+      background-color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing),
+      color var(--ds-motion-feedback-duration) var(--ds-motion-feedback-easing);
+
+    &:hover {
+      color: $text;
+      background: $hover;
+    }
+
+    &:focus-visible {
+      outline-offset: -2px;
+    }
+
+    // The current page: a faint ink fill, the full text colour and weight, and a 2px marker in the
+    // signal, so position is shown by more than a colour.
+    &[aria-current='page'] {
+      font-weight: var(--ds-typography-weight-medium);
+      color: var(--ds-color-neutral-text-strong-default);
+      background: $current;
+    }
+
+    &[aria-current='page']::before {
+      position: absolute;
+      inset-block: 0.5rem;
+      inset-inline-start: 0;
+      inline-size: 2px;
+      content: '';
+      background: $signal;
+    }
+  }
+
+  .page {
+    display: flex;
+    flex-direction: column;
+    min-inline-size: 0;
+
+    @include wide {
+      border-inline-start: var(--ds-dimension-border-width-default) solid $line;
+    }
+  }
+
+  // The page counts its sheets (Sheet). Its parts draw their own padding, so a sheet's rule and its bar
+  // run from the rail's line to the column's.
+  .main {
+    flex: 1;
+    min-inline-size: 0;
+    counter-reset: sheet;
 
     &:focus {
       outline: none;
     }
   }
 
-  // Under the wide layout the rail is a bar above the page, its links in rows that wrap, so a phone
-  // or a tablet reaches the page without scrolling past a column of links, and nothing is hidden
-  // behind a control: every link stays in the tab order and the accessibility tree. The group labels
-  // are hidden only visually; they still name their lists. The page's inline padding narrows to
-  // leave the content more of a 320 CSS px screen (TDD-identity-experience-003 §Layout). The same
-  // bar organization-experience's copy of this frame shows under 60rem.
-  @media (width < 60rem) {
-    .rail {
-      flex-flow: row wrap;
-      align-items: center;
-      gap: var(--ds-dimension-spacing-control-default) var(--ds-dimension-spacing-page);
+  // The title block: a row of cells under the page, a term in the HUD voice over its value.
+  .titleBlock {
+    border-block-start: var(--ds-dimension-border-width-default) solid $line;
+  }
+
+  .titleCells {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    overflow: clip;
+
+    > div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      min-inline-size: 0;
+      margin: -1px 0 0 -1px;
+      padding: 1.125rem 1.25rem 1.5rem $pad;
+      border-block-start: var(--ds-dimension-border-width-default) solid $line;
+      border-inline-start: var(--ds-dimension-border-width-default) solid $line;
     }
 
+    dt {
+      color: $muted;
+
+      @include hud(0.625rem);
+    }
+
+    dd {
+      font-size: var(--ds-typography-label-small-font-size);
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      color: $text;
+    }
+
+    @include narrow {
+      > div {
+        padding-inline-start: $pad-narrow;
+      }
+    }
+  }
+
+  // Under the wide layout the rail is a block of links above the page, in rows that wrap, so a phone
+  // or a tablet reaches the page without scrolling past a column of links, and nothing is hidden
+  // behind a control: every link stays in the tab order and the accessibility tree. The group labels
+  // are hidden only visually; they still name their lists (TDD-identity-experience-003 §Layout). The
+  // same bar organization-experience's copy of this frame shows under 60rem.
+  @include narrow {
     .nav {
       flex-flow: row wrap;
-      gap: var(--ds-dimension-spacing-stack-compact) var(--ds-dimension-spacing-control-default);
+      gap: 2px var(--ds-dimension-spacing-control-default);
+      padding: var(--ds-dimension-spacing-stack-default) var(--ds-dimension-spacing-inset-compact);
     }
 
     .navGroup {
@@ -251,6 +343,7 @@ $scope-line: 2rem;
     }
 
     .navList {
+      display: flex;
       flex-flow: row wrap;
     }
 
@@ -261,35 +354,6 @@ $scope-line: 2rem;
       overflow: hidden;
       clip-path: inset(50%);
       white-space: nowrap;
-    }
-
-    .bar {
-      padding-inline: var(--ds-dimension-spacing-inset-default);
-    }
-
-    .scope {
-      padding-inline: var(--ds-dimension-spacing-inset-default);
-    }
-
-    .main {
-      padding: var(--ds-dimension-spacing-inset-comfortable) var(--ds-dimension-spacing-inset-default)
-        calc(2 * var(--ds-dimension-spacing-page));
-    }
-  }
-
-  // Under the wide layout, and on a short viewport such as a laptop zoomed to 400%, only the scope line
-  // stays in view (STD-GLB-FE-005 2.2.0 §3.10). Technique C34 un-fixes sticky regions by media query,
-  // because "sticky regions may block a big portion of the screen", and the Understanding document of
-  // SC 1.4.10 suggests that "at smaller viewport sizes that such components are modified to have static
-  // positioning". The bar with the environment and the session, and the navigation rail, scroll away.
-  @media (width < 60rem), (height < 30rem) {
-    .bar {
-      position: static;
-    }
-
-    .rail {
-      position: static;
-      block-size: auto;
     }
   }
 }

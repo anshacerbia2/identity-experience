@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel } from '@identity-experience/app-core/api';
 import { useSession } from '@identity-experience/app-core/session';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Panel, StatusPill, Table } from '@identity-experience/ui';
 
 import { Message } from '@/core/i18n/Message';
@@ -125,13 +126,11 @@ export function UnmappedSection(): ReactElement {
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="unmapped-title">
-      <h2 id="unmapped-title" className={styles['sectionTitle']}>
-        <Message id="principals.unmapped.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="principals.unmapped.description" />
-      </p>
+    <Sheet
+      id="unmapped"
+      title={<Message id="principals.unmapped.title" />}
+      description={<Message id="principals.unmapped.description" />}
+    >
       {body}
       {adopting === null ? null : (
         <AdoptOrphan
@@ -142,6 +141,6 @@ export function UnmappedSection(): ReactElement {
           }}
         />
       )}
-    </section>
+    </Sheet>
   );
 }

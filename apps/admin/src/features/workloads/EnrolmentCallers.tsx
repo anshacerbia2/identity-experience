@@ -4,6 +4,7 @@ import { FormattedDate } from 'react-intl';
 
 import { ApiErrorPanel, MutationError } from '@identity-experience/app-core/api';
 import { ReasonField, reasonRules } from '@identity-experience/app-core/forms';
+import { Sheet } from '@identity-experience/app-core/shell';
 import { Button, Icon, Panel, StatusPill, Table, TextAreaField, TextField } from '@identity-experience/ui';
 
 import { Message, useMessage } from '@/core/i18n/Message';
@@ -257,13 +258,11 @@ export function EnrolmentCallers(): ReactElement {
   }
 
   return (
-    <section className={styles['section']} aria-labelledby="enrolment-callers-title">
-      <h2 id="enrolment-callers-title" className={styles['sectionTitle']}>
-        <Message id="enrolmentCallers.title" />
-      </h2>
-      <p className={styles['quiet']}>
-        <Message id="enrolmentCallers.description" />
-      </p>
+    <Sheet
+      id="enrolment-callers"
+      title={<Message id="enrolmentCallers.title" />}
+      description={<Message id="enrolmentCallers.description" />}
+    >
       {done === null ? null : (
         <p className={styles['success']} role="status">
           <Icon name="check" />
@@ -313,6 +312,6 @@ export function EnrolmentCallers(): ReactElement {
         />
       )}
       {body}
-    </section>
+    </Sheet>
   );
 }
